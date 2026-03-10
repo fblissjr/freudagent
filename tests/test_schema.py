@@ -1,5 +1,7 @@
 """Tests for the Freud Schema package."""
 
+import pytest
+
 from freud_schema.archetypes import (
     ARCHETYPES,
     get_archetype,
@@ -27,19 +29,22 @@ from freud_schema.harness import (
 from freud_schema.models import ArchetypeCategory, FreudEntry
 
 
+@pytest.fixture(scope="module")
+def entries():
+    return load_entries()
+
+
 # ---------------------------------------------------------------------------
 # Dataset tests
 # ---------------------------------------------------------------------------
 
 
-def test_load_entries():
-    entries = load_entries()
-    assert len(entries) == 14
+def test_load_entries(entries):
+    assert len(entries) == 17
     assert all(isinstance(e, FreudEntry) for e in entries)
 
 
-def test_all_entries_have_8_columns():
-    entries = load_entries()
+def test_all_entries_have_8_columns(entries):
     for e in entries:
         assert e.book_title
         assert e.chapter_section
@@ -52,47 +57,40 @@ def test_all_entries_have_8_columns():
         assert e.translation_notes
 
 
-def test_filter_by_topic():
-    entries = load_entries()
+def test_filter_by_topic(entries):
     dream = filter_by_topic(entries, "Dream")
     assert len(dream) >= 3
     for e in dream:
         assert "dream" in e.core_topic.lower()
 
 
-def test_filter_by_book():
-    entries = load_entries()
+def test_filter_by_book(entries):
     interp = filter_by_book(entries, "Interpretation of Dreams")
-    assert len(interp) == 3
+    assert len(interp) == 4
 
 
-def test_search_terminology():
-    entries = load_entries()
+def test_search_terminology(entries):
     results = search_terminology(entries, "Id")
     assert any("Id" in e.key_terminology for e in results)
 
 
-def test_search_text():
-    entries = load_entries()
+def test_search_text(entries):
     results = search_text(entries, "wish")
     assert len(results) >= 1
 
 
-def test_list_topics():
-    entries = load_entries()
+def test_list_topics(entries):
     topics = list_topics(entries)
     assert len(topics) >= 5
     assert all(isinstance(t, str) for t in topics)
 
 
-def test_list_books():
-    entries = load_entries()
+def test_list_books(entries):
     books = list_books(entries)
     assert len(books) >= 5
 
 
-def test_to_jsonl_roundtrip():
-    entries = load_entries()
+def test_to_jsonl_roundtrip(entries):
     jsonl = to_jsonl(entries)
     lines = [l for l in jsonl.strip().split("\n") if l]
     assert len(lines) == len(entries)
@@ -124,7 +122,7 @@ def test_entry_model_serialization():
 
 
 def test_archetype_count():
-    assert len(ARCHETYPES) == 14
+    assert len(ARCHETYPES) == 19
 
 
 def test_all_archetypes_have_required_fields():
@@ -132,6 +130,8 @@ def test_all_archetypes_have_required_fields():
         assert a.name
         assert a.freudian_concept
         assert a.sdk_pattern
+        assert a.description
+        assert a.prompt_fragment
         assert isinstance(a.category, ArchetypeCategory)
 
 
@@ -145,13 +145,13 @@ def test_get_archetype():
 
 def test_get_by_category():
     arch = get_by_category(ArchetypeCategory.ARCHITECTURE)
-    assert len(arch) == 2
+    assert len(arch) == 3
     assert all(a.category == ArchetypeCategory.ARCHITECTURE for a in arch)
 
 
 def test_list_archetype_names():
     names = list_archetype_names()
-    assert len(names) == 14
+    assert len(names) == 19
     assert "structural-triad" in names
     assert "death-drive" in names
 
@@ -203,11 +203,12 @@ def test_compose_by_category():
     prompt = compose_by_category([ArchetypeCategory.ARCHITECTURE])
     assert "structural-triad" in prompt
     assert "censor-gate" in prompt
+    assert "psychic-apparatus" in prompt
 
 
 def test_compose_full():
     prompt = compose_full()
-    # Should contain all 14 archetypes
+    # Should contain all archetypes
     for a in ARCHETYPES:
         assert a.name in prompt
 
@@ -234,3 +235,30 @@ def test_preset_archetypes_exist():
             assert get_archetype(name) is not None, (
                 f"Preset {preset_name!r} references unknown archetype {name!r}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Relationship and referential integrity tests
+# ---------------------------------------------------------------------------
+
+
+def test_related_archetypes_bidirectional():
+    """If A lists B as related, B must list A. All references must be valid."""
+    for a in ARCHETYPES:
+        for related_name in a.related_archetypes:
+            related = get_archetype(related_name)
+            assert related is not None, (
+                f"Archetype {a.name!r} references unknown archetype {related_name!r}"
+            )
+            assert a.name in related.related_archetypes, (
+                f"{a.name!r} lists {related_name!r} as related, "
+                f"but {related_name!r} does not list {a.name!r} back"
+            )
+
+
+def test_new_jsonl_entries(entries):
+    """The 3 new JSONL entries load correctly."""
+    topics = [e.core_topic for e in entries]
+    assert "Topographic Model and Psychic Apparatus" in topics
+    assert "Neural Architecture and Information Processing" in topics
+    assert "Memory Systems and Deferred Meaning" in topics

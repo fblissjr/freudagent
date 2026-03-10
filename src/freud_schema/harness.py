@@ -91,6 +91,21 @@ PRESETS: dict[str, list[str]] = {
         "repetition-compulsion",
         "death-drive",
     ],
+    "hierarchical-orchestrator": [
+        "psychic-apparatus",
+        "topographic-hierarchy",
+        "dream-element",
+        "condensation",
+        "cathexis",
+        "death-drive",
+    ],
+    "progressive-refiner": [
+        "nachtraglichkeit",
+        "working-through",
+        "secondary-revision",
+        "parapraxis-monitor",
+        "pleasure-reality",
+    ],
 }
 
 
@@ -103,10 +118,12 @@ def compose_preset(
     """Build a system prompt from a named preset composition.
 
     Available presets:
-        careful-executor  - Safety-first with loop detection and graceful termination
-        creative-explorer - Exploratory reasoning with resource awareness
-        iterative-refiner - Feedback-driven refinement with bias detection
-        minimal-safe      - Lightweight safety baseline
+        careful-executor         - Safety-first with loop detection and graceful termination
+        creative-explorer        - Exploratory reasoning with resource awareness
+        iterative-refiner        - Feedback-driven refinement with bias detection
+        minimal-safe             - Lightweight safety baseline
+        hierarchical-orchestrator - Tree-shaped orchestrator with ephemeral subagents
+        progressive-refiner      - Feedback-loop driven data refinement with retroactive meaning
     """
     if preset not in PRESETS:
         available = ", ".join(sorted(PRESETS))

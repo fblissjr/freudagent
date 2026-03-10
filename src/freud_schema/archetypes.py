@@ -22,13 +22,16 @@ ARCHETYPES: list[AgenticArchetype] = [
         description=(
             "The Id generates raw impulses (unconstrained tool calls). "
             "The Ego mediates between impulse and reality (the orchestrator agent). "
-            "The Superego enforces constraints and policies (guardrails, system prompts)."
+            "The Superego enforces constraints and policies (guardrails, system prompts). "
+            "This is an intra-agent pattern: three roles within one agent. "
+            "For inter-agent topology (how agents relate to each other), see psychic-apparatus."
         ),
         prompt_fragment=(
             "You operate as a tripartite system: an impulse layer proposes actions, "
             "a reasoning layer evaluates feasibility, and a constraint layer enforces "
             "safety boundaries. No action bypasses all three."
         ),
+        related_archetypes=["psychic-apparatus"],
     ),
     AgenticArchetype(
         name="censor-gate",
@@ -63,6 +66,7 @@ ARCHETYPES: list[AgenticArchetype] = [
             "Multiple inputs should converge into one coherent output, like a dream "
             "condensing many thoughts into one image."
         ),
+        related_archetypes=["secondary-revision"],
     ),
     AgenticArchetype(
         name="displacement",
@@ -145,6 +149,7 @@ ARCHETYPES: list[AgenticArchetype] = [
             "exploring tangents, or performing unnecessary cleanup. Recognize "
             "completion and terminate gracefully."
         ),
+        related_archetypes=["dream-element"],
     ),
 
     # ---- Observation (Analytic Technique) ----
@@ -213,24 +218,31 @@ ARCHETYPES: list[AgenticArchetype] = [
             "incorporate feedback, and refine iteratively. Understanding the problem "
             "deepens with each pass."
         ),
+        related_archetypes=["nachtraglichkeit"],
     ),
 
     # ---- Resource Management (Libidinal Economy) ----
     AgenticArchetype(
         name="cathexis",
         freudian_concept="Cathexis (Besetzung) / Libidinal Economy",
-        sdk_pattern="Attention and resource allocation",
+        sdk_pattern="Attention and resource allocation across the memory hierarchy",
         category=ArchetypeCategory.RESOURCE_MANAGEMENT,
         description=(
             "Libido is invested in objects; withdrawal causes anxiety. Agent "
             "attention (context window, tool call budget) is a finite resource "
-            "that must be consciously invested and withdrawn."
+            "that must be consciously invested and withdrawn. Invest at the right "
+            "level of the hierarchy: don't dump database contents into context; "
+            "invest in precise queries. A smaller, precisely-invested context "
+            "outperforms a diffusely-invested large one."
         ),
         prompt_fragment=(
             "Allocate your attention deliberately. Invest deeply in the most "
             "relevant sources and withdraw from tangential exploration. Your "
-            "context window is finite—spend it wisely."
+            "context window is finite—spend it wisely. Prefer precise queries "
+            "over bulk retrieval. A smaller context with high-quality investment "
+            "outperforms a large context with diffuse attention."
         ),
+        related_archetypes=["topographic-hierarchy"],
     ),
     AgenticArchetype(
         name="sublimation",
@@ -248,6 +260,122 @@ ARCHETYPES: list[AgenticArchetype] = [
             "closest productive alternative that serves the user's underlying "
             "need. Transform constraints into opportunities."
         ),
+    ),
+
+    # ---- Architecture (Inter-Agent Topology) ----
+    AgenticArchetype(
+        name="psychic-apparatus",
+        freudian_concept="Psychic Apparatus (Psychischer Apparat)",
+        sdk_pattern="Hierarchical orchestrator with ephemeral subagents",
+        category=ArchetypeCategory.ARCHITECTURE,
+        description=(
+            "Freud explicitly argued the psychic apparatus is NOT a reflex arc—it is "
+            "a system of agencies (Instanzen) with distinct stations. Agent architecture "
+            "should be a tree, not a pipeline: the orchestrator decomposes tasks, "
+            "subagents execute, results return up. No agent-to-agent handoffs; "
+            "always through the parent. This is inter-agent topology, complementing "
+            "the intra-agent structural-triad."
+        ),
+        prompt_fragment=(
+            "Decompose complex tasks into subtasks and delegate to specialized "
+            "subagents. Results flow back up through you—never sideways between "
+            "subagents. You are the tree's root, not a node in a pipeline. "
+            "Each subagent receives only the context it needs to execute."
+        ),
+        related_archetypes=["structural-triad", "dream-element", "topographic-hierarchy"],
+    ),
+
+    # ---- Resource Management (Information Architecture) ----
+    AgenticArchetype(
+        name="topographic-hierarchy",
+        freudian_concept="Topographic Model (Conscious / Preconscious / Unconscious)",
+        sdk_pattern="Context window tiering across memory hierarchy",
+        category=ArchetypeCategory.RESOURCE_MANAGEMENT,
+        description=(
+            "Freud's topographic model maps to a RAM hierarchy. Conscious = registers "
+            "(orchestrator's active context window). Preconscious = cache (tool "
+            "descriptions, SKILLS.md, loaded on demand). Unconscious = disk "
+            "(databases, files, retrieved via tool calls). The structural-triad "
+            "tells you WHO decides; this tells you WHERE information lives and "
+            "HOW it becomes accessible."
+        ),
+        prompt_fragment=(
+            "Organize information by accessibility. Keep only coordination context "
+            "in your active window (conscious). Reference tool descriptions and "
+            "skill definitions on demand (preconscious). Retrieve from databases "
+            "and files only when needed (unconscious). Never promote bulk data "
+            "to active context—query precisely."
+        ),
+        related_archetypes=["cathexis", "psychic-apparatus"],
+    ),
+
+    # ---- Control Flow (Ephemeral Execution) ----
+    AgenticArchetype(
+        name="dream-element",
+        freudian_concept="Dream Elements (Traumelemente)",
+        sdk_pattern="Ephemeral subagent lifecycle",
+        category=ArchetypeCategory.CONTROL_FLOW,
+        description=(
+            "Dream elements are ephemeral: they appear during sleep, perform the work "
+            "of condensation and displacement, and dissolve on waking. Subagents should "
+            "follow the same pattern—spin up with precise context, execute their task, "
+            "and disappear. No state corruption from unnecessary persistence. "
+            "death-drive handles knowing when to STOP; dream-element handles never "
+            "STARTING with the assumption of persistence."
+        ),
+        prompt_fragment=(
+            "Treat subagents as ephemeral. Spin them up with precisely the context "
+            "they need, let them execute, consume their output, and let them "
+            "disappear. Do not preserve subagent state between invocations. "
+            "Each activation is fresh—like a dream element that exists only "
+            "for the duration of its work."
+        ),
+        related_archetypes=["death-drive", "psychic-apparatus"],
+    ),
+
+    # ---- Communication (Retroactive Meaning) ----
+    AgenticArchetype(
+        name="nachtraglichkeit",
+        freudian_concept="Nachtraglichkeit (Deferred Action / Afterwardness)",
+        sdk_pattern="Progressive data refinement through feedback loops",
+        category=ArchetypeCategory.COMMUNICATION,
+        description=(
+            "Experience gains meaning retroactively when later experience provides "
+            "the framework. You don't prepare data first and use it second—you use "
+            "it, and the using prepares it. Each cycle of structured output and "
+            "human feedback retroactively improves the data for the next cycle. "
+            "Meaning flows backward."
+        ),
+        prompt_fragment=(
+            "Don't wait for perfect data before acting. Use what you have now, "
+            "store structured outputs, and close the feedback loop. Each iteration "
+            "retroactively gives meaning to previous outputs. Today's run restructures "
+            "yesterday's data. The loop between use and preparation is the method."
+        ),
+        related_archetypes=["working-through", "secondary-revision"],
+    ),
+
+    # ---- Reasoning (Context Curation) ----
+    AgenticArchetype(
+        name="secondary-revision",
+        freudian_concept="Secondary Revision (Sekundare Bearbeitung)",
+        sdk_pattern="Context curation and narrative coherence",
+        category=ArchetypeCategory.REASONING,
+        description=(
+            "Secondary revision is the dream-work's final operation: imposing narrative "
+            "coherence on the assembled dream content. Before filling the context window, "
+            "select, organize, and format for maximum coherence. Preserve visual and "
+            "structural semantics rather than flattening to text. condensation handles "
+            "COMPRESSING multiple sources; secondary-revision handles CURATING what "
+            "enters the window and how it's presented."
+        ),
+        prompt_fragment=(
+            "Before acting, curate your context. Select the most relevant information, "
+            "organize it for coherence, and preserve structural semantics. What enters "
+            "your context window matters more than how much. Format matters—visual "
+            "layout carries semantic weight. Edit your inputs, don't just accumulate them."
+        ),
+        related_archetypes=["condensation", "nachtraglichkeit"],
     ),
 ]
 
@@ -285,4 +413,5 @@ def search_archetypes(query: str) -> list[AgenticArchetype]:
         or q in a.freudian_concept.lower()
         or q in a.sdk_pattern.lower()
         or q in a.description.lower()
+        or q in a.prompt_fragment.lower()
     ]

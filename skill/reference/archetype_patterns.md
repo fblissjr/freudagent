@@ -1,6 +1,6 @@
 # Archetype Patterns Reference
 
-Detailed catalog of all 14 Freudian agentic archetypes with usage examples.
+Detailed catalog of all 19 Freudian agentic archetypes with usage examples.
 
 ## Architecture
 
@@ -181,3 +181,133 @@ productive alternative that serves the user's underlying need.
 
 **When to use**: When safety constraints or capability limits prevent
 direct fulfillment. Transform constraints into opportunities.
+
+### topographic-hierarchy (Topographic Model)
+
+**Pattern**: Context window tiering across memory hierarchy
+
+Organize information by accessibility: active context (conscious),
+on-demand references (preconscious), and database/file retrieval
+(unconscious). Never promote bulk data to active context.
+
+**When to use**: Any agent managing multiple information sources at
+different levels of abstraction. Orchestrators coordinating tool calls.
+
+**SDK example**:
+```python
+# Conscious: minimal coordination context in system prompt
+# Preconscious: tool descriptions loaded by the SDK on demand
+# Unconscious: database queries only when needed
+result = await agent.run(
+    "Find the relevant records",  # agent decides WHEN to query
+    tools=[database_search, file_read],  # tools available, not pre-loaded
+)
+```
+
+**Anti-pattern**: Loading entire database tables into the context window.
+The unconscious should be queried precisely, not dumped into consciousness.
+
+---
+
+## Inter-Agent Architecture
+
+### psychic-apparatus (Psychischer Apparat)
+
+**Pattern**: Hierarchical orchestrator with ephemeral subagents
+
+The psychic apparatus is a system of agencies, not a reflex arc. Agent
+architecture should be a tree: orchestrator decomposes, subagents execute,
+results return up. No agent-to-agent handoffs.
+
+**When to use**: Multi-agent systems. Any architecture where tasks need
+decomposition and delegation.
+
+**SDK example**:
+```python
+# Tree topology: orchestrator delegates, results flow up
+async def orchestrator(task: str):
+    subtasks = decompose(task)
+    results = []
+    for subtask in subtasks:
+        # Subagent gets only what it needs
+        result = await subagent.run(subtask, context=minimal_context(subtask))
+        results.append(result)
+    return synthesize(results)
+```
+
+**Anti-pattern**: Pipeline architectures where Agent A hands off to Agent B
+which hands off to Agent C. Context degrades at each hop. Always return
+through the parent.
+
+### dream-element (Traumelemente)
+
+**Pattern**: Ephemeral subagent lifecycle
+
+Subagents spin up with precise context, execute their task, and disappear.
+No state preservation between invocations. Each activation is fresh.
+
+**When to use**: Any subagent invocation. Default to ephemeral unless
+there is a specific reason to persist state.
+
+**SDK example**:
+```python
+# Each subagent is ephemeral -- no shared state
+async def run_ephemeral(task: str, context: str) -> str:
+    agent = Agent(
+        model="claude-sonnet-4-6",
+        system=compose_preset("minimal-safe", task_context=context),
+    )
+    result = await agent.run(task)
+    # Agent is not stored. Output consumed. Agent disappears.
+    return result.output
+```
+
+**Anti-pattern**: Persisting subagent state between invocations, leading
+to context pollution and stale assumptions carrying forward.
+
+---
+
+## Retroactive Meaning
+
+### nachtraglichkeit (Deferred Action)
+
+**Pattern**: Progressive data refinement through feedback loops
+
+Don't wait for perfect data. Use what you have, store structured outputs,
+close the feedback loop. Each iteration retroactively gives meaning to
+previous outputs.
+
+**When to use**: Iterative workflows, data pipeline development, any
+process where data quality improves through use rather than upfront
+preparation.
+
+**SDK example**:
+```python
+# Cycle 1: rough extraction
+raw = await agent.run("Extract key entities from this document")
+store(raw, version=1)
+
+# Cycle 2: with human feedback, retroactively improves understanding
+refined = await agent.run(
+    f"Refine this extraction based on feedback: {feedback}",
+    context=load(version=1),
+)
+store(refined, version=2)  # v1 now has meaning it didn't have before
+```
+
+**Anti-pattern**: Spending excessive time preparing "perfect" training data
+before any use. The using IS the preparation.
+
+### secondary-revision (Sekundare Bearbeitung)
+
+**Pattern**: Context curation and narrative coherence
+
+Before filling the context window, select, organize, and format for
+maximum coherence. What enters matters more than how much. Preserve
+structural semantics (visual layout carries weight).
+
+**When to use**: Before any complex reasoning step. When assembling
+context from multiple sources for a critical decision.
+
+**Anti-pattern**: Indiscriminately concatenating all available context.
+Condensation compresses; secondary-revision curates. Different operations.

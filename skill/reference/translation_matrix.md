@@ -20,3 +20,8 @@ Understanding the German originals deepens the archetype mappings.
 | Unbehagen | Discontent | "Deep unease, malaise" | Not simple dissatisfaction. The chronic tension between agent capability and safety constraints. |
 | Traumdeutung | Dream Interpretation | "Dream meaning-making" | Deutung emphasizes *making meaning*, not just interpreting. Agents don't just parse—they construct understanding. |
 | Instanz | Agency (not Instance) | "Judicial authority" | Each psychic structure is a *tribunal* making judgments. Agent layers have authority, not just function. |
+| Nachtraglichkeit | Deferred Action | "Afterwardness" | Meaning flows backward. Today's output restructures yesterday's data. Later experience retroactively gives meaning to earlier experience. |
+| Sekundare Bearbeitung | Secondary Revision | "Secondary working-over" | Context curation constructs narrative, not mere filtering. The final dream-work operation imposes coherence on assembled content. |
+| Bahnung | Facilitation | "Path-making" | Pathways created by use. Each passage of excitation blazes a trail for the next. Each agent run facilitates the next. |
+| Wunderblock | Mystic Writing Pad | "Wonder-block" | Context window = fresh perceptual surface; database = wax layer beneath retaining permanent traces. Consciousness stays receptive while memory accumulates. |
+| Psychischer Apparat | Psychic Apparatus | "Mental apparatus" | Not metaphor—Freud meant a processing device with distinct stations. A system of agencies, not a reflex arc. |

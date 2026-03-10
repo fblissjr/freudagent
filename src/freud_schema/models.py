@@ -44,6 +44,10 @@ class AgenticArchetype(BaseModel):
         default="",
         description="A reusable prompt snippet that activates this archetype",
     )
+    related_archetypes: list[str] = Field(
+        default_factory=list,
+        description="Names of archetypes with structural relationships to this one",
+    )
 
 
 class FreudEntry(BaseModel):
@@ -74,10 +78,10 @@ class FreudEntry(BaseModel):
     core_topic: str = ""
     major_finding: str = ""
     crucial_quote: str = ""
-    key_terminology: list[str] = []
+    key_terminology: list[str] = Field(default_factory=list)
     source_context: str = ""
     translation_notes: str = ""
 
     # --- Agentic overlay ---
     agent_notes: str = ""
-    archetypes: list[AgenticArchetype] = []
+    archetypes: list[AgenticArchetype] = Field(default_factory=list)
