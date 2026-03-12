@@ -70,41 +70,29 @@ PRESETS: dict[str, list[str]] = {
         "structural-triad",
         "censor-gate",
         "repetition-compulsion",
-        "resistance-detector",
-        "death-drive",
+        "freudian-slip",
+        "pleasure-principle",
     ],
     "creative-explorer": [
         "free-association",
-        "condensation",
-        "displacement",
-        "cathexis",
-        "sublimation",
+        "dream-work",
+        "fixation",
     ],
     "iterative-refiner": [
-        "working-through",
-        "pleasure-reality",
-        "transference",
-        "parapraxis-monitor",
+        "dream-work",
+        "pleasure-principle",
+        "freudian-slip",
     ],
     "minimal-safe": [
         "structural-triad",
         "repetition-compulsion",
-        "death-drive",
+        "pleasure-principle",
     ],
     "hierarchical-orchestrator": [
-        "psychic-apparatus",
-        "topographic-hierarchy",
-        "dream-element",
-        "condensation",
-        "cathexis",
-        "death-drive",
-    ],
-    "progressive-refiner": [
-        "nachtraglichkeit",
-        "working-through",
-        "secondary-revision",
-        "parapraxis-monitor",
-        "pleasure-reality",
+        "ephemeral",
+        "dream-work",
+        "fixation",
+        "pleasure-principle",
     ],
 }
 
@@ -120,10 +108,9 @@ def compose_preset(
     Available presets:
         careful-executor         - Safety-first with loop detection and graceful termination
         creative-explorer        - Exploratory reasoning with resource awareness
-        iterative-refiner        - Feedback-driven refinement with bias detection
+        iterative-refiner        - Feedback-driven refinement with diagnostic analysis
         minimal-safe             - Lightweight safety baseline
         hierarchical-orchestrator - Tree-shaped orchestrator with ephemeral subagents
-        progressive-refiner      - Feedback-loop driven data refinement with retroactive meaning
     """
     if preset not in PRESETS:
         available = ", ".join(sorted(PRESETS))
@@ -156,12 +143,9 @@ def _render(
         by_cat.setdefault(a.category, []).append(a)
 
     cat_labels = {
-        ArchetypeCategory.ARCHITECTURE: "Architecture",
-        ArchetypeCategory.REASONING: "Reasoning",
-        ArchetypeCategory.CONTROL_FLOW: "Control Flow",
-        ArchetypeCategory.OBSERVATION: "Observation",
-        ArchetypeCategory.COMMUNICATION: "Communication",
-        ArchetypeCategory.RESOURCE_MANAGEMENT: "Resource Management",
+        ArchetypeCategory.STRUCTURAL: "Structural",
+        ArchetypeCategory.BEHAVIORAL: "Behavioral",
+        ArchetypeCategory.DIAGNOSTIC: "Diagnostic",
     }
 
     sections.append("# Operating Principles (Freudian Archetypes)\n")

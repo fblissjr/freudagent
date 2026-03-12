@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+
+- **Experiment harness**: 6-table DuckDB schema for declarative agent orchestration
+  - `skills` -- domain-specific instructions loaded at runtime
+  - `sources` -- raw artifacts (file paths, MIME types)
+  - `extractions` -- structured output with validation status
+  - `sessions` -- logged agent executions with token tracking
+  - `feedback` -- human corrections (the flywheel signal)
+  - `rules` -- global and domain-specific constraints
+- `db.py` -- DuckDB connection management and schema DDL
+- `tables.py` -- Pydantic models for all 6 tables + TaskPlan/Subtask
+- `store.py` -- ExperimentStore with typed CRUD operations, retrieval queries, feedback aggregation
+- `orchestrator.py` -- Thin orchestrator loop + subagent runner with pluggable model calls
+  - `assemble_runner_context()` -- progressive disclosure hierarchy (rules -> skill -> source -> task)
+  - `run_subtask()` -- execute a single subtask with context assembly and session logging
+  - `run_task()` -- process a TaskPlan respecting dependency order
+- CLI commands: `db init|reset|status`, `skill add|list`, `source add|list`, `rule add|list`, `feedback`
+- 18 new tests for schema, store CRUD, context assembly, orchestrator, and error handling
+- DuckDB files added to .gitignore
+
+### Changed
+
+- Merged `progressive-refiner` preset into `iterative-refiner` (identical after archetype simplification)
+- Presets reduced from 6 to 5
+- CLI `export` command now uses orjson instead of json
+- pyproject.toml: added duckdb, orjson dependencies; bumped to 0.5.0; updated description
+
+## 0.4.0
+
+### Changed
+
+- **Aggressive archetype simplification: 19 -> 9** in a clean 3x3 grid
+- ArchetypeCategory enum reduced from 6 categories to 3: STRUCTURAL, BEHAVIORAL, DIAGNOSTIC
+- All 6 presets updated to reference new archetype names
+
+### Added
+
+- `ephemeral` archetype (merges `dream-element` + `psychic-apparatus`)
+- `pleasure-principle` archetype (merges `pleasure-reality` + `death-drive`)
+- `dream-work` archetype (merges `condensation` + `displacement` + `secondary-revision`)
+- `freudian-slip` archetype (merges `parapraxis-monitor` + `resistance-detector`)
+- `fixation` archetype (merges `cathexis` + `sublimation`)
+- Tests for merged archetypes (verify each merge captures source concepts)
+- 3x3 grid test (3 categories, 3 archetypes each)
+
+### Removed
+
+- 10 archetypes absorbed into merges or cut entirely
+- Cut entirely (concepts absorbed into system-level design, not individual archetypes):
+  `nachtraglichkeit`, `working-through`, `transference`, `topographic-hierarchy`
+- Merged away: `condensation`, `displacement`, `secondary-revision`, `dream-element`,
+  `psychic-apparatus`, `pleasure-reality`, `death-drive`, `parapraxis-monitor`,
+  `resistance-detector`, `cathexis`, `sublimation`
+- 3 obsolete ArchetypeCategory values: OBSERVATION, COMMUNICATION, RESOURCE_MANAGEMENT
+
 ## 0.3.1
 
 ### Changed

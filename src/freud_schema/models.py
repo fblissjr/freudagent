@@ -13,14 +13,17 @@ from pydantic import BaseModel, Field
 
 
 class ArchetypeCategory(str, Enum):
-    """Categories of agentic archetypes derived from Freudian theory."""
+    """Categories of agentic archetypes derived from Freudian theory.
 
-    ARCHITECTURE = "architecture"          # Structural model → agent architecture
-    REASONING = "reasoning"                # Dream-work → reasoning patterns
-    CONTROL_FLOW = "control_flow"          # Drives/compulsions → flow control
-    OBSERVATION = "observation"            # Analytic technique → monitoring
-    COMMUNICATION = "communication"        # Transference → inter-agent comms
-    RESOURCE_MANAGEMENT = "resource_mgmt"  # Libidinal economy → resource allocation
+    Three-category taxonomy:
+        STRUCTURAL  -- how agents are built
+        BEHAVIORAL  -- how agents decide
+        DIAGNOSTIC  -- how agents explore and self-correct
+    """
+
+    STRUCTURAL = "structural"    # How agents are built
+    BEHAVIORAL = "behavioral"    # How agents decide
+    DIAGNOSTIC = "diagnostic"    # How agents explore and self-correct
 
 
 # ---------------------------------------------------------------------------
@@ -38,7 +41,7 @@ class AgenticArchetype(BaseModel):
     name: str = Field(description="Short identifier, e.g. 'structural-triad'")
     freudian_concept: str = Field(description="The originating Freudian idea")
     sdk_pattern: str = Field(description="Claude Agent SDK construct or pattern")
-    category: ArchetypeCategory = ArchetypeCategory.REASONING
+    category: ArchetypeCategory = ArchetypeCategory.BEHAVIORAL
     description: str = Field(default="", description="How the mapping works")
     prompt_fragment: str = Field(
         default="",

@@ -7,6 +7,8 @@ __pycache__/
 # etc
 .claude/
 internal/
+*.duckdb
+*.duckdb.wal
 
 # C extensions
 *.so

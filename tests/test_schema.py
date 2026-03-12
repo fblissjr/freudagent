@@ -122,7 +122,7 @@ def test_entry_model_serialization():
 
 
 def test_archetype_count():
-    assert len(ARCHETYPES) == 19
+    assert len(ARCHETYPES) == 9
 
 
 def test_all_archetypes_have_required_fields():
@@ -144,24 +144,39 @@ def test_get_archetype():
 
 
 def test_get_by_category():
-    arch = get_by_category(ArchetypeCategory.ARCHITECTURE)
-    assert len(arch) == 3
-    assert all(a.category == ArchetypeCategory.ARCHITECTURE for a in arch)
+    structural = get_by_category(ArchetypeCategory.STRUCTURAL)
+    assert len(structural) == 3
+    assert all(a.category == ArchetypeCategory.STRUCTURAL for a in structural)
+
+    behavioral = get_by_category(ArchetypeCategory.BEHAVIORAL)
+    assert len(behavioral) == 3
+    assert all(a.category == ArchetypeCategory.BEHAVIORAL for a in behavioral)
+
+    diagnostic = get_by_category(ArchetypeCategory.DIAGNOSTIC)
+    assert len(diagnostic) == 3
+    assert all(a.category == ArchetypeCategory.DIAGNOSTIC for a in diagnostic)
 
 
 def test_list_archetype_names():
     names = list_archetype_names()
-    assert len(names) == 19
+    assert len(names) == 9
     assert "structural-triad" in names
-    assert "death-drive" in names
+    assert "pleasure-principle" in names
+    assert "ephemeral" in names
+    assert "dream-work" in names
+    assert "freudian-slip" in names
+    assert "fixation" in names
 
 
 def test_search_archetypes():
     results = search_archetypes("loop")
     assert any(a.name == "repetition-compulsion" for a in results)
 
-    results = search_archetypes("transfer")
-    assert any(a.name == "transference" for a in results)
+    results = search_archetypes("ephemeral")
+    assert any(a.name == "ephemeral" for a in results)
+
+    results = search_archetypes("compress")
+    assert any(a.name == "dream-work" for a in results)
 
 
 def test_all_categories_have_archetypes():
@@ -170,15 +185,68 @@ def test_all_categories_have_archetypes():
         assert len(archetypes) >= 1, f"No archetypes for {cat}"
 
 
+def test_three_by_three_grid():
+    """The 9 archetypes form a clean 3x3 grid: 3 categories, 3 each."""
+    for cat in ArchetypeCategory:
+        assert len(get_by_category(cat)) == 3, (
+            f"Expected 3 archetypes for {cat.value}, "
+            f"got {len(get_by_category(cat))}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Merged archetype tests
+# ---------------------------------------------------------------------------
+
+
+def test_ephemeral_merges_dream_element_and_psychic_apparatus():
+    a = get_archetype("ephemeral")
+    assert a is not None
+    assert "tree" in a.prompt_fragment.lower() or "tree" in a.description.lower()
+    assert "ephemeral" in a.description.lower() or "disappear" in a.prompt_fragment.lower()
+
+
+def test_pleasure_principle_merges_three_drives():
+    a = get_archetype("pleasure-principle")
+    assert a is not None
+    assert "stop" in a.prompt_fragment.lower()
+    assert "speed" in a.prompt_fragment.lower() or "fast" in a.prompt_fragment.lower()
+
+
+def test_dream_work_merges_three_operations():
+    a = get_archetype("dream-work")
+    assert a is not None
+    desc = a.description.lower()
+    assert "condensation" in desc
+    assert "displacement" in desc
+    assert "secondary revision" in desc
+
+
+def test_freudian_slip_merges_parapraxis_and_resistance():
+    a = get_archetype("freudian-slip")
+    assert a is not None
+    desc = a.description.lower()
+    assert "paraprax" in desc
+    assert "resistance" in desc
+
+
+def test_fixation_merges_cathexis_and_sublimation():
+    a = get_archetype("fixation")
+    assert a is not None
+    desc = a.description.lower()
+    assert "cathexis" in desc or "besetzung" in desc
+    assert "sublimation" in desc
+
+
 # ---------------------------------------------------------------------------
 # Harness tests
 # ---------------------------------------------------------------------------
 
 
 def test_compose_system_prompt():
-    prompt = compose_system_prompt(["structural-triad", "death-drive"])
+    prompt = compose_system_prompt(["structural-triad", "pleasure-principle"])
     assert "structural-triad" in prompt
-    assert "death-drive" in prompt
+    assert "pleasure-principle" in prompt
     assert "Id / Ego / Superego" in prompt
 
 
@@ -199,16 +267,19 @@ def test_compose_system_prompt_unknown_archetype():
         assert "nonexistent" in str(e)
 
 
+def test_preset_count():
+    assert len(PRESETS) == 5
+
+
 def test_compose_by_category():
-    prompt = compose_by_category([ArchetypeCategory.ARCHITECTURE])
+    prompt = compose_by_category([ArchetypeCategory.STRUCTURAL])
     assert "structural-triad" in prompt
     assert "censor-gate" in prompt
-    assert "psychic-apparatus" in prompt
+    assert "ephemeral" in prompt
 
 
 def test_compose_full():
     prompt = compose_full()
-    # Should contain all archetypes
     for a in ARCHETYPES:
         assert a.name in prompt
 

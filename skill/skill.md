@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.3.0
+version: 0.4.0
 description: Freudian psychoanalytic archetypes for Claude agent architecture
 activation:
   - freud
@@ -10,14 +10,13 @@ activation:
   - structural model
   - id ego superego
   - dream-work
-  - transference
   - repetition compulsion
   - hierarchical
   - orchestrator
   - ephemeral
-  - context tiering
-  - nachtraglichkeit
-  - topographic
+  - freudian slip
+  - fixation
+  - pleasure principle
 scope:
   includes:
     - Agent system prompt generation from Freudian archetypes
@@ -35,17 +34,14 @@ Maps Sigmund Freud's psychoanalytic theory to Claude Agent SDK patterns.
 
 ## What This Does
 
-The Freud Schema provides **19 agentic archetypes** derived from psychoanalytic
-concepts, organized into 6 categories:
+The Freud Schema provides **9 agentic archetypes** derived from psychoanalytic
+concepts, organized into a 3x3 grid across 3 categories:
 
 | Category | Archetypes | Agent Pattern |
 |----------|-----------|---------------|
-| Architecture | structural-triad, censor-gate, psychic-apparatus | Multi-layer + inter-agent topology |
-| Reasoning | condensation, displacement, free-association, secondary-revision | Problem-solving and context curation |
-| Control Flow | repetition-compulsion, pleasure-reality, death-drive, dream-element | Loop/termination/ephemeral lifecycle |
-| Observation | resistance-detector, parapraxis-monitor | Debugging and failure analysis |
-| Communication | transference, working-through, nachtraglichkeit | Context transfer, iteration, deferred meaning |
-| Resource Mgmt | cathexis, sublimation, topographic-hierarchy | Attention allocation and memory tiering |
+| Structural | structural-triad, censor-gate, ephemeral | Multi-layer architecture + hierarchical topology |
+| Behavioral | repetition-compulsion, pleasure-principle, dream-work | Loop control, routing, transformation |
+| Diagnostic | free-association, freudian-slip, fixation | Exploration, failure analysis, attention allocation |
 
 ## Quick Start
 
@@ -57,7 +53,7 @@ prompt = compose_preset("careful-executor", task_context="Review this PR for bug
 
 # Or pick specific archetypes
 prompt = compose_system_prompt(
-    ["structural-triad", "free-association", "death-drive"],
+    ["structural-triad", "free-association", "pleasure-principle"],
     task_context="Explore this codebase and summarize the architecture",
 )
 ```
@@ -66,12 +62,12 @@ prompt = compose_system_prompt(
 
 - **careful-executor**: Safety-first agent with loop detection and graceful termination
 - **creative-explorer**: Exploratory reasoning with resource awareness
-- **iterative-refiner**: Feedback-driven refinement with bias detection
+- **iterative-refiner**: Feedback-driven refinement with diagnostic analysis
 - **minimal-safe**: Lightweight safety baseline (3 archetypes)
-- **hierarchical-orchestrator**: Tree-shaped orchestrator with ephemeral subagents and memory tiering
-- **progressive-refiner**: Feedback-loop driven refinement with retroactive meaning (nachtraglichkeit)
+- **hierarchical-orchestrator**: Tree-shaped orchestrator with ephemeral subagents
+- **progressive-refiner**: Feedback-loop driven refinement with failure analysis
 
 ## Reference
 
-- `reference/archetype_patterns.md` — Full archetype catalog with examples
-- `reference/translation_matrix.md` — German→English term mappings from Freud's originals
+- `reference/archetype_patterns.md` -- Full archetype catalog with examples
+- `reference/translation_matrix.md` -- German->English term mappings from Freud's originals
