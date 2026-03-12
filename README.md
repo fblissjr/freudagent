@@ -31,19 +31,21 @@ uv sync --extra dev
 ### CLI
 
 ```bash
-# Query the Freud corpus (14 core entries)
+# Query the Freud corpus (17 core entries)
 uv run freud-schema list-topics
 uv run freud-schema search "wish"
 uv run freud-schema term "Id"
 
-# List all 14 agentic archetypes
+# List all 19 agentic archetypes
 uv run freud-schema list-archetypes
 
 # Show a specific archetype
 uv run freud-schema archetype structural-triad
+uv run freud-schema archetype nachtraglichkeit
 
 # Generate a system prompt from a preset
 uv run freud-schema prompt --preset careful-executor
+uv run freud-schema prompt --preset hierarchical-orchestrator
 
 # Generate a prompt from specific archetypes with task context
 uv run freud-schema prompt structural-triad free-association death-drive \
@@ -59,6 +61,12 @@ from freud_schema.archetypes import get_archetype, search_archetypes
 # Use a preset composition
 prompt = compose_preset("careful-executor", task_context="Review this PR for bugs")
 
+# Tree-shaped orchestrator with ephemeral subagents
+prompt = compose_preset(
+    "hierarchical-orchestrator",
+    task_context="Decompose and execute a multi-step refactor",
+)
+
 # Pick specific archetypes
 prompt = compose_system_prompt(
     ["structural-triad", "free-association", "death-drive"],
@@ -68,7 +76,18 @@ prompt = compose_system_prompt(
 # Look up individual archetypes
 a = get_archetype("repetition-compulsion")
 print(a.prompt_fragment)
+
+# Explore structural relationships between archetypes
+a = get_archetype("condensation")
+print(a.related_archetypes)  # ['secondary-revision']
 ```
+
+## Architectural Scopes
+
+Archetypes operate at two levels. **Intra-agent** archetypes (e.g. `structural-triad`)
+define roles within a single agent. **Inter-agent** archetypes (e.g. `psychic-apparatus`,
+`topographic-hierarchy`) define topology and information flow between agents in a
+multi-agent system.
 
 ## Presets
 
@@ -78,18 +97,20 @@ print(a.prompt_fragment)
 | `creative-explorer` | free-association, condensation, displacement, cathexis, sublimation | Exploratory reasoning |
 | `iterative-refiner` | working-through, pleasure-reality, transference, parapraxis-monitor | Feedback-driven refinement |
 | `minimal-safe` | structural-triad, repetition-compulsion, death-drive | Lightweight safety baseline |
+| `hierarchical-orchestrator` | psychic-apparatus, topographic-hierarchy, dream-element, condensation, cathexis, death-drive | Tree-shaped orchestrator with ephemeral subagents |
+| `progressive-refiner` | nachtraglichkeit, working-through, secondary-revision, parapraxis-monitor, pleasure-reality | Feedback-loop refinement with retroactive meaning |
 
 ## Project Structure
 
 ```
 src/freud_schema/
   models.py      - Pydantic models (FreudEntry, AgenticArchetype, ArchetypeCategory)
-  archetypes.py  - Registry of 14 agentic archetypes
+  archetypes.py  - Registry of 19 agentic archetypes
   harness.py     - Meta-harness for composing system prompts
   dataset.py     - JSONL data loading and querying
   cli.py         - CLI interface
 data/
-  freud_schema.jsonl - 14 core entries from Freud's works
+  freud_schema.jsonl - 17 core entries from Freud's works
 skill/
   skill.md       - Claude Code skill definition
   reference/     - Archetype patterns, translation matrix

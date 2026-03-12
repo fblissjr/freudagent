@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1
+
+### Changed
+
+- Updated README.md to reflect current state: 19 archetypes, 17 entries, 6 presets
+- Added architectural scopes section (intra-agent vs inter-agent)
+- Added `hierarchical-orchestrator` and `progressive-refiner` to preset table
+- Added `related_archetypes` usage and new preset examples to Python API section
+
 ## 0.3.0
 
 ### Added
