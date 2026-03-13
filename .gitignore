@@ -9,6 +9,7 @@ __pycache__/
 internal/
 *.duckdb
 *.duckdb.wal
+coderef/
 
 # C extensions
 *.so

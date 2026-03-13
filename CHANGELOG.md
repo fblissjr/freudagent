@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.8.0
+
+### Added
+
+- **8 enum classes** in `tables.py` as single source of truth for valid column values:
+  `SkillStatus`, `SourceStatus`, `SessionStatus`, `AgentRole`, `ValidationStatus`,
+  `CorrectionType`, `RuleScope`, `RuleStatus`
+- **CHECK constraints** on all enum-like columns in DuckDB DDL (generated from Python enums)
+- **10 FK constraints** enforcing referential integrity across all 6 tables
+- `get_sources_by_ids()` bulk fetch method on `ExperimentStore` (eliminates N+1 in orchestrator)
+- `get_ddl()` public function and `freud-schema db ddl` CLI command -- prints full DDL
+  with CHECK + FK constraints for piping to `duckdb` CLI
+- Generic `_fetchone`/`_fetchall` helpers on `ExperimentStore` -- uses `cursor.description`
+  to build dicts by column name with automatic JSON deserialization via type detection
+- 11 new tests: enum validation (5), CHECK constraint, FK constraint, prior results flow-through,
+  all-subtasks-fail session state, exception session state, subtask named fields
+
+### Changed
+
+- `Subtask.skill_query: dict` replaced with `skill_domain: str` + `skill_task_type: str`
+  (eliminates `.get("domain", "")` calls, gives IDE completion + type checking)
+- All Pydantic model fields updated from bare `str` to enum types
+- `store.py` method signatures typed: `complete_session(status: SessionStatus)`,
+  `update_validation(status: ValidationStatus)`, `list_skills(status: SkillStatus)`, etc.
+- CLI `choices=` derived from enum classes instead of hardcoded lists (also adds missing `deprecated` to skill status)
+- `run_simple()` and all orchestrator code uses enum values for Session/Extraction construction
+- All SQL string literals (`'active'`, `'deprecated'`, `'global'`) replaced with parameterized
+  enum values -- zero hardcoded strings bypass the enum authority
+
+### Removed
+
+- Migration v2 infrastructure (`_MIGRATIONS`, `_run_migrations`, `_restore_migration_data`) --
+  experiment repo, no legacy data, breaking changes are fine
+- 6 `_row_to_*` positional-index methods in `store.py` -- replaced by generic dict conversion
+  that is column-order-agnostic and auto-detects JSON columns from DuckDB type metadata
+
+### Fixed
+
+- **Prior results silently dropped**: `subtask.context and prior_results` gate removed --
+  `subtask.context` was never set, so dependent subtasks never received upstream results
+- **Session state lies**: orchestrator session now marked `"failed"` when all subtasks fail;
+  `try/except/finally` ensures sessions never stay `"running"` after exceptions
+- **Pydantic model mutation**: `extraction.id = ext_id` replaced with `store.get_extraction(ext_id)`
+- **Source N+1 in context assembly**: `assemble_runner_context` uses `get_sources_by_ids()` bulk fetch
+
 ## 0.7.0
 
 ### Added
@@ -16,6 +61,9 @@
 
 ### Changed
 
+- Promoted deferred `compose_preset` import to top-level in `orchestrator.py`
+- Removed dead `orchestrator_preset` parameter from `run_task()` (was only logged, never used)
+- Bumped `pyproject.toml` version to 0.7.0
 - Backlog rewritten to reflect multi-harness north star and the inside/outside architectural pivot
   - Identifies orchestrator.py's API wrapper as the wrong pattern
   - Documents Provider protocol design (not implemented)

@@ -23,6 +23,13 @@ from freud_schema.dataset import (
 )
 from freud_schema.harness import PRESETS, compose_preset, compose_system_prompt
 from freud_schema.models import FreudEntry
+from freud_schema.tables import (
+    CorrectionType,
+    RuleScope,
+    SessionStatus,
+    SkillStatus,
+    ValidationStatus,
+)
 
 
 def _print_entry(entry: FreudEntry, verbose: bool = False) -> None:
@@ -107,8 +114,8 @@ def main(argv: list[str] | None = None) -> None:
 
     # --- Experiment harness commands ---
     sub.add_parser("db", help="Database operations").add_argument(
-        "action", choices=["init", "reset", "status"],
-        help="init: create tables, reset: drop and recreate, status: show counts",
+        "action", choices=["init", "reset", "status", "ddl"],
+        help="init: create tables, reset: drop and recreate, status: show counts, ddl: print SQL",
     )
 
     p_skill = sub.add_parser("skill", help="Manage skills")
@@ -118,7 +125,7 @@ def main(argv: list[str] | None = None) -> None:
     p_skill_add.add_argument("--task-type", required=True)
     p_skill_add.add_argument("--content", help="Skill content (or use --file)")
     p_skill_add.add_argument("--file", help="Read skill content from file")
-    p_skill_add.add_argument("--status", default="draft", choices=["draft", "active"])
+    p_skill_add.add_argument("--status", default="draft", choices=[e.value for e in SkillStatus])
     p_skill_sub.add_parser("list", help="List all skills")
 
     p_source = sub.add_parser("source", help="Manage sources")
@@ -132,7 +139,7 @@ def main(argv: list[str] | None = None) -> None:
     p_rule_sub = p_rule.add_subparsers(dest="rule_action")
     p_rule_add = p_rule_sub.add_parser("add", help="Add a rule")
     p_rule_add.add_argument("--content", required=True)
-    p_rule_add.add_argument("--scope", default="global", choices=["global", "domain-specific"])
+    p_rule_add.add_argument("--scope", default="global", choices=[e.value for e in RuleScope])
     p_rule_add.add_argument("--domain", default=None)
     p_rule_add.add_argument("--priority", type=int, default=0)
     p_rule_sub.add_parser("list", help="List all rules")
@@ -145,7 +152,7 @@ def main(argv: list[str] | None = None) -> None:
     p_fb_add = p_fb_sub.add_parser("add", help="Add feedback on an extraction")
     p_fb_add.add_argument("--extraction-id", type=int, required=True)
     p_fb_add.add_argument("--type", required=True,
-                          choices=["field_mapping", "wrong_value", "missing_field", "false_positive"])
+                          choices=[e.value for e in CorrectionType])
     p_fb_add.add_argument("--correction", required=True, help="JSON correction data")
     p_fb_add.add_argument("--notes", default=None)
     p_fb_add.add_argument("--by", default=None)
@@ -167,7 +174,7 @@ def main(argv: list[str] | None = None) -> None:
     p_ext_sub = p_ext.add_subparsers(dest="extraction_action")
     p_ext_list = p_ext_sub.add_parser("list", help="List extractions")
     p_ext_list.add_argument("--skill-id", type=int, default=None)
-    p_ext_list.add_argument("--status", default=None)
+    p_ext_list.add_argument("--status", default=None, choices=[e.value for e in ValidationStatus])
     p_ext_list.add_argument("--limit", type=int, default=50)
     p_ext_show = p_ext_sub.add_parser("show", help="Show extraction details")
     p_ext_show.add_argument("id", type=int)
@@ -182,7 +189,7 @@ def main(argv: list[str] | None = None) -> None:
     p_sess = sub.add_parser("session", help="View execution sessions")
     p_sess_sub = p_sess.add_subparsers(dest="session_action")
     p_sess_list = p_sess_sub.add_parser("list", help="List sessions")
-    p_sess_list.add_argument("--status", default=None)
+    p_sess_list.add_argument("--status", default=None, choices=[e.value for e in SessionStatus])
     p_sess_list.add_argument("--limit", type=int, default=20)
 
     args = parser.parse_args(argv)
@@ -313,7 +320,11 @@ def _get_store(db_path: str | None = None):
 
 
 def _handle_db(args) -> None:
-    from freud_schema.db import connect, get_schema_version, init_schema, reset_schema
+    from freud_schema.db import connect, get_ddl, get_schema_version, init_schema, reset_schema
+
+    if args.action == "ddl":
+        print(get_ddl())
+        return
 
     con = connect(args.db)
     if args.action == "init":
@@ -486,8 +497,7 @@ def _handle_run(args) -> None:
         print("No extractions produced (no active sources found).")
         return
 
-    # Build source lookup to avoid N+1
-    source_map = {s.id: s for s in store.list_sources()}
+    source_map = store.get_sources_by_ids([e.source_id for e in extractions])
 
     for i, ext in enumerate(extractions, 1):
         source = source_map.get(ext.source_id)
@@ -513,8 +523,7 @@ def _handle_extraction(args) -> None:
         if not exts:
             print("No extractions found.")
         else:
-            # Build source lookup to avoid N+1
-            source_map = {s.id: s for s in store.list_sources()}
+            source_map = store.get_sources_by_ids([e.source_id for e in exts])
             for e in exts:
                 source = source_map.get(e.source_id)
                 path = source.content_path if source else "?"
@@ -543,10 +552,10 @@ def _handle_extraction(args) -> None:
         print(f"\n  Output:")
         _print_json(ext.output, indent="    ")
     elif args.extraction_action == "validate":
-        store.update_validation(args.id, status="validated", validated_by=args.by)
+        store.update_validation(args.id, status=ValidationStatus.VALIDATED, validated_by=args.by)
         print(f"Extraction {args.id} marked as validated.")
     elif args.extraction_action == "reject":
-        store.update_validation(args.id, status="rejected", validated_by=args.by)
+        store.update_validation(args.id, status=ValidationStatus.REJECTED, validated_by=args.by)
         print(f"Extraction {args.id} marked as rejected.")
     else:
         print("Use: extraction list|show|validate|reject", file=sys.stderr)
@@ -555,11 +564,11 @@ def _handle_extraction(args) -> None:
 def _handle_session(args) -> None:
     store = _get_store(args.db)
     if args.session_action == "list":
-        sessions = store.list_sessions(status=args.status)
+        sessions = store.list_sessions(status=args.status, limit=args.limit)
         if not sessions:
             print("No sessions found.")
         else:
-            for s in sessions[:args.limit]:
+            for s in sessions:
                 parent = f" parent={s.parent_session_id}" if s.parent_session_id else ""
                 skill_info = f" skill={s.skill_id}" if s.skill_id else ""
                 print(f"  [{s.id}] {s.agent_role} {s.task_type} [{s.status}]{parent}{skill_info} model={s.model_used}")

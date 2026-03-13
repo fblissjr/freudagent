@@ -88,6 +88,10 @@ uv run freud-schema run --domain legal --task-type extraction --model anthropic
 # Use a non-default database (--db is a global flag)
 uv run freud-schema --db /tmp/test.duckdb db init
 
+# Print full DDL (pipeable to duckdb CLI)
+uv run freud-schema db ddl
+uv run freud-schema db ddl | duckdb :memory:
+
 # Nuclear option
 uv run freud-schema db reset
 ```
@@ -151,7 +155,7 @@ Subagents get context via the progressive disclosure hierarchy:
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Tracks applied schema versions for safe migrations |
+| `meta_schema_version` | Tracks schema version |
 | `skills` | Declarative instructions loaded at runtime (domain + task_type + version) |
 | `sources` | Raw artifacts to process (file paths, MIME types, metadata) |
 | `extractions` | Structured output from agent runs (with validation status) |
@@ -168,9 +172,9 @@ src/freud_schema/
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
-  db.py              - DuckDB schema (7 tables), versioning, and connection management
-  tables.py          - Pydantic models for experiment harness tables
-  store.py           - CRUD operations and retrieval queries
+  db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
+  tables.py          - Pydantic models + enum classes (single source of truth for valid values)
+  store.py           - CRUD operations with generic dict-based row conversion
   orchestrator.py    - Thin orchestrator loop + subagent runner
 data/
   freud_schema.jsonl - 17 core entries from Freud's works

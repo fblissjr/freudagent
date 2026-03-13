@@ -17,9 +17,9 @@ src/freud_schema/
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
-  db.py              - DuckDB schema (7 tables), versioning, and connection management
-  tables.py          - Pydantic models for experiment harness tables
-  store.py           - CRUD operations and retrieval queries
+  db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
+  tables.py          - Pydantic models + enum classes (single source of truth for valid values)
+  store.py           - CRUD operations with generic dict-based row conversion
   orchestrator.py    - Thin orchestrator loop + subagent runner
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
@@ -51,7 +51,15 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Experiment tests use in-memory DuckDB (`:memory:`)
 - No phantom dependencies -- only add to `pyproject.toml` what the code actually imports
 - New tables must be added to the drop list in `reset_schema()` (order matters: drop dependents first)
-- Schema migrations: append `(version, description, sql)` to `_MIGRATIONS` in `db.py`; use idempotent DDL
+- No migration path -- breaking schema changes use `reset_schema()` (experiment repo, no legacy data)
+- DDL is stored as `list[str]` (one statement per element, no semicolon splitting)
+- `freud-schema db ddl` prints full DDL for piping to `duckdb` CLI
+- 8 enum classes in `tables.py` are the single source of truth for valid column values
+- CHECK constraints and FK constraints are generated from enums and embedded in DDL
+- Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
+- All SQL queries use parameterized enum values (no hardcoded string literals)
+- All CLI `--status`/`--scope`/`--type` args must have `choices=[e.value for e in EnumClass]`
+- For ad-hoc DB queries, use the `duckdb` MCP tools -- do not write Python scripts
 
 ## Archetypes (9, in a 3x3 grid)
 
@@ -76,7 +84,7 @@ The harness implements declarative agent orchestration: behavior comes from data
 
 | Table | Purpose |
 |-------|---------|
-| meta_schema_version | Tracks applied schema versions for safe, incremental migrations |
+| meta_schema_version | Tracks schema version for `db status` |
 | skills | Declarative instructions loaded at runtime (domain + task_type + version) |
 | sources | Raw artifacts to process (file paths, MIME types, metadata) |
 | extractions | Structured output from agent runs (with validation status) |
@@ -84,13 +92,12 @@ The harness implements declarative agent orchestration: behavior comes from data
 | feedback | Human corrections on extractions (the flywheel signal) |
 | rules | Constraints applied globally or per-domain (priority-ordered) |
 
-### Schema Versioning
+### Schema Management
 
-Schema evolution uses idempotent migrations instead of destructive resets.
-`meta_schema_version` records each applied version. New migrations go in
-`_MIGRATIONS` in `db.py` as `(version, description, sql)` tuples.
-`init_schema()` runs pending migrations automatically. `reset_schema()` remains
-available for tests.
+No migration path. For breaking changes, use `freud-schema db reset`.
+`meta_schema_version` tracks the schema version for `db status`.
+`init_schema()` uses `CREATE TABLE IF NOT EXISTS` (idempotent).
+`reset_schema()` drops and recreates everything.
 
 CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add`
 
@@ -110,6 +117,22 @@ Archetypes span two scopes:
 The orchestrator uses archetype-composed system prompts for its own behavior.
 Subagents use the progressive disclosure hierarchy: rules -> skill -> source -> task.
 Model calls are pluggable (pass any callable). The code is a thin loop; behavior is data.
+
+## DuckDB MCP Server
+
+The `duckdb` MCP server (mcp-server-motherduck) is configured for this project.
+It connects to `data/freudagent.duckdb` with read-write access.
+
+Use the MCP tools for ad-hoc queries instead of writing Python scripts:
+- `execute_query` -- run any DuckDB SQL
+- `list_tables` -- show all tables
+- `list_columns` -- show columns of a table
+
+The `db-query` skill (`.claude/skills/db-query.md`) documents the schema,
+enum values, FK relationships, and common queries. Use it when inspecting
+experiment data.
+
+For a standalone SQL file: `freud-schema db ddl | duckdb :memory:`
 
 ## Internal Docs
 

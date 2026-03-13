@@ -1,14 +1,72 @@
 """Pydantic models for the 6-table experiment harness schema.
 
 These mirror the DuckDB tables in db.py and provide type-safe interfaces
-for the store operations.
+for the store operations. Enum classes are the single source of truth
+for valid values -- db.py imports them for CHECK constraints, cli.py
+imports them for argparse choices.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 
 from pydantic import BaseModel, Field
+
+
+# ---------------------------------------------------------------------------
+# Enums: single source of truth for valid column values
+# ---------------------------------------------------------------------------
+
+
+class SkillStatus(str, Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+
+
+class SourceStatus(str, Enum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
+class SessionStatus(str, Enum):
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class AgentRole(str, Enum):
+    ORCHESTRATOR = "orchestrator"
+    SUBAGENT = "subagent"
+
+
+class ValidationStatus(str, Enum):
+    PENDING = "pending"
+    VALIDATED = "validated"
+    REJECTED = "rejected"
+
+
+class CorrectionType(str, Enum):
+    FIELD_MAPPING = "field_mapping"
+    WRONG_VALUE = "wrong_value"
+    MISSING_FIELD = "missing_field"
+    FALSE_POSITIVE = "false_positive"
+
+
+class RuleScope(str, Enum):
+    GLOBAL = "global"
+    DOMAIN_SPECIFIC = "domain-specific"
+
+
+class RuleStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
+
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
 
 
 class Skill(BaseModel):
@@ -21,7 +79,7 @@ class Skill(BaseModel):
     content: str = Field(description="The actual instructions, markdown")
     metadata: dict | None = None
     parent_skill_id: int | None = None
-    status: str = "draft"
+    status: SkillStatus = SkillStatus.DRAFT
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -34,7 +92,7 @@ class Source(BaseModel):
     media_type: str = Field(description="MIME type, e.g. application/pdf")
     metadata: dict | None = None
     source_hash: str | None = None
-    status: str = "active"
+    status: SourceStatus = SourceStatus.ACTIVE
     superseded_by: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -49,7 +107,7 @@ class Extraction(BaseModel):
     session_id: int
     output: dict = Field(description="The structured data produced")
     confidence: float | None = None
-    validation_status: str = "pending"
+    validation_status: ValidationStatus = ValidationStatus.PENDING
     validated_by: str | None = None
     validated_at: datetime | None = None
     created_at: datetime | None = None
@@ -62,12 +120,12 @@ class Session(BaseModel):
     task_description: str
     task_type: str
     parent_session_id: int | None = None
-    agent_role: str = "subagent"
+    agent_role: AgentRole = AgentRole.SUBAGENT
     skill_id: int | None = None
     context_loaded: dict | None = None
     model_used: str | None = None
     token_usage: dict | None = None
-    status: str = "running"
+    status: SessionStatus = SessionStatus.RUNNING
     result: dict | None = None
     created_at: datetime | None = None
     completed_at: datetime | None = None
@@ -81,7 +139,7 @@ class Feedback(BaseModel):
     session_id: int
     skill_id: int
     correction: dict = Field(description="What changed: before/after")
-    correction_type: str = Field(description="field_mapping | wrong_value | missing_field | false_positive")
+    correction_type: CorrectionType
     notes: str | None = None
     created_by: str | None = None
     created_at: datetime | None = None
@@ -91,11 +149,11 @@ class Rule(BaseModel):
     """A constraint applied to all agents (global) or a specific domain."""
 
     id: int | None = None
-    scope: str = "global"
+    scope: RuleScope = RuleScope.GLOBAL
     domain: str | None = None
     priority: int = 0
     content: str = Field(description="The rule text, markdown")
-    status: str = "active"
+    status: RuleStatus = RuleStatus.ACTIVE
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -104,7 +162,8 @@ class Subtask(BaseModel):
     """A decomposed unit of work within an orchestrator session."""
 
     type: str
-    skill_query: dict = Field(description="domain + task_type to find the skill")
+    skill_domain: str
+    skill_task_type: str
     source_ids: list[int] = Field(default_factory=list)
     context: dict | None = None
     depends_on: list[int] = Field(default_factory=list)

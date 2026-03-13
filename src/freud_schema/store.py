@@ -1,7 +1,8 @@
 """CRUD operations and retrieval queries for the experiment harness.
 
 All queries are parameterized. JSON fields are serialized with orjson
-on write and deserialized on read.
+on write and deserialized on read via automatic type detection from
+DuckDB's cursor.description (type_code == "JSON").
 """
 
 from __future__ import annotations
@@ -10,7 +11,20 @@ import duckdb
 import orjson
 
 from freud_schema.db import init_schema
-from freud_schema.tables import Extraction, Feedback, Rule, Session, Skill, Source
+from freud_schema.tables import (
+    Extraction,
+    Feedback,
+    Rule,
+    RuleScope,
+    RuleStatus,
+    Session,
+    SessionStatus,
+    Skill,
+    SkillStatus,
+    Source,
+    SourceStatus,
+    ValidationStatus,
+)
 
 
 def _json(val: dict | None) -> str | None:
@@ -35,6 +49,37 @@ class ExperimentStore:
         init_schema(con)
 
     # -------------------------------------------------------------------
+    # Generic row conversion
+    # -------------------------------------------------------------------
+
+    @staticmethod
+    def _row_to_dict(description: list, row: tuple) -> dict:
+        """Convert a DuckDB row to a dict, deserializing JSON columns.
+
+        Uses cursor.description to map by column name (not position).
+        JSON columns detected via DuckDBPyType == "JSON" and deserialized
+        with orjson. All other types pass through as-is.
+        """
+        d = {}
+        for col_desc, value in zip(description, row):
+            if value is not None and col_desc[1] == "JSON":
+                value = _from_json(value)
+            d[col_desc[0]] = value
+        return d
+
+    def _fetchone(self, sql: str, params: list | None = None) -> dict | None:
+        result = self.con.execute(sql, params or [])
+        row = result.fetchone()
+        if row is None:
+            return None
+        return self._row_to_dict(result.description, row)
+
+    def _fetchall(self, sql: str, params: list | None = None) -> list[dict]:
+        result = self.con.execute(sql, params or [])
+        desc = result.description
+        return [self._row_to_dict(desc, r) for r in result.fetchall()]
+
+    # -------------------------------------------------------------------
     # Skills
     # -------------------------------------------------------------------
 
@@ -50,26 +95,22 @@ class ExperimentStore:
         return result[0]
 
     def get_skill(self, skill_id: int) -> Skill | None:
-        row = self.con.execute(
-            "SELECT * FROM skills WHERE id = ?", [skill_id]
-        ).fetchone()
-        if row is None:
-            return None
-        return self._row_to_skill(row)
+        d = self._fetchone("SELECT * FROM skills WHERE id = ?", [skill_id])
+        return Skill(**d) if d else None
 
     def get_active_skill(self, domain: str, task_type: str) -> Skill | None:
         """Find the latest active skill for a domain + task_type."""
-        row = self.con.execute(
+        d = self._fetchone(
             """SELECT * FROM skills
-               WHERE domain = ? AND task_type = ? AND status = 'active'
+               WHERE domain = ? AND task_type = ? AND status = ?
                ORDER BY version DESC LIMIT 1""",
-            [domain, task_type],
-        ).fetchone()
-        if row is None:
-            return None
-        return self._row_to_skill(row)
+            [domain, task_type, SkillStatus.ACTIVE],
+        )
+        return Skill(**d) if d else None
 
-    def list_skills(self, domain: str | None = None, status: str | None = None) -> list[Skill]:
+    def list_skills(
+        self, domain: str | None = None, status: SkillStatus | None = None
+    ) -> list[Skill]:
         query = "SELECT * FROM skills WHERE 1=1"
         params: list = []
         if domain:
@@ -79,27 +120,18 @@ class ExperimentStore:
             query += " AND status = ?"
             params.append(status)
         query += " ORDER BY domain, task_type, version DESC"
-        rows = self.con.execute(query, params).fetchall()
-        return [self._row_to_skill(r) for r in rows]
+        return [Skill(**d) for d in self._fetchall(query, params)]
 
     def activate_skill(self, skill_id: int) -> None:
         self.con.execute(
-            "UPDATE skills SET status = 'active', updated_at = current_timestamp WHERE id = ?",
-            [skill_id],
+            "UPDATE skills SET status = ?, updated_at = current_timestamp WHERE id = ?",
+            [SkillStatus.ACTIVE, skill_id],
         )
 
     def deprecate_skill(self, skill_id: int) -> None:
         self.con.execute(
-            "UPDATE skills SET status = 'deprecated', updated_at = current_timestamp WHERE id = ?",
-            [skill_id],
-        )
-
-    def _row_to_skill(self, row: tuple) -> Skill:
-        return Skill(
-            id=row[0], domain=row[1], task_type=row[2], version=row[3],
-            content=row[4], metadata=_from_json(row[5]),
-            parent_skill_id=row[6], status=row[7],
-            created_at=row[8], updated_at=row[9],
+            "UPDATE skills SET status = ?, updated_at = current_timestamp WHERE id = ?",
+            [SkillStatus.DEPRECATED, skill_id],
         )
 
     # -------------------------------------------------------------------
@@ -117,30 +149,30 @@ class ExperimentStore:
         return result[0]
 
     def get_source(self, source_id: int) -> Source | None:
-        row = self.con.execute(
-            "SELECT * FROM sources WHERE id = ?", [source_id]
-        ).fetchone()
-        if row is None:
-            return None
-        return self._row_to_source(row)
+        d = self._fetchone("SELECT * FROM sources WHERE id = ?", [source_id])
+        return Source(**d) if d else None
 
-    def list_sources(self, status: str | None = None) -> list[Source]:
+    def get_sources_by_ids(self, source_ids: list[int]) -> dict[int, Source]:
+        """Bulk fetch sources by ID. Returns {id: Source} map."""
+        if not source_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in source_ids)
+        return {
+            d["id"]: Source(**d)
+            for d in self._fetchall(
+                f"SELECT * FROM sources WHERE id IN ({placeholders})",
+                source_ids,
+            )
+        }
+
+    def list_sources(self, status: SourceStatus | None = None) -> list[Source]:
         query = "SELECT * FROM sources WHERE 1=1"
         params: list = []
         if status:
             query += " AND status = ?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        rows = self.con.execute(query, params).fetchall()
-        return [self._row_to_source(r) for r in rows]
-
-    def _row_to_source(self, row: tuple) -> Source:
-        return Source(
-            id=row[0], content_path=row[1], media_type=row[2],
-            metadata=_from_json(row[3]), source_hash=row[4],
-            status=row[5], superseded_by=row[6],
-            created_at=row[7], updated_at=row[8],
-        )
+        return [Source(**d) for d in self._fetchall(query, params)]
 
     # -------------------------------------------------------------------
     # Sessions
@@ -159,7 +191,11 @@ class ExperimentStore:
         return result[0]
 
     def complete_session(
-        self, session_id: int, *, status: str = "completed", result: dict | None = None
+        self,
+        session_id: int,
+        *,
+        status: SessionStatus = SessionStatus.COMPLETED,
+        result: dict | None = None,
     ) -> None:
         self.con.execute(
             """UPDATE sessions SET status = ?, result = ?,
@@ -168,14 +204,15 @@ class ExperimentStore:
         )
 
     def get_session(self, session_id: int) -> Session | None:
-        row = self.con.execute(
-            "SELECT * FROM sessions WHERE id = ?", [session_id]
-        ).fetchone()
-        if row is None:
-            return None
-        return self._row_to_session(row)
+        d = self._fetchone("SELECT * FROM sessions WHERE id = ?", [session_id])
+        return Session(**d) if d else None
 
-    def list_sessions(self, status: str | None = None, parent_id: int | None = None) -> list[Session]:
+    def list_sessions(
+        self,
+        status: SessionStatus | None = None,
+        parent_id: int | None = None,
+        limit: int | None = None,
+    ) -> list[Session]:
         query = "SELECT * FROM sessions WHERE 1=1"
         params: list = []
         if status:
@@ -185,17 +222,10 @@ class ExperimentStore:
             query += " AND parent_session_id = ?"
             params.append(parent_id)
         query += " ORDER BY created_at DESC"
-        rows = self.con.execute(query, params).fetchall()
-        return [self._row_to_session(r) for r in rows]
-
-    def _row_to_session(self, row: tuple) -> Session:
-        return Session(
-            id=row[0], task_description=row[1], task_type=row[2],
-            parent_session_id=row[3], agent_role=row[4], skill_id=row[5],
-            context_loaded=_from_json(row[6]), model_used=row[7],
-            token_usage=_from_json(row[8]), status=row[9],
-            result=_from_json(row[10]), created_at=row[11], completed_at=row[12],
-        )
+        if limit is not None:
+            query += " LIMIT ?"
+            params.append(limit)
+        return [Session(**d) for d in self._fetchall(query, params)]
 
     # -------------------------------------------------------------------
     # Extractions
@@ -214,15 +244,15 @@ class ExperimentStore:
         return result[0]
 
     def get_extraction(self, extraction_id: int) -> Extraction | None:
-        row = self.con.execute(
-            "SELECT * FROM extractions WHERE id = ?", [extraction_id]
-        ).fetchone()
-        if row is None:
-            return None
-        return self._row_to_extraction(row)
+        d = self._fetchone("SELECT * FROM extractions WHERE id = ?", [extraction_id])
+        return Extraction(**d) if d else None
 
     def update_validation(
-        self, extraction_id: int, *, status: str, validated_by: str | None = None
+        self,
+        extraction_id: int,
+        *,
+        status: ValidationStatus,
+        validated_by: str | None = None,
     ) -> None:
         self.con.execute(
             """UPDATE extractions SET validation_status = ?, validated_by = ?,
@@ -233,7 +263,7 @@ class ExperimentStore:
     def list_extractions(
         self,
         skill_id: int | None = None,
-        validation_status: str | None = None,
+        validation_status: ValidationStatus | None = None,
         limit: int = 50,
     ) -> list[Extraction]:
         query = "SELECT * FROM extractions WHERE 1=1"
@@ -246,21 +276,12 @@ class ExperimentStore:
             params.append(validation_status)
         query += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)
-        rows = self.con.execute(query, params).fetchall()
-        return [self._row_to_extraction(r) for r in rows]
+        return [Extraction(**d) for d in self._fetchall(query, params)]
 
     def get_validated_extractions(self, skill_id: int, limit: int = 10) -> list[Extraction]:
         """Retrieval query: find prior validated extractions for a skill."""
         return self.list_extractions(
-            skill_id=skill_id, validation_status="validated", limit=limit
-        )
-
-    def _row_to_extraction(self, row: tuple) -> Extraction:
-        return Extraction(
-            id=row[0], source_id=row[1], skill_id=row[2], session_id=row[3],
-            output=_from_json(row[4]), confidence=row[5],
-            validation_status=row[6], validated_by=row[7],
-            validated_at=row[8], created_at=row[9],
+            skill_id=skill_id, validation_status=ValidationStatus.VALIDATED, limit=limit
         )
 
     # -------------------------------------------------------------------
@@ -285,8 +306,7 @@ class ExperimentStore:
             query += " AND skill_id = ?"
             params.append(skill_id)
         query += " ORDER BY created_at DESC"
-        rows = self.con.execute(query, params).fetchall()
-        return [self._row_to_feedback(r) for r in rows]
+        return [Feedback(**d) for d in self._fetchall(query, params)]
 
     def aggregate_feedback(self, skill_id: int) -> list[tuple[str, int]]:
         """Count corrections by type for a skill -- the flywheel signal."""
@@ -297,13 +317,6 @@ class ExperimentStore:
             [skill_id],
         ).fetchall()
         return [(r[0], r[1]) for r in rows]
-
-    def _row_to_feedback(self, row: tuple) -> Feedback:
-        return Feedback(
-            id=row[0], extraction_id=row[1], session_id=row[2], skill_id=row[3],
-            correction=_from_json(row[4]), correction_type=row[5],
-            notes=row[6], created_by=row[7], created_at=row[8],
-        )
 
     # -------------------------------------------------------------------
     # Rules
@@ -320,29 +333,18 @@ class ExperimentStore:
 
     def get_rules(self, domain: str | None = None) -> list[Rule]:
         """Load active rules: global + domain-specific, ordered by priority."""
+        query = "SELECT * FROM rules WHERE status = ?"
+        params: list = [RuleStatus.ACTIVE]
         if domain:
-            rows = self.con.execute(
-                """SELECT * FROM rules
-                   WHERE status = 'active' AND (scope = 'global' OR domain = ?)
-                   ORDER BY priority DESC""",
-                [domain],
-            ).fetchall()
+            query += " AND (scope = ? OR domain = ?)"
+            params.extend([RuleScope.GLOBAL, domain])
         else:
-            rows = self.con.execute(
-                """SELECT * FROM rules
-                   WHERE status = 'active' AND scope = 'global'
-                   ORDER BY priority DESC""",
-            ).fetchall()
-        return [self._row_to_rule(r) for r in rows]
+            query += " AND scope = ?"
+            params.append(RuleScope.GLOBAL)
+        query += " ORDER BY priority DESC"
+        return [Rule(**d) for d in self._fetchall(query, params)]
 
     def list_rules(self) -> list[Rule]:
-        rows = self.con.execute(
+        return [Rule(**d) for d in self._fetchall(
             "SELECT * FROM rules ORDER BY scope, domain, priority DESC"
-        ).fetchall()
-        return [self._row_to_rule(r) for r in rows]
-
-    def _row_to_rule(self, row: tuple) -> Rule:
-        return Rule(
-            id=row[0], scope=row[1], domain=row[2], priority=row[3],
-            content=row[4], status=row[5], created_at=row[6], updated_at=row[7],
-        )
+        )]

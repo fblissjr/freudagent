@@ -18,8 +18,18 @@ from typing import Protocol
 
 import orjson
 
+from freud_schema.harness import compose_preset
 from freud_schema.store import ExperimentStore
-from freud_schema.tables import Extraction, Session, Subtask, TaskPlan
+from freud_schema.tables import (
+    AgentRole,
+    Extraction,
+    Session,
+    SessionStatus,
+    SourceStatus,
+    Subtask,
+    TaskPlan,
+    ValidationStatus,
+)
 
 
 class ModelCall(Protocol):
@@ -53,7 +63,6 @@ def assemble_runner_context(
     # Layer 0: Archetype identity (optional)
     archetype_block = ""
     if preset:
-        from freud_schema.harness import compose_preset
         archetype_block = compose_preset(preset) + "\n\n"
 
     # Layer 1: Rules (always first, always small)
@@ -69,17 +78,19 @@ def assemble_runner_context(
     if skill:
         skill_block = f"# Skill: {skill.domain} / {skill.task_type} (v{skill.version})\n\n{skill.content}\n\n"
 
-    # Layer 3: Source references
+    # Layer 3: Source references (bulk fetch)
     source_block = ""
-    for sid in source_ids:
-        source = store.get_source(sid)
-        if source:
-            source_block += (
-                f"<source id=\"{source.id}\" type=\"{source.media_type}\" "
-                f"path=\"{source.content_path}\" />\n"
-            )
-    if source_block:
-        source_block = f"# Sources\n\n{source_block}\n"
+    if source_ids:
+        source_map = store.get_sources_by_ids(source_ids)
+        for sid in source_ids:
+            source = source_map.get(sid)
+            if source:
+                source_block += (
+                    f"<source id=\"{source.id}\" type=\"{source.media_type}\" "
+                    f"path=\"{source.content_path}\" />\n"
+                )
+        if source_block:
+            source_block = f"# Sources\n\n{source_block}\n"
 
     system_prompt = (archetype_block + rules_block + skill_block).strip()
     user_message = (source_block + task_params).strip()
@@ -108,18 +119,19 @@ def run_subtask(
     """
     # Resolve skill
     skill = store.get_active_skill(
-        domain=subtask.skill_query.get("domain", ""),
-        task_type=subtask.skill_query.get("task_type", ""),
+        domain=subtask.skill_domain,
+        task_type=subtask.skill_task_type,
     )
     if skill is None:
         return None
+    assert skill.id is not None  # always set after DB fetch
 
     # Create session record
     session = Session(
-        task_description=f"{subtask.type}: {subtask.skill_query}",
+        task_description=f"{subtask.type}: {subtask.skill_domain}/{subtask.skill_task_type}",
         task_type=subtask.type,
         parent_session_id=parent_session_id,
-        agent_role="subagent",
+        agent_role=AgentRole.SUBAGENT,
         skill_id=skill.id,
         context_loaded={
             "skill_id": skill.id,
@@ -127,13 +139,13 @@ def run_subtask(
             "prior_results": prior_results is not None,
         },
         model_used=model_name,
-        status="running",
+        status=SessionStatus.RUNNING,
     )
     session_id = store.insert_session(session)
 
-    # Assemble context
+    # Assemble context -- Fix A: prior_results no longer gated on subtask.context
     task_params = ""
-    if subtask.context and prior_results:
+    if prior_results:
         task_params = f"Prior results: {prior_results}\n\n"
     task_params += f"Execute {subtask.type} task."
 
@@ -141,7 +153,7 @@ def run_subtask(
         store,
         skill_id=skill.id,
         source_ids=subtask.source_ids,
-        domain=subtask.skill_query.get("domain"),
+        domain=subtask.skill_domain,
         task_params=task_params,
         preset=preset,
     )
@@ -149,9 +161,13 @@ def run_subtask(
     # Call model
     try:
         raw_output = model_fn(system_prompt, user_message)
-        store.complete_session(session_id, status="completed", result={"raw": raw_output})
+        store.complete_session(
+            session_id, status=SessionStatus.COMPLETED, result={"raw": raw_output}
+        )
     except Exception as exc:
-        store.complete_session(session_id, status="failed", result={"error": str(exc)})
+        store.complete_session(
+            session_id, status=SessionStatus.FAILED, result={"error": str(exc)}
+        )
         return None
 
     # Store extraction if we have source(s)
@@ -162,10 +178,11 @@ def run_subtask(
             skill_id=skill.id,
             session_id=session_id,
             output={"raw": raw_output},
-            validation_status="pending",
+            validation_status=ValidationStatus.PENDING,
         )
         ext_id = store.insert_extraction(extraction)
-        extraction.id = ext_id
+        # Fix C: re-fetch instead of mutating frozen-ish model
+        extraction = store.get_extraction(ext_id)
 
     return extraction
 
@@ -182,7 +199,6 @@ def run_task(
     model_fn: ModelCall,
     task_description: str = "",
     model_name: str = "unknown",
-    orchestrator_preset: str = "hierarchical-orchestrator",
     preset: str | None = None,
 ) -> list[Extraction]:
     """Execute a task plan: process subtasks in dependency order.
@@ -199,50 +215,70 @@ def run_task(
     orch_session = Session(
         task_description=task_description or "orchestrator",
         task_type="orchestration",
-        agent_role="orchestrator",
+        agent_role=AgentRole.ORCHESTRATOR,
         model_used=model_name,
         context_loaded={
-            "preset": orchestrator_preset,
+            "preset": preset,
             "subtask_count": len(plan.subtasks),
         },
-        status="running",
+        status=SessionStatus.RUNNING,
     )
     orch_session_id = store.insert_session(orch_session)
 
-    # Process subtasks in dependency order
+    # Fix B: wrap in try/except/finally so session always completes
     results: dict[int, Extraction | None] = {}
     extractions: list[Extraction] = []
+    failed_count = 0
 
-    for idx, subtask in enumerate(plan.subtasks):
-        # Collect results from dependencies
-        prior = {}
-        for dep_idx in subtask.depends_on:
-            dep_result = results.get(dep_idx)
-            if dep_result:
-                prior[f"subtask_{dep_idx}"] = dep_result.output
+    try:
+        for idx, subtask in enumerate(plan.subtasks):
+            # Collect results from dependencies
+            prior = {}
+            for dep_idx in subtask.depends_on:
+                dep_result = results.get(dep_idx)
+                if dep_result:
+                    prior[f"subtask_{dep_idx}"] = dep_result.output
 
-        extraction = run_subtask(
-            store,
-            subtask,
-            model_fn=model_fn,
-            parent_session_id=orch_session_id,
-            model_name=model_name,
-            prior_results=prior if prior else None,
-            preset=preset,
+            extraction = run_subtask(
+                store,
+                subtask,
+                model_fn=model_fn,
+                parent_session_id=orch_session_id,
+                model_name=model_name,
+                prior_results=prior if prior else None,
+                preset=preset,
+            )
+            results[idx] = extraction
+            if extraction:
+                extractions.append(extraction)
+            else:
+                failed_count += 1
+    except Exception:
+        store.complete_session(
+            orch_session_id,
+            status=SessionStatus.FAILED,
+            result={
+                "error": "unexpected exception",
+                "extraction_count": len(extractions),
+                "extraction_ids": [e.id for e in extractions],
+            },
         )
-        results[idx] = extraction
-        if extraction:
-            extractions.append(extraction)
+        raise
+    else:
+        # Determine final status
+        if failed_count == len(plan.subtasks):
+            final_status = SessionStatus.FAILED
+        else:
+            final_status = SessionStatus.COMPLETED
 
-    # Complete orchestrator session
-    store.complete_session(
-        orch_session_id,
-        status="completed",
-        result={
-            "extraction_count": len(extractions),
-            "extraction_ids": [e.id for e in extractions],
-        },
-    )
+        store.complete_session(
+            orch_session_id,
+            status=final_status,
+            result={
+                "extraction_count": len(extractions),
+                "extraction_ids": [e.id for e in extractions],
+            },
+        )
 
     return extractions
 
@@ -324,7 +360,7 @@ def run_simple(
     prepended to each subtask's context.
     """
     if source_ids is None:
-        sources = store.list_sources(status="active")
+        sources = store.list_sources(status=SourceStatus.ACTIVE)
         source_ids = [s.id for s in sources if s.id is not None]
     if not source_ids:
         return []
@@ -332,7 +368,8 @@ def run_simple(
     subtasks = [
         Subtask(
             type=task_type,
-            skill_query={"domain": domain, "task_type": task_type},
+            skill_domain=domain,
+            skill_task_type=task_type,
             source_ids=[sid],
         )
         for sid in source_ids
