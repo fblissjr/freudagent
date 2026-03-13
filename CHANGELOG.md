@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+
+- **`run` command**: Execute the orchestrator against database contents
+  - `freud-schema run --domain D --task-type T` processes all active sources
+  - `--source-id N` (repeatable) to target specific sources
+  - `--model echo` (default) shows assembled context for pipeline verification
+  - `--model anthropic` calls Claude API (requires `anthropic` SDK)
+  - `--task` for additional task context
+- **`extraction` commands**: `list`, `show`, `validate`, `reject`
+- **`session list`**: View execution history (orchestrator + subagent sessions)
+- **`feedback add`**: Close the flywheel loop with corrections on extractions
+  - `--extraction-id`, `--type`, `--correction` (JSON), `--notes`, `--by`
+- `EchoModel` -- built-in model for pipeline verification without API keys
+- `get_model()` factory for model callables (echo, anthropic)
+- `run_simple()` -- convenience function: skill + sources -> extractions
+- 7 new tests for EchoModel, get_model, run_simple, end-to-end echo pipeline
+
+### Changed
+
+- `feedback` CLI restructured to use subparsers: `feedback list` (was top-level), `feedback add` (new)
+  - Old: `freud-schema feedback --skill-id 1 --aggregate`
+  - New: `freud-schema feedback list --skill-id 1 --aggregate`
+
 ## 0.5.0
 
 ### Added

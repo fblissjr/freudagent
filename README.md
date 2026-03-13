@@ -56,31 +56,39 @@ uv run freud-schema prompt structural-triad free-association fixation \
 ### CLI -- Experiment Harness
 
 ```bash
-# Initialize the DuckDB schema
+# 1. Initialize
 uv run freud-schema db init
 
-# Check table counts
-uv run freud-schema db status
-
-# Register a skill
+# 2. Set up: rules, skills, sources
+uv run freud-schema rule add --content "Always output valid JSON" --scope global
 uv run freud-schema skill add \
   --domain legal --task-type extraction \
   --content "Extract party names and dates from contracts" \
   --status active
-
-# Register a source
 uv run freud-schema source add --path ./contracts/sample.pdf --media-type application/pdf
 
-# Add a rule
-uv run freud-schema rule add --content "Always preserve original formatting" --scope global
+# 3. Run the orchestrator (echo model shows assembled context)
+uv run freud-schema run --domain legal --task-type extraction
 
-# List what you have
-uv run freud-schema skill list
-uv run freud-schema source list
-uv run freud-schema rule list
+# 4. Review results
+uv run freud-schema extraction list
+uv run freud-schema extraction show 1
+uv run freud-schema session list
 
-# View feedback (the flywheel signal)
-uv run freud-schema feedback --skill-id 1 --aggregate
+# 5. Validate or reject extractions
+uv run freud-schema extraction validate 1 --by "reviewer"
+
+# 6. Close the feedback loop
+uv run freud-schema feedback add \
+  --extraction-id 1 --type wrong_value \
+  --correction '{"field": "party", "was": "X", "should_be": "Y"}' \
+  --notes "Full legal name required" --by "reviewer"
+
+# 7. View the flywheel signal
+uv run freud-schema feedback list --skill-id 1 --aggregate
+
+# Run with a real model (requires ANTHROPIC_API_KEY)
+uv run freud-schema run --domain legal --task-type extraction --model anthropic
 
 # Nuclear option
 uv run freud-schema db reset

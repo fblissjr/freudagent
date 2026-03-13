@@ -81,8 +81,12 @@ The harness implements declarative agent orchestration: behavior comes from data
 | feedback | Human corrections on extractions (the flywheel signal) |
 | rules | Constraints applied globally or per-domain (priority-ordered) |
 
-CLI: `freud-schema db init`, `freud-schema skill add/list`, `freud-schema source add/list`,
-`freud-schema rule add/list`, `freud-schema feedback --skill-id N --aggregate`
+CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add`
+
+Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic]`
+Review: `freud-schema extraction list`, `extraction show N`, `extraction validate N`
+Feedback: `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
+History: `freud-schema session list`
 
 ## Architecture Notes
 

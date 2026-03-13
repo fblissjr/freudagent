@@ -122,9 +122,52 @@ def main(argv: list[str] | None = None) -> None:
     p_rule_add.add_argument("--priority", type=int, default=0)
     p_rule_sub.add_parser("list", help="List all rules")
 
-    p_feedback = sub.add_parser("feedback", help="View feedback")
-    p_feedback.add_argument("--skill-id", type=int, default=None, help="Filter by skill ID")
-    p_feedback.add_argument("--aggregate", action="store_true", help="Show correction type counts")
+    p_feedback = sub.add_parser("feedback", help="Manage feedback")
+    p_fb_sub = p_feedback.add_subparsers(dest="feedback_action")
+    p_fb_list = p_fb_sub.add_parser("list", help="List feedback")
+    p_fb_list.add_argument("--skill-id", type=int, default=None)
+    p_fb_list.add_argument("--aggregate", action="store_true")
+    p_fb_add = p_fb_sub.add_parser("add", help="Add feedback on an extraction")
+    p_fb_add.add_argument("--extraction-id", type=int, required=True)
+    p_fb_add.add_argument("--type", required=True,
+                          choices=["field_mapping", "wrong_value", "missing_field", "false_positive"])
+    p_fb_add.add_argument("--correction", required=True, help="JSON correction data")
+    p_fb_add.add_argument("--notes", default=None)
+    p_fb_add.add_argument("--by", default=None)
+
+    # --- Run command ---
+    p_run = sub.add_parser("run", help="Execute the orchestrator against sources")
+    p_run.add_argument("--domain", required=True, help="Skill domain")
+    p_run.add_argument("--task-type", required=True, help="Skill task type")
+    p_run.add_argument("--source-id", type=int, action="append", default=None,
+                       help="Source ID(s) to process (repeatable, default: all active)")
+    p_run.add_argument("--model", default="echo", help="Model: echo or anthropic (default: echo)")
+    p_run.add_argument("--model-name", default=None, help="Anthropic model name (default: claude-sonnet-4-6)")
+    p_run.add_argument("--task", default="", help="Additional task context")
+    p_run.add_argument("--db", default=None, help="Path to DuckDB file")
+
+    # --- Extraction commands ---
+    p_ext = sub.add_parser("extraction", help="Manage extractions")
+    p_ext_sub = p_ext.add_subparsers(dest="extraction_action")
+    p_ext_list = p_ext_sub.add_parser("list", help="List extractions")
+    p_ext_list.add_argument("--skill-id", type=int, default=None)
+    p_ext_list.add_argument("--status", default=None)
+    p_ext_list.add_argument("--limit", type=int, default=50)
+    p_ext_show = p_ext_sub.add_parser("show", help="Show extraction details")
+    p_ext_show.add_argument("id", type=int)
+    p_ext_validate = p_ext_sub.add_parser("validate", help="Mark as validated")
+    p_ext_validate.add_argument("id", type=int)
+    p_ext_validate.add_argument("--by", default=None)
+    p_ext_reject = p_ext_sub.add_parser("reject", help="Mark as rejected")
+    p_ext_reject.add_argument("id", type=int)
+    p_ext_reject.add_argument("--by", default=None)
+
+    # --- Session commands ---
+    p_sess = sub.add_parser("session", help="View execution sessions")
+    p_sess_sub = p_sess.add_subparsers(dest="session_action")
+    p_sess_list = p_sess_sub.add_parser("list", help="List sessions")
+    p_sess_list.add_argument("--status", default=None)
+    p_sess_list.add_argument("--limit", type=int, default=20)
 
     args = parser.parse_args(argv)
     if not args.command:
@@ -231,6 +274,15 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "feedback":
         _handle_feedback(args)
 
+    elif args.command == "run":
+        _handle_run(args)
+
+    elif args.command == "extraction":
+        _handle_extraction(args)
+
+    elif args.command == "session":
+        _handle_session(args)
+
 
 # ---------------------------------------------------------------------------
 # Experiment harness command handlers
@@ -322,22 +374,184 @@ def _handle_rule(args) -> None:
 
 
 def _handle_feedback(args) -> None:
+    from freud_schema.tables import Feedback
+
     store = _get_store()
-    if args.aggregate and args.skill_id:
-        agg = store.aggregate_feedback(args.skill_id)
-        if not agg:
-            print("No feedback for this skill.")
+    if args.feedback_action == "list":
+        if args.aggregate and args.skill_id:
+            agg = store.aggregate_feedback(args.skill_id)
+            if not agg:
+                print("No feedback for this skill.")
+            else:
+                print(f"Feedback for skill {args.skill_id}:")
+                for correction_type, count in agg:
+                    print(f"  {correction_type:20s} {count:>4}x")
         else:
-            print(f"Feedback for skill {args.skill_id}:")
-            for correction_type, count in agg:
-                print(f"  {correction_type:20s} {count:>4}x")
+            fb_list = store.list_feedback(skill_id=args.skill_id)
+            if not fb_list:
+                print("No feedback found.")
+            else:
+                for fb in fb_list:
+                    print(f"  [{fb.id}] skill={fb.skill_id} type={fb.correction_type} by={fb.created_by or 'anon'}")
+    elif args.feedback_action == "add":
+        ext = store.get_extraction(args.extraction_id)
+        if ext is None:
+            print(f"Extraction {args.extraction_id} not found.", file=sys.stderr)
+            sys.exit(1)
+        try:
+            correction = orjson.loads(args.correction)
+        except Exception:
+            print("--correction must be valid JSON", file=sys.stderr)
+            sys.exit(1)
+        fb = Feedback(
+            extraction_id=ext.id,
+            session_id=ext.session_id,
+            skill_id=ext.skill_id,
+            correction=correction,
+            correction_type=args.type,
+            notes=args.notes,
+            created_by=args.by,
+        )
+        fb_id = store.insert_feedback(fb)
+        print(f"Feedback created: id={fb_id} extraction={ext.id} type={args.type}")
     else:
-        fb_list = store.list_feedback(skill_id=args.skill_id)
-        if not fb_list:
-            print("No feedback found.")
+        print("Use: feedback list|add", file=sys.stderr)
+
+
+def _handle_run(args) -> None:
+    from freud_schema.orchestrator import get_model, run_simple
+
+    store = _get_store(args.db)
+
+    # Resolve skill
+    skill = store.get_active_skill(args.domain, args.task_type)
+    if skill is None:
+        print(f"No active skill for {args.domain}/{args.task_type}", file=sys.stderr)
+        print("Add one with: freud-schema skill add --domain ... --task-type ... --content ... --status active",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # Resolve sources
+    source_ids = args.source_id
+    if source_ids is None:
+        sources = store.list_sources(status="active")
+        source_ids = [s.id for s in sources]
+
+    if not source_ids:
+        print("No sources to process.", file=sys.stderr)
+        print("Register sources with: freud-schema source add --path ... --media-type ...",
+              file=sys.stderr)
+        sys.exit(1)
+
+    # Get model
+    try:
+        model_fn = get_model(args.model, model_name=args.model_name)
+    except (ValueError, ImportError) as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+
+    model_display = args.model_name or args.model
+    print(f"Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={skill.id})")
+    print(f"Sources: {len(source_ids)}")
+    print(f"Model: {model_display}")
+    print()
+
+    extractions = run_simple(
+        store,
+        domain=args.domain,
+        task_type=args.task_type,
+        source_ids=source_ids,
+        model_fn=model_fn,
+        model_name=model_display,
+        task_description=args.task,
+    )
+
+    for i, ext in enumerate(extractions, 1):
+        source = store.get_source(ext.source_id)
+        path = source.content_path if source else f"source-{ext.source_id}"
+        print(f"[{i}/{len(source_ids)}] {path}")
+        print(f"  Extraction: id={ext.id} ({ext.validation_status})")
+        raw = ext.output.get("raw", "")
+        try:
+            parsed = orjson.loads(raw)
+            display = orjson.dumps(parsed, option=orjson.OPT_INDENT_2).decode()
+        except Exception:
+            display = raw
+        for line in display.split("\n"):
+            print(f"  {line}")
+        print()
+
+    if not extractions:
+        print("No extractions produced.")
+    else:
+        print(f"Done: {len(extractions)} extraction(s) created.")
+        print("Review: freud-schema extraction list")
+        print("Validate: freud-schema extraction validate <id>")
+
+
+def _handle_extraction(args) -> None:
+    store = _get_store()
+    if args.extraction_action == "list":
+        exts = store.list_extractions(
+            skill_id=args.skill_id,
+            validation_status=args.status,
+            limit=args.limit,
+        )
+        if not exts:
+            print("No extractions found.")
         else:
-            for fb in fb_list:
-                print(f"  [{fb.id}] skill={fb.skill_id} type={fb.correction_type} by={fb.created_by or 'anon'}")
+            for e in exts:
+                source = store.get_source(e.source_id)
+                path = source.content_path if source else "?"
+                print(f"  [{e.id}] skill={e.skill_id} source={path} "
+                      f"status={e.validation_status} confidence={e.confidence}")
+    elif args.extraction_action == "show":
+        ext = store.get_extraction(args.id)
+        if ext is None:
+            print(f"Extraction {args.id} not found.", file=sys.stderr)
+            sys.exit(1)
+        source = store.get_source(ext.source_id)
+        skill = store.get_skill(ext.skill_id)
+        print(f"  Extraction: {ext.id}")
+        print(f"  Source: {source.content_path if source else '?'} (id={ext.source_id})")
+        if skill:
+            print(f"  Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={ext.skill_id})")
+        else:
+            print(f"  Skill: id={ext.skill_id}")
+        print(f"  Session: {ext.session_id}")
+        print(f"  Status: {ext.validation_status}")
+        if ext.confidence is not None:
+            print(f"  Confidence: {ext.confidence}")
+        if ext.validated_by:
+            print(f"  Validated by: {ext.validated_by} at {ext.validated_at}")
+        print(f"  Created: {ext.created_at}")
+        print(f"\n  Output:")
+        output_str = orjson.dumps(ext.output, option=orjson.OPT_INDENT_2).decode()
+        for line in output_str.split("\n"):
+            print(f"    {line}")
+    elif args.extraction_action == "validate":
+        store.update_validation(args.id, status="validated", validated_by=args.by)
+        print(f"Extraction {args.id} marked as validated.")
+    elif args.extraction_action == "reject":
+        store.update_validation(args.id, status="rejected", validated_by=args.by)
+        print(f"Extraction {args.id} marked as rejected.")
+    else:
+        print("Use: extraction list|show|validate|reject", file=sys.stderr)
+
+
+def _handle_session(args) -> None:
+    store = _get_store()
+    if args.session_action == "list":
+        sessions = store.list_sessions(status=args.status)
+        if not sessions:
+            print("No sessions found.")
+        else:
+            for s in sessions[:args.limit]:
+                parent = f" parent={s.parent_session_id}" if s.parent_session_id else ""
+                skill_info = f" skill={s.skill_id}" if s.skill_id else ""
+                print(f"  [{s.id}] {s.agent_role} {s.task_type} [{s.status}]{parent}{skill_info} model={s.model_used}")
+    else:
+        print("Use: session list", file=sys.stderr)
 
 
 if __name__ == "__main__":

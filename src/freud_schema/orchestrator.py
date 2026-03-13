@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+import orjson
+
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import Extraction, Session, Subtask, TaskPlan
 
@@ -225,3 +227,100 @@ def run_task(
     )
 
     return extractions
+
+
+# ---------------------------------------------------------------------------
+# Built-in model implementations
+# ---------------------------------------------------------------------------
+
+
+class EchoModel:
+    """Returns the assembled context as output, for pipeline verification.
+
+    Proves the pipeline works end-to-end without requiring API keys.
+    The output shows exactly what a real model would receive.
+    """
+
+    def __call__(self, system_prompt: str, user_message: str) -> str:
+        return orjson.dumps({
+            "model": "echo",
+            "system_prompt": system_prompt,
+            "user_message": user_message,
+        }, option=orjson.OPT_INDENT_2).decode()
+
+
+def get_model(name: str, *, model_name: str | None = None) -> ModelCall:
+    """Factory for model callables.
+
+    Args:
+        name: "echo" for pipeline verification, "anthropic" for Claude API.
+        model_name: Anthropic model name (default: claude-sonnet-4-6).
+    """
+    if name == "echo":
+        return EchoModel()
+    if name == "anthropic":
+        try:
+            import anthropic  # type: ignore[import-untyped]
+        except ImportError:
+            raise ImportError(
+                "Anthropic SDK not installed. Run: uv pip install anthropic"
+            ) from None
+        client = anthropic.Anthropic()
+        actual_model = model_name or "claude-sonnet-4-6"
+
+        def _call_anthropic(system_prompt: str, user_message: str) -> str:
+            response = client.messages.create(
+                model=actual_model,
+                max_tokens=4096,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            return response.content[0].text
+
+        return _call_anthropic
+    raise ValueError(f"Unknown model: {name!r}. Use 'echo' or 'anthropic'.")
+
+
+# ---------------------------------------------------------------------------
+# Convenience: run without manual TaskPlan construction
+# ---------------------------------------------------------------------------
+
+
+def run_simple(
+    store: ExperimentStore,
+    *,
+    domain: str,
+    task_type: str,
+    source_ids: list[int] | None = None,
+    model_fn: ModelCall,
+    model_name: str = "unknown",
+    task_description: str = "",
+) -> list[Extraction]:
+    """Run a skill against source(s) without manual TaskPlan creation.
+
+    If source_ids is None, processes all active sources. Creates one
+    Subtask per source, all independent (no dependencies).
+    """
+    if source_ids is None:
+        sources = store.list_sources(status="active")
+        source_ids = [s.id for s in sources]
+    if not source_ids:
+        return []
+
+    subtasks = [
+        Subtask(
+            type=task_type,
+            skill_query={"domain": domain, "task_type": task_type},
+            source_ids=[sid],
+        )
+        for sid in source_ids
+    ]
+
+    plan = TaskPlan(subtasks=subtasks)
+    return run_task(
+        store,
+        plan,
+        model_fn=model_fn,
+        task_description=task_description or f"{domain}/{task_type}",
+        model_name=model_name,
+    )

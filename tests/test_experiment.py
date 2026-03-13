@@ -3,7 +3,16 @@
 import pytest
 
 from freud_schema.db import connect, reset_schema
-from freud_schema.orchestrator import assemble_runner_context, run_subtask, run_task
+import orjson
+
+from freud_schema.orchestrator import (
+    EchoModel,
+    assemble_runner_context,
+    get_model,
+    run_simple,
+    run_subtask,
+    run_task,
+)
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     Extraction,
@@ -402,3 +411,118 @@ def test_run_subtask_model_failure(store):
     # Session should be marked as failed
     sessions = store.list_sessions(status="failed")
     assert len(sessions) == 1
+
+
+# ---------------------------------------------------------------------------
+# Built-in models and run_simple
+# ---------------------------------------------------------------------------
+
+
+def test_echo_model():
+    model = EchoModel()
+    result = model("You are a helpful assistant.", "Extract policy numbers.")
+    parsed = orjson.loads(result)
+    assert parsed["model"] == "echo"
+    assert "helpful assistant" in parsed["system_prompt"]
+    assert "Extract policy" in parsed["user_message"]
+
+
+def test_get_model_echo():
+    model = get_model("echo")
+    result = model("sys", "user")
+    parsed = orjson.loads(result)
+    assert parsed["model"] == "echo"
+
+
+def test_get_model_unknown():
+    with pytest.raises(ValueError, match="Unknown model"):
+        get_model("nonexistent")
+
+
+def test_run_simple(store):
+    store.insert_skill(Skill(
+        domain="insurance", task_type="extraction",
+        content="Extract policy fields", status="active",
+    ))
+    store.insert_source(Source(content_path="/data/a.pdf", media_type="application/pdf"))
+    store.insert_source(Source(content_path="/data/b.pdf", media_type="application/pdf"))
+    store.insert_rule(Rule(scope="global", content="Output valid JSON"))
+
+    extractions = run_simple(
+        store,
+        domain="insurance",
+        task_type="extraction",
+        model_fn=_mock_model,
+        model_name="mock",
+    )
+    assert len(extractions) == 2
+
+    # Should have created sessions (1 orchestrator + 2 subagent)
+    sessions = store.list_sessions()
+    assert len(sessions) >= 3
+
+
+def test_run_simple_specific_sources(store):
+    store.insert_skill(Skill(
+        domain="d", task_type="t",
+        content="do stuff", status="active",
+    ))
+    sid1 = store.insert_source(Source(content_path="a.pdf", media_type="application/pdf"))
+    store.insert_source(Source(content_path="b.pdf", media_type="application/pdf"))
+    sid3 = store.insert_source(Source(content_path="c.pdf", media_type="application/pdf"))
+
+    extractions = run_simple(
+        store,
+        domain="d",
+        task_type="t",
+        source_ids=[sid1, sid3],
+        model_fn=_mock_model,
+        model_name="mock",
+    )
+    assert len(extractions) == 2
+
+
+def test_run_simple_no_sources(store):
+    store.insert_skill(Skill(
+        domain="d", task_type="t",
+        content="do stuff", status="active",
+    ))
+
+    extractions = run_simple(
+        store,
+        domain="d",
+        task_type="t",
+        model_fn=_mock_model,
+        model_name="mock",
+    )
+    assert len(extractions) == 0
+
+
+def test_run_simple_with_echo_model(store):
+    """End-to-end: run with echo model, verify context assembly in output."""
+    store.insert_rule(Rule(scope="global", content="Always output valid JSON"))
+    store.insert_skill(Skill(
+        domain="legal", task_type="extraction",
+        content="Extract party names from contracts.", status="active",
+    ))
+    source_id = store.insert_source(Source(
+        content_path="/data/contract.pdf", media_type="application/pdf",
+    ))
+
+    echo = EchoModel()
+    extractions = run_simple(
+        store,
+        domain="legal",
+        task_type="extraction",
+        source_ids=[source_id],
+        model_fn=echo,
+        model_name="echo",
+    )
+    assert len(extractions) == 1
+
+    # The echo model output should contain the assembled context
+    raw = extractions[0].output["raw"]
+    parsed = orjson.loads(raw)
+    assert "Always output valid JSON" in parsed["system_prompt"]
+    assert "Extract party names" in parsed["system_prompt"]
+    assert "contract.pdf" in parsed["user_message"]
