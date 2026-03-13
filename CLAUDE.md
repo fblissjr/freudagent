@@ -30,6 +30,8 @@ tests/
 skill/
   skill.md           - Claude Code skill definition
   reference/         - Archetype patterns, translation matrix
+docs/
+  tutorial-arxiv-extraction.md - End-to-end tutorial using an arxiv paper
 internal/            - Analysis docs, backlog, session logs (gitignored)
 ```
 

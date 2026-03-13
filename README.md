@@ -18,6 +18,12 @@ cd freudagent
 uv sync --extra dev
 ```
 
+## Tutorial
+
+New here? Start with the [end-to-end tutorial](docs/tutorial-arxiv-extraction.md) --
+extracts structured data from an arxiv paper using the full pipeline. Covers the
+why behind every step, not just the commands.
+
 ## Usage
 
 ### CLI -- Freud Corpus
