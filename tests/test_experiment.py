@@ -556,3 +556,106 @@ def test_run_simple_with_echo_model(store):
     assert "Always output valid JSON" in parsed["system_prompt"]
     assert "Extract party names" in parsed["system_prompt"]
     assert "contract.pdf" in parsed["user_message"]
+
+
+# ---------------------------------------------------------------------------
+# Preset integration (archetypes wired into execution)
+# ---------------------------------------------------------------------------
+
+
+def test_assemble_runner_context_with_preset(store):
+    """Preset injects archetype system prompt into context assembly."""
+    skill_id = store.insert_skill(Skill(
+        domain="test", task_type="extraction",
+        content="Test skill content.", status="active",
+    ))
+    source_id = store.insert_source(Source(
+        content_path="/data/test.pdf", media_type="application/pdf",
+    ))
+
+    system_prompt, user_message = assemble_runner_context(
+        store,
+        skill_id=skill_id,
+        source_ids=[source_id],
+        domain="test",
+        preset="careful-executor",
+    )
+
+    # Archetype content should appear in system prompt
+    assert "Operating Principles" in system_prompt
+    assert "Structural" in system_prompt
+    # Skill content should still be there
+    assert "Test skill content" in system_prompt
+    # Source should be in user message
+    assert "test.pdf" in user_message
+
+
+def test_assemble_runner_context_without_preset(store):
+    """Without preset, no archetype content in system prompt."""
+    skill_id = store.insert_skill(Skill(
+        domain="test", task_type="extraction",
+        content="Test skill content.", status="active",
+    ))
+
+    system_prompt, _user_message = assemble_runner_context(
+        store,
+        skill_id=skill_id,
+        source_ids=[],
+        domain="test",
+    )
+
+    assert "Operating Principles" not in system_prompt
+    assert "Test skill content" in system_prompt
+
+
+def test_run_simple_with_preset(store):
+    """run_simple with preset passes archetype context through to echo output."""
+    store.insert_skill(Skill(
+        domain="test", task_type="extraction",
+        content="Extract test data.", status="active",
+    ))
+    source_id = store.insert_source(Source(
+        content_path="/data/test.pdf", media_type="application/pdf",
+    ))
+
+    echo = EchoModel()
+    extractions = run_simple(
+        store,
+        domain="test",
+        task_type="extraction",
+        source_ids=[source_id],
+        model_fn=echo,
+        model_name="echo",
+        preset="careful-executor",
+    )
+    assert len(extractions) == 1
+
+    raw = extractions[0].output["raw"]
+    parsed = orjson.loads(raw)
+    # Archetype fragments should be in the system prompt
+    assert "Operating Principles" in parsed["system_prompt"]
+    assert "structural-triad" in parsed["system_prompt"]
+    # Skill content still present
+    assert "Extract test data" in parsed["system_prompt"]
+
+
+def test_run_simple_with_invalid_preset(store):
+    """Invalid preset raises ValueError."""
+    store.insert_skill(Skill(
+        domain="test", task_type="extraction",
+        content="content", status="active",
+    ))
+    source_id = store.insert_source(Source(
+        content_path="/data/test.pdf", media_type="application/pdf",
+    ))
+
+    echo = EchoModel()
+    with pytest.raises(ValueError, match="Unknown preset"):
+        run_simple(
+            store,
+            domain="test",
+            task_type="extraction",
+            source_ids=[source_id],
+            model_fn=echo,
+            preset="nonexistent-preset",
+        )

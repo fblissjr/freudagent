@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.7.0
+
+### Added
+
+- **Archetype preset wiring**: archetypes are no longer decorative -- they flow into execution
+  - `--preset` flag on `freud-schema run` composes archetype system prompt into context
+  - `assemble_runner_context()` accepts optional `preset` param
+  - `run_simple()` and `run_task()` propagate preset through the full pipeline
+  - `freud-schema run --domain D --task-type T --preset careful-executor --model echo` shows archetypes in output
+- **Skill rewrite**: `skill/skill.md` rewritten as a Claude Code data layer skill
+  - Documents full CLI workflow: setup, data management, extraction, review, feedback
+  - Reflects harness-agnostic architecture (FreudAgent feeds the harness, doesn't wrap it)
+- 4 new tests: preset context assembly, preset in run_simple, no-preset baseline, invalid preset error
+
+### Changed
+
+- Backlog rewritten to reflect multi-harness north star and the inside/outside architectural pivot
+  - Identifies orchestrator.py's API wrapper as the wrong pattern
+  - Documents Provider protocol design (not implemented)
+  - Documents harness adapter designs: Claude Code skill, Agent SDK workflow, MLX local
+  - References flywheel decomposition JSON for Agent SDK mapping
+
 ## 0.6.1
 
 ### Added

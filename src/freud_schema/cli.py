@@ -158,6 +158,8 @@ def main(argv: list[str] | None = None) -> None:
                        help="Source ID(s) to process (repeatable, default: all active)")
     p_run.add_argument("--model", default="echo", help="Model: echo or anthropic (default: echo)")
     p_run.add_argument("--model-name", default=None, help="Anthropic model name (default: claude-sonnet-4-6)")
+    p_run.add_argument("--preset", default=None,
+                       help="Archetype preset to compose into system prompt (e.g. careful-executor)")
     p_run.add_argument("--task", default="", help="Additional task context")
 
     # --- Extraction commands ---
@@ -465,6 +467,8 @@ def _handle_run(args) -> None:
     model_display = args.model_name or args.model
     print(f"Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={skill.id})")
     print(f"Model: {model_display}")
+    if args.preset:
+        print(f"Preset: {args.preset}")
     print()
 
     extractions = run_simple(
@@ -475,6 +479,7 @@ def _handle_run(args) -> None:
         model_fn=model_fn,
         model_name=model_display,
         task_description=args.task,
+        preset=args.preset,
     )
 
     if not extractions:

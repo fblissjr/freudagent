@@ -40,12 +40,22 @@ def assemble_runner_context(
     source_ids: list[int],
     domain: str | None = None,
     task_params: str = "",
+    preset: str | None = None,
 ) -> tuple[str, str]:
     """Build system prompt and user message for a subagent run.
 
     Returns (system_prompt, user_message) following the progressive
-    disclosure hierarchy: rules -> skill -> source -> task.
+    disclosure hierarchy: [preset archetypes ->] rules -> skill -> source -> task.
+
+    When preset is provided, the archetype-composed system prompt is
+    prepended to the system prompt, connecting identity to execution.
     """
+    # Layer 0: Archetype identity (optional)
+    archetype_block = ""
+    if preset:
+        from freud_schema.harness import compose_preset
+        archetype_block = compose_preset(preset) + "\n\n"
+
     # Layer 1: Rules (always first, always small)
     rules = store.get_rules(domain=domain)
     rules_block = ""
@@ -71,7 +81,7 @@ def assemble_runner_context(
     if source_block:
         source_block = f"# Sources\n\n{source_block}\n"
 
-    system_prompt = (rules_block + skill_block).strip()
+    system_prompt = (archetype_block + rules_block + skill_block).strip()
     user_message = (source_block + task_params).strip()
 
     return system_prompt, user_message
@@ -90,6 +100,7 @@ def run_subtask(
     parent_session_id: int | None = None,
     model_name: str = "unknown",
     prior_results: dict | None = None,
+    preset: str | None = None,
 ) -> Extraction | None:
     """Execute a single subtask: assemble context, call model, store results.
 
@@ -132,6 +143,7 @@ def run_subtask(
         source_ids=subtask.source_ids,
         domain=subtask.skill_query.get("domain"),
         task_params=task_params,
+        preset=preset,
     )
 
     # Call model
@@ -171,12 +183,17 @@ def run_task(
     task_description: str = "",
     model_name: str = "unknown",
     orchestrator_preset: str = "hierarchical-orchestrator",
+    preset: str | None = None,
 ) -> list[Extraction]:
     """Execute a task plan: process subtasks in dependency order.
 
     Subtasks with no dependencies run first. Subtasks with depends_on
     wait until their dependencies complete. Results from dependencies
     are passed as prior_results.
+
+    Args:
+        preset: When provided, archetype-composed system prompt is
+            prepended to each subtask's context.
     """
     # Create orchestrator session
     orch_session = Session(
@@ -211,6 +228,7 @@ def run_task(
             parent_session_id=orch_session_id,
             model_name=model_name,
             prior_results=prior if prior else None,
+            preset=preset,
         )
         results[idx] = extraction
         if extraction:
@@ -295,11 +313,15 @@ def run_simple(
     model_fn: ModelCall,
     model_name: str = "unknown",
     task_description: str = "",
+    preset: str | None = None,
 ) -> list[Extraction]:
     """Run a skill against source(s) without manual TaskPlan creation.
 
     If source_ids is None, processes all active sources. Creates one
     Subtask per source, all independent (no dependencies).
+
+    When preset is provided, archetype-composed system prompt is
+    prepended to each subtask's context.
     """
     if source_ids is None:
         sources = store.list_sources(status="active")
@@ -323,4 +345,5 @@ def run_simple(
         model_fn=model_fn,
         task_description=task_description or f"{domain}/{task_type}",
         model_name=model_name,
+        preset=preset,
     )
