@@ -8,11 +8,6 @@ data-driven orchestration produce measurably better results than code-driven wor
 
 But still mostly a joke repo. Becoming less so over time though. Weird.
 
-## Prerequisites
-
-- Python >= 3.10
-- [uv](https://docs.astral.sh/uv/) (package manager)
-
 ## Setup
 
 ```bash
