@@ -20,10 +20,13 @@ src/freud_schema/
   db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
   tables.py          - Pydantic models + enum classes (single source of truth for valid values)
   store.py           - CRUD operations with generic dict-based row conversion
-  orchestrator.py    - Thin orchestrator loop + subagent runner
+  orchestrator.py    - Provider protocol, orchestrator loop + subagent runner
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
+tests/
+  test_schema.py     - Freud corpus, archetypes, harness composition
+  test_experiment.py - DuckDB schema, store, orchestrator, providers
 skill/
   skill.md           - Claude Code skill definition
   reference/         - Archetype patterns, translation matrix
@@ -36,6 +39,7 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Package manager: **uv** (always use `uv run`, `uv sync`, `uv pip`)
 - Tests: `uv run pytest tests/`
 - Install: `uv sync --extra dev`
+- Optional provider deps: `uv sync --extra anthropic` (Claude API), `uv sync --extra local` (httpx for OpenAI-compat)
 
 ## Conventions
 
@@ -60,6 +64,9 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - All SQL queries use parameterized enum values (no hardcoded string literals)
 - All CLI `--status`/`--scope`/`--type` args must have `choices=[e.value for e in EnumClass]`
 - For ad-hoc DB queries, use the `duckdb` MCP tools -- do not write Python scripts
+- Providers use dynamic imports (`anthropic`, `httpx`) -- import inside `__init__`, raise `ImportError` with install hint
+- New providers implement the `Provider` protocol (single method: `complete(system, user) -> CompletionResult`)
+- `get_provider()` is the only factory -- add new provider names there, not ad-hoc constructors
 
 ## Archetypes (9, in a 3x3 grid)
 
@@ -103,7 +110,7 @@ CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` ->
 
 `--db` is a global flag on the root parser (before the subcommand). All handlers use it consistently.
 
-Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic]`
+Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic|local] [--endpoint URL]`
 Review: `freud-schema extraction list`, `extraction show N`, `extraction validate N`
 Feedback: `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
 History: `freud-schema session list`
@@ -116,7 +123,8 @@ Archetypes span two scopes:
 
 The orchestrator uses archetype-composed system prompts for its own behavior.
 Subagents use the progressive disclosure hierarchy: rules -> skill -> source -> task.
-Model calls are pluggable (pass any callable). The code is a thin loop; behavior is data.
+Model calls are pluggable via the `Provider` protocol (3 built-in: `EchoProvider`, `ClaudeProvider`,
+`OpenAICompatProvider`). The code is a thin loop; behavior is data.
 
 ## DuckDB MCP Server
 
@@ -136,5 +144,11 @@ For a standalone SQL file: `freud-schema db ddl | duckdb :memory:`
 
 ## Internal Docs
 
-- `internal/BACKLOG.md` -- known gaps, deferred work, and future directions
-- `internal/log/` -- session logs tracking what was done and why
+All in `internal/` (gitignored). Read these before proposing new work.
+
+- `BACKLOG.md` -- known gaps, deferred work, north star architecture. Check here before
+  suggesting features; many are already documented or explicitly deferred.
+- `log/` -- session logs tracking what was done and why per working session
+- `research/` -- discussion transcripts and analysis docs from the meta-framework thesis
+- `flywheel_decomposition.json` -- 12-atom decomposition of the feedback flywheel,
+  maps to Agent SDK primitives. Referenced by BACKLOG.md for the Agent SDK harness adapter.

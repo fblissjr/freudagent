@@ -196,11 +196,12 @@ class ExperimentStore:
         *,
         status: SessionStatus = SessionStatus.COMPLETED,
         result: dict | None = None,
+        token_usage: dict | None = None,
     ) -> None:
         self.con.execute(
-            """UPDATE sessions SET status = ?, result = ?,
+            """UPDATE sessions SET status = ?, result = ?, token_usage = ?,
                completed_at = current_timestamp WHERE id = ?""",
-            [status, _json(result), session_id],
+            [status, _json(result), _json(token_usage), session_id],
         )
 
     def get_session(self, session_id: int) -> Session | None:

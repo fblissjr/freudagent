@@ -1,9 +1,10 @@
 """Thin orchestrator loop and subagent runner for the experiment harness.
 
 The orchestrator decomposes tasks, the runner executes subtasks. Model calls
-are pluggable: pass any callable that takes a prompt string and returns a
-string. This lets the harness work with Claude, GPT, local models, or
-mock functions for testing.
+are pluggable via the Provider protocol: any object with a complete() method
+that returns a CompletionResult. This lets the harness work with Claude,
+OpenAI-compatible local servers (heylookitsanllm, llama.cpp, vLLM, Ollama),
+or echo providers for testing.
 
 Architecture:
     - Orchestrator context: task description + rules + skill/source metadata
@@ -14,6 +15,7 @@ Architecture:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Protocol
 
 import orjson
@@ -32,10 +34,26 @@ from freud_schema.tables import (
 )
 
 
-class ModelCall(Protocol):
-    """Any callable that takes a prompt and returns a completion."""
+# ---------------------------------------------------------------------------
+# Provider protocol and CompletionResult
+# ---------------------------------------------------------------------------
 
-    def __call__(self, system_prompt: str, user_message: str) -> str: ...
+
+@dataclass
+class CompletionResult:
+    """Structured response from a model provider."""
+
+    content: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    model: str | None = None
+    cost_usd: float | None = None
+
+
+class Provider(Protocol):
+    """Any object that can produce a completion from system + user messages."""
+
+    def complete(self, system: str, user: str) -> CompletionResult: ...
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +125,7 @@ def run_subtask(
     store: ExperimentStore,
     subtask: Subtask,
     *,
-    model_fn: ModelCall,
+    provider: Provider,
     parent_session_id: int | None = None,
     model_name: str = "unknown",
     prior_results: dict | None = None,
@@ -160,9 +178,29 @@ def run_subtask(
 
     # Call model
     try:
-        raw_output = model_fn(system_prompt, user_message)
+        result = provider.complete(system_prompt, user_message)
+
+        # Build token usage from CompletionResult
+        token_usage = None
+        if result.input_tokens is not None or result.output_tokens is not None:
+            token_usage = {}
+            if result.input_tokens is not None:
+                token_usage["input_tokens"] = result.input_tokens
+            if result.output_tokens is not None:
+                token_usage["output_tokens"] = result.output_tokens
+
+        # Prefer model name from response over caller's string
+        actual_model = result.model or model_name
+        store.con.execute(
+            "UPDATE sessions SET model_used = ? WHERE id = ?",
+            [actual_model, session_id],
+        )
+
         store.complete_session(
-            session_id, status=SessionStatus.COMPLETED, result={"raw": raw_output}
+            session_id,
+            status=SessionStatus.COMPLETED,
+            result={"raw": result.content},
+            token_usage=token_usage,
         )
     except Exception as exc:
         store.complete_session(
@@ -177,7 +215,7 @@ def run_subtask(
             source_id=subtask.source_ids[0],
             skill_id=skill.id,
             session_id=session_id,
-            output={"raw": raw_output},
+            output={"raw": result.content},
             validation_status=ValidationStatus.PENDING,
         )
         ext_id = store.insert_extraction(extraction)
@@ -196,7 +234,7 @@ def run_task(
     store: ExperimentStore,
     plan: TaskPlan,
     *,
-    model_fn: ModelCall,
+    provider: Provider,
     task_description: str = "",
     model_name: str = "unknown",
     preset: str | None = None,
@@ -242,7 +280,7 @@ def run_task(
             extraction = run_subtask(
                 store,
                 subtask,
-                model_fn=model_fn,
+                provider=provider,
                 parent_session_id=orch_session_id,
                 model_name=model_name,
                 prior_results=prior if prior else None,
@@ -284,55 +322,126 @@ def run_task(
 
 
 # ---------------------------------------------------------------------------
-# Built-in model implementations
+# Built-in provider implementations
 # ---------------------------------------------------------------------------
 
 
-class EchoModel:
+class EchoProvider:
     """Returns the assembled context as output, for pipeline verification.
 
     Proves the pipeline works end-to-end without requiring API keys.
     The output shows exactly what a real model would receive.
     """
 
-    def __call__(self, system_prompt: str, user_message: str) -> str:
-        return orjson.dumps({
+    def complete(self, system: str, user: str) -> CompletionResult:
+        content = orjson.dumps({
             "model": "echo",
-            "system_prompt": system_prompt,
-            "user_message": user_message,
+            "system_prompt": system,
+            "user_message": user,
         }).decode()
+        return CompletionResult(content=content, model="echo")
 
 
-def get_model(name: str, *, model_name: str | None = None) -> ModelCall:
-    """Factory for model callables.
+class ClaudeProvider:
+    """Calls the Anthropic API via the official SDK."""
 
-    Args:
-        name: "echo" for pipeline verification, "anthropic" for Claude API.
-        model_name: Anthropic model name (default: claude-sonnet-4-6).
-    """
-    if name == "echo":
-        return EchoModel()
-    if name == "anthropic":
+    def __init__(self, model: str = "claude-sonnet-4-6"):
         try:
             import anthropic  # type: ignore[import-untyped]
         except ImportError:
             raise ImportError(
                 "Anthropic SDK not installed. Run: uv pip install anthropic"
             ) from None
-        client = anthropic.Anthropic()
-        actual_model = model_name or "claude-sonnet-4-6"
+        self._client = anthropic.Anthropic()
+        self._model = model
 
-        def _call_anthropic(system_prompt: str, user_message: str) -> str:
-            response = client.messages.create(
-                model=actual_model,
-                max_tokens=4096,
-                system=system_prompt,
-                messages=[{"role": "user", "content": user_message}],
-            )
-            return response.content[0].text
+    def complete(self, system: str, user: str) -> CompletionResult:
+        response = self._client.messages.create(
+            model=self._model,
+            max_tokens=4096,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return CompletionResult(
+            content=response.content[0].text,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            model=response.model,
+        )
 
-        return _call_anthropic
-    raise ValueError(f"Unknown model: {name!r}. Use 'echo' or 'anthropic'.")
+
+class OpenAICompatProvider:
+    """Calls any OpenAI-compatible endpoint (heylookitsanllm, llama.cpp, vLLM, Ollama).
+
+    Uses httpx for HTTP calls. Sends standard /v1/chat/completions requests.
+    """
+
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8080",
+        model: str = "default",
+    ):
+        try:
+            import httpx  # type: ignore[import-untyped]
+        except ImportError:
+            raise ImportError(
+                "httpx not installed. Run: uv pip install httpx"
+            ) from None
+        self._client = httpx.Client(base_url=base_url, timeout=120.0)
+        self._model = model
+
+    def complete(self, system: str, user: str) -> CompletionResult:
+        import httpx  # type: ignore[import-untyped]
+
+        response = self._client.post(
+            "/v1/chat/completions",
+            json={
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "stream": False,
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        content = data["choices"][0]["message"]["content"]
+        usage = data.get("usage", {})
+
+        return CompletionResult(
+            content=content,
+            input_tokens=usage.get("prompt_tokens"),
+            output_tokens=usage.get("completion_tokens"),
+            model=data.get("model"),
+        )
+
+
+def get_provider(
+    name: str,
+    *,
+    model_name: str | None = None,
+    base_url: str | None = None,
+) -> Provider:
+    """Factory for provider instances.
+
+    Args:
+        name: "echo" for pipeline verification, "anthropic" for Claude API,
+              "local" for any OpenAI-compatible endpoint.
+        model_name: Model name override (provider-specific default otherwise).
+        base_url: Base URL for local provider (default: http://localhost:8080).
+    """
+    if name == "echo":
+        return EchoProvider()
+    if name == "anthropic":
+        return ClaudeProvider(model=model_name or "claude-sonnet-4-6")
+    if name == "local":
+        return OpenAICompatProvider(
+            base_url=base_url or "http://localhost:8080",
+            model=model_name or "default",
+        )
+    raise ValueError(f"Unknown provider: {name!r}. Use 'echo', 'anthropic', or 'local'.")
 
 
 # ---------------------------------------------------------------------------
@@ -346,7 +455,7 @@ def run_simple(
     domain: str,
     task_type: str,
     source_ids: list[int] | None = None,
-    model_fn: ModelCall,
+    provider: Provider,
     model_name: str = "unknown",
     task_description: str = "",
     preset: str | None = None,
@@ -379,7 +488,7 @@ def run_simple(
     return run_task(
         store,
         plan,
-        model_fn=model_fn,
+        provider=provider,
         task_description=task_description or f"{domain}/{task_type}",
         model_name=model_name,
         preset=preset,

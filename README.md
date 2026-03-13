@@ -82,8 +82,12 @@ uv run freud-schema feedback add \
 # 7. View the flywheel signal
 uv run freud-schema feedback list --skill-id 1 --aggregate
 
-# Run with a real model (requires ANTHROPIC_API_KEY)
+# Run with Claude (requires ANTHROPIC_API_KEY)
 uv run freud-schema run --domain legal --task-type extraction --model anthropic
+
+# Run with a local OpenAI-compatible server (heylookitsanllm, llama.cpp, vLLM, Ollama)
+uv run freud-schema run --domain legal --task-type extraction \
+  --model local --model-name qwen2.5-coder-1.5b --endpoint http://localhost:8080
 
 # Use a non-default database (--db is a global flag)
 uv run freud-schema --db /tmp/test.duckdb db init
@@ -148,7 +152,7 @@ and lifecycle between agents.
 
 A 7-table DuckDB schema implementing declarative agent orchestration: behavior
 comes from data (skills, rules, sources), not code. The orchestrator is a thin
-loop. Model calls are pluggable -- pass any callable.
+loop. Model calls are pluggable via the Provider protocol (`echo`, `anthropic`, `local`).
 
 Subagents get context via the progressive disclosure hierarchy:
 **rules -> skill -> source -> task**.
@@ -175,7 +179,7 @@ src/freud_schema/
   db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
   tables.py          - Pydantic models + enum classes (single source of truth for valid values)
   store.py           - CRUD operations with generic dict-based row conversion
-  orchestrator.py    - Thin orchestrator loop + subagent runner
+  orchestrator.py    - Provider protocol, orchestrator loop + subagent runner
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
@@ -191,7 +195,13 @@ uv sync --extra dev
 uv run pytest tests/ -v
 ```
 
-Dependencies: pydantic >= 2.0, duckdb >= 0.9, orjson >= 3.9.
+Core dependencies: pydantic >= 2.0, duckdb >= 0.9, orjson >= 3.9.
+
+Optional provider dependencies:
+```bash
+uv sync --extra anthropic   # Claude API provider
+uv sync --extra local       # OpenAI-compatible local provider (httpx)
+```
 
 ## License
 

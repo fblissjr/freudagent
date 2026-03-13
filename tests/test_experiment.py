@@ -7,9 +7,11 @@ import duckdb
 import orjson
 
 from freud_schema.orchestrator import (
-    EchoModel,
+    CompletionResult,
+    EchoProvider,
+    OpenAICompatProvider,
     assemble_runner_context,
-    get_model,
+    get_provider,
     run_simple,
     run_subtask,
     run_task,
@@ -439,13 +441,37 @@ def test_assemble_runner_context(store):
 
 
 # ---------------------------------------------------------------------------
-# Orchestrator end-to-end
+# Mock provider for testing
 # ---------------------------------------------------------------------------
 
 
-def _mock_model(system_prompt: str, user_message: str) -> str:
-    """Mock model that returns a fixed extraction."""
-    return '{"policy_number": "XX-1234567", "effective_date": "2026-01-01"}'
+class _MockProvider:
+    """Mock provider that returns a fixed extraction."""
+
+    def __init__(self, content: str = '{"policy_number": "XX-1234567", "effective_date": "2026-01-01"}',
+                 input_tokens: int | None = None,
+                 output_tokens: int | None = None,
+                 model: str | None = None):
+        self._content = content
+        self._input_tokens = input_tokens
+        self._output_tokens = output_tokens
+        self._model = model
+
+    def complete(self, system: str, user: str) -> CompletionResult:
+        return CompletionResult(
+            content=self._content,
+            input_tokens=self._input_tokens,
+            output_tokens=self._output_tokens,
+            model=self._model,
+        )
+
+
+_mock_provider = _MockProvider()
+
+
+# ---------------------------------------------------------------------------
+# Orchestrator end-to-end
+# ---------------------------------------------------------------------------
 
 
 def test_run_subtask(store):
@@ -463,7 +489,7 @@ def test_run_subtask(store):
         skill_task_type="extraction",
         source_ids=[source_id],
     )
-    extraction = run_subtask(store, subtask, model_fn=_mock_model, model_name="mock")
+    extraction = run_subtask(store, subtask, provider=_mock_provider, model_name="mock")
     assert extraction is not None
     assert "policy_number" in extraction.output["raw"]
 
@@ -499,7 +525,7 @@ def test_run_task_with_dependencies(store):
 
     extractions = run_task(
         store, plan,
-        model_fn=_mock_model,
+        provider=_mock_provider,
         task_description="Process insurance policy",
         model_name="mock",
     )
@@ -517,7 +543,7 @@ def test_run_subtask_missing_skill(store):
         skill_task_type="nope",
         source_ids=[],
     )
-    result = run_subtask(store, subtask, model_fn=_mock_model)
+    result = run_subtask(store, subtask, provider=_mock_provider)
     assert result is None
 
 
@@ -529,8 +555,9 @@ def test_run_subtask_model_failure(store):
         content_path="a.pdf", media_type="application/pdf",
     ))
 
-    def failing_model(system_prompt: str, user_message: str) -> str:
-        raise RuntimeError("API error")
+    class _FailingProvider:
+        def complete(self, system: str, user: str) -> CompletionResult:
+            raise RuntimeError("API error")
 
     subtask = Subtask(
         type="extraction",
@@ -538,7 +565,7 @@ def test_run_subtask_model_failure(store):
         skill_task_type="t",
         source_ids=[source_id],
     )
-    result = run_subtask(store, subtask, model_fn=failing_model)
+    result = run_subtask(store, subtask, provider=_FailingProvider())
     assert result is None
 
     # Session should be marked as failed
@@ -565,9 +592,10 @@ def test_run_task_prior_results_flow_through(store):
 
     calls = []
 
-    def capture_model(system_prompt: str, user_message: str) -> str:
-        calls.append({"system_prompt": system_prompt, "user_message": user_message})
-        return '{"result": "ok"}'
+    class _CapturingProvider:
+        def complete(self, system: str, user: str) -> CompletionResult:
+            calls.append({"system_prompt": system, "user_message": user})
+            return CompletionResult(content='{"result": "ok"}')
 
     plan = TaskPlan(subtasks=[
         Subtask(
@@ -585,7 +613,7 @@ def test_run_task_prior_results_flow_through(store):
         ),
     ])
 
-    run_task(store, plan, model_fn=capture_model, model_name="test")
+    run_task(store, plan, provider=_CapturingProvider(), model_name="test")
 
     # The second call (validate) should include prior results
     assert len(calls) == 2
@@ -600,7 +628,7 @@ def test_run_task_all_subtasks_fail_marks_session_failed(store):
         Subtask(type="y", skill_domain="missing", skill_task_type="missing"),
     ])
 
-    extractions = run_task(store, plan, model_fn=_mock_model, model_name="test")
+    extractions = run_task(store, plan, provider=_mock_provider, model_name="test")
     assert len(extractions) == 0
 
     # The orchestrator session should be failed
@@ -619,20 +647,15 @@ def test_run_task_exception_marks_session_failed(store):
         content_path="a.pdf", media_type="application/pdf",
     ))
 
-    def exploding_model(system_prompt: str, user_message: str) -> str:
-        raise RuntimeError("boom")
-
-    # First subtask succeeds (via _mock_model), second explodes at model level
-    # Actually, run_subtask catches model exceptions. Let's trigger a different failure.
-    # We need an exception that escapes run_subtask. Use a model that corrupts state.
     call_count = 0
 
-    def sometimes_exploding_model(system_prompt: str, user_message: str) -> str:
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return '{"ok": true}'
-        raise RuntimeError("boom")
+    class _SometimesFailingProvider:
+        def complete(self, system: str, user: str) -> CompletionResult:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return CompletionResult(content='{"ok": true}')
+            raise RuntimeError("boom")
 
     plan = TaskPlan(subtasks=[
         Subtask(
@@ -647,7 +670,7 @@ def test_run_task_exception_marks_session_failed(store):
 
     # run_subtask catches model exceptions, so the orchestrator should complete
     # with partial failure. Let's just verify session state is correct.
-    extractions = run_task(store, plan, model_fn=sometimes_exploding_model, model_name="test")
+    extractions = run_task(store, plan, provider=_SometimesFailingProvider(), model_name="test")
     # First subtask produces extraction, second fails
     assert len(extractions) == 1
 
@@ -658,29 +681,37 @@ def test_run_task_exception_marks_session_failed(store):
 
 
 # ---------------------------------------------------------------------------
-# Built-in models and run_simple
+# Built-in providers and run_simple
 # ---------------------------------------------------------------------------
 
 
-def test_echo_model():
-    model = EchoModel()
-    result = model("You are a helpful assistant.", "Extract policy numbers.")
-    parsed = orjson.loads(result)
+def test_echo_provider():
+    provider = EchoProvider()
+    result = provider.complete("You are a helpful assistant.", "Extract policy numbers.")
+    assert result.model == "echo"
+    parsed = orjson.loads(result.content)
     assert parsed["model"] == "echo"
     assert "helpful assistant" in parsed["system_prompt"]
     assert "Extract policy" in parsed["user_message"]
 
 
-def test_get_model_echo():
-    model = get_model("echo")
-    result = model("sys", "user")
-    parsed = orjson.loads(result)
+def test_get_provider_echo():
+    provider = get_provider("echo")
+    result = provider.complete("sys", "user")
+    assert isinstance(result, CompletionResult)
+    parsed = orjson.loads(result.content)
     assert parsed["model"] == "echo"
 
 
-def test_get_model_unknown():
-    with pytest.raises(ValueError, match="Unknown model"):
-        get_model("nonexistent")
+def test_get_provider_local():
+    """Factory returns OpenAICompatProvider for 'local'."""
+    provider = get_provider("local", model_name="test-model", base_url="http://localhost:9999")
+    assert isinstance(provider, OpenAICompatProvider)
+
+
+def test_get_provider_unknown():
+    with pytest.raises(ValueError, match="Unknown provider"):
+        get_provider("nonexistent")
 
 
 def test_run_simple(store):
@@ -696,7 +727,7 @@ def test_run_simple(store):
         store,
         domain="insurance",
         task_type="extraction",
-        model_fn=_mock_model,
+        provider=_mock_provider,
         model_name="mock",
     )
     assert len(extractions) == 2
@@ -720,7 +751,7 @@ def test_run_simple_specific_sources(store):
         domain="d",
         task_type="t",
         source_ids=[sid1, sid3],
-        model_fn=_mock_model,
+        provider=_mock_provider,
         model_name="mock",
     )
     assert len(extractions) == 2
@@ -736,14 +767,14 @@ def test_run_simple_no_sources(store):
         store,
         domain="d",
         task_type="t",
-        model_fn=_mock_model,
+        provider=_mock_provider,
         model_name="mock",
     )
     assert len(extractions) == 0
 
 
-def test_run_simple_with_echo_model(store):
-    """End-to-end: run with echo model, verify context assembly in output."""
+def test_run_simple_with_echo_provider(store):
+    """End-to-end: run with echo provider, verify context assembly in output."""
     store.insert_rule(Rule(scope="global", content="Always output valid JSON"))
     store.insert_skill(Skill(
         domain="legal", task_type="extraction",
@@ -753,23 +784,116 @@ def test_run_simple_with_echo_model(store):
         content_path="/data/contract.pdf", media_type="application/pdf",
     ))
 
-    echo = EchoModel()
+    echo = EchoProvider()
     extractions = run_simple(
         store,
         domain="legal",
         task_type="extraction",
         source_ids=[source_id],
-        model_fn=echo,
+        provider=echo,
         model_name="echo",
     )
     assert len(extractions) == 1
 
-    # The echo model output should contain the assembled context
+    # The echo provider output should contain the assembled context
     raw = extractions[0].output["raw"]
     parsed = orjson.loads(raw)
     assert "Always output valid JSON" in parsed["system_prompt"]
     assert "Extract party names" in parsed["system_prompt"]
     assert "contract.pdf" in parsed["user_message"]
+
+
+# ---------------------------------------------------------------------------
+# Provider populates token_usage and model_used
+# ---------------------------------------------------------------------------
+
+
+def test_provider_populates_token_usage(store):
+    """Provider returning token counts populates session.token_usage."""
+    store.insert_skill(Skill(
+        domain="d", task_type="t", content="c", status="active",
+    ))
+    source_id = store.insert_source(Source(
+        content_path="a.pdf", media_type="application/pdf",
+    ))
+
+    token_provider = _MockProvider(
+        content='{"result": "ok"}',
+        input_tokens=150,
+        output_tokens=42,
+        model="test-model-v1",
+    )
+
+    subtask = Subtask(
+        type="t", skill_domain="d", skill_task_type="t",
+        source_ids=[source_id],
+    )
+    run_subtask(store, subtask, provider=token_provider, model_name="fallback")
+
+    # Find the subagent session
+    sessions = store.list_sessions()
+    assert len(sessions) == 1
+    session = sessions[0]
+    assert session.token_usage == {"input_tokens": 150, "output_tokens": 42}
+
+
+def test_provider_populates_model_used(store):
+    """session.model_used comes from CompletionResult.model, not caller string."""
+    store.insert_skill(Skill(
+        domain="d", task_type="t", content="c", status="active",
+    ))
+    source_id = store.insert_source(Source(
+        content_path="a.pdf", media_type="application/pdf",
+    ))
+
+    model_provider = _MockProvider(
+        content='{"result": "ok"}',
+        model="claude-3-5-sonnet-20241022",
+    )
+
+    subtask = Subtask(
+        type="t", skill_domain="d", skill_task_type="t",
+        source_ids=[source_id],
+    )
+    run_subtask(store, subtask, provider=model_provider, model_name="anthropic")
+
+    sessions = store.list_sessions()
+    assert len(sessions) == 1
+    assert sessions[0].model_used == "claude-3-5-sonnet-20241022"
+
+
+def test_openai_compat_provider_request_format(store):
+    """Verify the HTTP request body structure for OpenAICompatProvider."""
+    import unittest.mock as mock
+
+    mock_response = mock.MagicMock()
+    mock_response.json.return_value = {
+        "choices": [{"message": {"content": "hello"}}],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        "model": "qwen2.5-coder-1.5b",
+    }
+    mock_response.raise_for_status = mock.MagicMock()
+
+    provider = get_provider("local", model_name="qwen2.5-coder-1.5b", base_url="http://localhost:8080")
+
+    # Patch the httpx client's post method
+    with mock.patch.object(provider._client, "post", return_value=mock_response) as mock_post:
+        result = provider.complete("system prompt", "user message")
+
+    # Verify request format
+    mock_post.assert_called_once()
+    call_kwargs = mock_post.call_args
+    body = call_kwargs.kwargs["json"] if "json" in call_kwargs.kwargs else call_kwargs[1]["json"]
+    assert body["model"] == "qwen2.5-coder-1.5b"
+    assert body["messages"][0] == {"role": "system", "content": "system prompt"}
+    assert body["messages"][1] == {"role": "user", "content": "user message"}
+    assert body["stream"] is False
+
+    # Verify response parsing
+    assert result.content == "hello"
+    assert result.input_tokens == 10
+    assert result.output_tokens == 5
+    assert result.model == "qwen2.5-coder-1.5b"
 
 
 # ---------------------------------------------------------------------------
@@ -832,13 +956,13 @@ def test_run_simple_with_preset(store):
         content_path="/data/test.pdf", media_type="application/pdf",
     ))
 
-    echo = EchoModel()
+    echo = EchoProvider()
     extractions = run_simple(
         store,
         domain="test",
         task_type="extraction",
         source_ids=[source_id],
-        model_fn=echo,
+        provider=echo,
         model_name="echo",
         preset="careful-executor",
     )
@@ -863,13 +987,13 @@ def test_run_simple_with_invalid_preset(store):
         content_path="/data/test.pdf", media_type="application/pdf",
     ))
 
-    echo = EchoModel()
+    echo = EchoProvider()
     with pytest.raises(ValueError, match="Unknown preset"):
         run_simple(
             store,
             domain="test",
             task_type="extraction",
             source_ids=[source_id],
-            model_fn=echo,
+            provider=echo,
             preset="nonexistent-preset",
         )

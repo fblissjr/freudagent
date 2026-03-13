@@ -163,8 +163,9 @@ def main(argv: list[str] | None = None) -> None:
     p_run.add_argument("--task-type", required=True, help="Skill task type")
     p_run.add_argument("--source-id", type=int, action="append", default=None,
                        help="Source ID(s) to process (repeatable, default: all active)")
-    p_run.add_argument("--model", default="echo", help="Model: echo or anthropic (default: echo)")
-    p_run.add_argument("--model-name", default=None, help="Anthropic model name (default: claude-sonnet-4-6)")
+    p_run.add_argument("--model", default="echo", help="Provider: echo, anthropic, or local (default: echo)")
+    p_run.add_argument("--model-name", default=None, help="Model name override (provider-specific default)")
+    p_run.add_argument("--endpoint", default=None, help="Base URL for local provider (default: http://localhost:8080)")
     p_run.add_argument("--preset", default=None,
                        help="Archetype preset to compose into system prompt (e.g. careful-executor)")
     p_run.add_argument("--task", default="", help="Additional task context")
@@ -448,7 +449,7 @@ def _handle_feedback(args) -> None:
 
 
 def _handle_run(args) -> None:
-    from freud_schema.orchestrator import get_model, run_simple
+    from freud_schema.orchestrator import get_provider, run_simple
 
     store = _get_store(args.db)
 
@@ -468,9 +469,13 @@ def _handle_run(args) -> None:
               file=sys.stderr)
         sys.exit(1)
 
-    # Get model
+    # Get provider
     try:
-        model_fn = get_model(args.model, model_name=args.model_name)
+        provider = get_provider(
+            args.model,
+            model_name=args.model_name,
+            base_url=args.endpoint,
+        )
     except (ValueError, ImportError) as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
@@ -487,7 +492,7 @@ def _handle_run(args) -> None:
         domain=args.domain,
         task_type=args.task_type,
         source_ids=source_ids,
-        model_fn=model_fn,
+        provider=provider,
         model_name=model_display,
         task_description=args.task,
         preset=args.preset,

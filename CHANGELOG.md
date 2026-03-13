@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.0
+
+### Added
+
+- **Provider protocol**: `Provider` (protocol class) and `CompletionResult` (dataclass) replace
+  the old `ModelCall` callable. Providers return structured responses with token counts and model info.
+- **3 built-in providers**:
+  - `EchoProvider` -- pipeline verification (replaces `EchoModel`)
+  - `ClaudeProvider` -- Anthropic SDK, extracts `input_tokens`, `output_tokens`, `model` from response
+  - `OpenAICompatProvider` -- any OpenAI-compatible endpoint via httpx (heylookitsanllm, llama.cpp, vLLM, Ollama)
+- `get_provider()` factory: `"echo"`, `"anthropic"`, `"local"` with `model_name` and `base_url` params
+- CLI `--endpoint` flag for local provider base URL
+- CLI `--model local` option
+- `token_usage` parameter on `store.complete_session()` -- set at completion time from provider response
+- 4 new tests: token usage population, model_used from response, OpenAI-compat request format, get_provider local
+
+### Changed
+
+- `Session.token_usage` is now populated from provider responses (was always None)
+- `Session.model_used` is set from the actual model in the response, not just the caller's string
+- All `model_fn` parameters renamed to `provider` across orchestrator, CLI, and tests
+- `run_subtask`, `run_task`, `run_simple` accept `provider: Provider` instead of `model_fn: ModelCall`
+
+### Removed
+
+- `ModelCall` protocol, `EchoModel` class, `get_model()` factory, `_call_anthropic` closure
+
 ## 0.8.0
 
 ### Added
