@@ -142,15 +142,16 @@ and lifecycle between agents.
 
 ## Experiment Harness
 
-The big addition. A 6-table DuckDB schema implementing declarative agent
-orchestration: behavior comes from data (skills, rules, sources), not code.
-The orchestrator is a thin loop. Model calls are pluggable -- pass any callable.
+A 7-table DuckDB schema implementing declarative agent orchestration: behavior
+comes from data (skills, rules, sources), not code. The orchestrator is a thin
+loop. Model calls are pluggable -- pass any callable.
 
 Subagents get context via the progressive disclosure hierarchy:
 **rules -> skill -> source -> task**.
 
 | Table | Purpose |
 |-------|---------|
+| `meta_schema_version` | Tracks applied schema versions for safe migrations |
 | `skills` | Declarative instructions loaded at runtime (domain + task_type + version) |
 | `sources` | Raw artifacts to process (file paths, MIME types, metadata) |
 | `extractions` | Structured output from agent runs (with validation status) |
@@ -167,7 +168,7 @@ src/freud_schema/
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
-  db.py              - DuckDB schema (6 tables) and connection management
+  db.py              - DuckDB schema (7 tables), versioning, and connection management
   tables.py          - Pydantic models for experiment harness tables
   store.py           - CRUD operations and retrieval queries
   orchestrator.py    - Thin orchestrator loop + subagent runner

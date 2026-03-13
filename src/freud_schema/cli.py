@@ -311,7 +311,7 @@ def _get_store(db_path: str | None = None):
 
 
 def _handle_db(args) -> None:
-    from freud_schema.db import connect, init_schema, reset_schema
+    from freud_schema.db import connect, get_schema_version, init_schema, reset_schema
 
     con = connect(args.db)
     if args.action == "init":
@@ -322,6 +322,8 @@ def _handle_db(args) -> None:
         print("Schema reset (all data dropped).")
     elif args.action == "status":
         init_schema(con)
+        version = get_schema_version(con)
+        print(f"  Schema version: {version}")
         for table in ("skills", "sources", "extractions", "sessions", "feedback", "rules"):
             count = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             print(f"  {table:15s} {count:>6} rows")

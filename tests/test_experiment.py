@@ -60,6 +60,36 @@ def test_reset_schema(store):
     assert len(store.list_skills()) == 0
 
 
+def test_schema_versioning(store):
+    """meta_schema_version exists after init and contains version 1."""
+    from freud_schema.db import get_schema_version
+    assert get_schema_version(store.con) == 1
+    row = store.con.execute(
+        "SELECT version, description FROM meta_schema_version WHERE version = 1"
+    ).fetchone()
+    assert row is not None
+    assert row[1] == "Initial 6-table schema"
+
+
+def test_schema_migration_idempotent(store):
+    """Running init_schema twice is safe and doesn't duplicate versions."""
+    from freud_schema.db import get_schema_version, init_schema
+    init_schema(store.con)
+    init_schema(store.con)
+    assert get_schema_version(store.con) == 1
+    count = store.con.execute(
+        "SELECT COUNT(*) FROM meta_schema_version"
+    ).fetchone()[0]
+    assert count == 1
+
+
+def test_reset_recreates_schema_version(store):
+    """reset_schema drops and recreates meta_schema_version."""
+    from freud_schema.db import get_schema_version
+    reset_schema(store.con)
+    assert get_schema_version(store.con) == 1
+
+
 # ---------------------------------------------------------------------------
 # Skills CRUD
 # ---------------------------------------------------------------------------

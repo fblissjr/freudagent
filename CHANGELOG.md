@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1
+
+### Added
+
+- **Schema versioning**: `meta_schema_version` table tracks applied schema versions
+  - Idempotent migration infrastructure (`_MIGRATIONS` list in `db.py`)
+  - `get_schema_version()` query function
+  - `db status` now displays current schema version
+  - Pattern adopted from agent-state: replaces destructive-only schema evolution with safe, incremental migrations
+
 ## 0.6.0
 
 ### Added

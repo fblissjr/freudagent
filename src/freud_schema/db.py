@@ -2,6 +2,10 @@
 
 The schema implements the 6-table architecture for declarative agent
 orchestration: skills, sources, extractions, sessions, feedback, rules.
+
+Schema versioning follows the agent-state pattern: a meta_schema_version
+table tracks applied versions, and migrations use idempotent DDL
+(CREATE IF NOT EXISTS, ALTER TABLE ... ADD COLUMN IF NOT EXISTS).
 """
 
 from __future__ import annotations
@@ -26,6 +30,12 @@ CREATE SEQUENCE IF NOT EXISTS rules_id_seq START 1;
 """
 
 _TABLES = """
+CREATE TABLE IF NOT EXISTS meta_schema_version (
+    version INTEGER PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT current_timestamp,
+    description VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS skills (
     id INTEGER PRIMARY KEY DEFAULT nextval('skills_id_seq'),
     domain VARCHAR NOT NULL,
@@ -104,6 +114,15 @@ CREATE TABLE IF NOT EXISTS rules (
 );
 """
 
+_INITIAL_VERSION = """
+INSERT INTO meta_schema_version (version, description)
+SELECT 1, 'Initial 6-table schema'
+WHERE NOT EXISTS (SELECT 1 FROM meta_schema_version WHERE version = 1);
+"""
+
+# Future migrations: (version, description, sql) tuples.
+_MIGRATIONS: list[tuple[int, str, str]] = []
+
 
 # ---------------------------------------------------------------------------
 # Connection management
@@ -117,7 +136,7 @@ def connect(db_path: str | Path | None = None) -> duckdb.DuckDBPyConnection:
 
 
 def init_schema(con: duckdb.DuckDBPyConnection) -> None:
-    """Create all tables and sequences if they don't exist."""
+    """Create all tables, seed version 1, and run pending migrations."""
     for stmt in _SEQUENCES.strip().split(";"):
         stmt = stmt.strip()
         if stmt:
@@ -127,10 +146,47 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
         if stmt:
             con.execute(stmt)
 
+    # Seed initial version
+    con.execute(_INITIAL_VERSION)
+
+    # Run any pending migrations
+    _run_migrations(con)
+
+
+def _run_migrations(con: duckdb.DuckDBPyConnection) -> None:
+    """Apply migrations that haven't been recorded yet."""
+    if not _MIGRATIONS:
+        return
+    applied = {
+        row[0]
+        for row in con.execute("SELECT version FROM meta_schema_version").fetchall()
+    }
+    for version, description, sql in _MIGRATIONS:
+        if version in applied:
+            continue
+        con.execute(sql)
+        con.execute(
+            "INSERT INTO meta_schema_version (version, description) VALUES (?, ?)",
+            [version, description],
+        )
+        applied.add(version)
+
+
+def get_schema_version(con: duckdb.DuckDBPyConnection) -> int:
+    """Return the highest applied schema version, or 0 if unversioned."""
+    try:
+        row = con.execute(
+            "SELECT MAX(version) FROM meta_schema_version"
+        ).fetchone()
+        return row[0] if row and row[0] is not None else 0
+    except duckdb.CatalogException:
+        return 0
+
 
 def reset_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Drop and recreate all tables. Destructive -- for tests and resets."""
-    for table in ("feedback", "extractions", "sessions", "sources", "skills", "rules"):
+    for table in ("feedback", "extractions", "sessions", "sources", "skills",
+                  "rules", "meta_schema_version"):
         con.execute(f"DROP TABLE IF EXISTS {table}")
     for seq in ("feedback_id_seq", "extractions_id_seq", "sessions_id_seq",
                 "sources_id_seq", "skills_id_seq", "rules_id_seq"):

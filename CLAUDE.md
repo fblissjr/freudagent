@@ -17,7 +17,7 @@ src/freud_schema/
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
-  db.py              - DuckDB schema (6 tables) and connection management
+  db.py              - DuckDB schema (7 tables), versioning, and connection management
   tables.py          - Pydantic models for experiment harness tables
   store.py           - CRUD operations and retrieval queries
   orchestrator.py    - Thin orchestrator loop + subagent runner
@@ -67,19 +67,28 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - `minimal-safe` -- lightweight safety baseline
 - `hierarchical-orchestrator` -- tree-shaped orchestrator with ephemeral subagents
 
-## Experiment Harness (6-table schema)
+## Experiment Harness (7-table schema)
 
 The harness implements declarative agent orchestration: behavior comes from data
 (skills, rules, sources), not code. The schema is the architecture.
 
 | Table | Purpose |
 |-------|---------|
+| meta_schema_version | Tracks applied schema versions for safe, incremental migrations |
 | skills | Declarative instructions loaded at runtime (domain + task_type + version) |
 | sources | Raw artifacts to process (file paths, MIME types, metadata) |
 | extractions | Structured output from agent runs (with validation status) |
 | sessions | Logged agent executions (orchestrator + subagent, token tracking) |
 | feedback | Human corrections on extractions (the flywheel signal) |
 | rules | Constraints applied globally or per-domain (priority-ordered) |
+
+### Schema Versioning
+
+Schema evolution uses idempotent migrations instead of destructive resets.
+`meta_schema_version` records each applied version. New migrations go in
+`_MIGRATIONS` in `db.py` as `(version, description, sql)` tuples.
+`init_schema()` runs pending migrations automatically. `reset_schema()` remains
+available for tests.
 
 CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add`
 
