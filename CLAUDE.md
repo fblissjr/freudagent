@@ -42,7 +42,7 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Models use Pydantic v2 (`model_validate`, `model_dump`)
 - List fields use `Field(default_factory=list)`, never bare `[]` defaults
 - Data stored as JSONL (one JSON object per line) for Freud corpus
-- Experiment data stored in DuckDB (6-table schema)
+- Experiment data stored in DuckDB (7-table schema)
 - JSON serialization: **orjson** (not json)
 - Archetype names use kebab-case: `structural-triad`, `dream-work`
 - Categories use the `ArchetypeCategory` enum (3 categories: STRUCTURAL, BEHAVIORAL, DIAGNOSTIC)
@@ -50,6 +50,8 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Tests use a module-scoped `entries` fixture for JSONL data (no repeated `load_entries()` calls)
 - Experiment tests use in-memory DuckDB (`:memory:`)
 - No phantom dependencies -- only add to `pyproject.toml` what the code actually imports
+- New tables must be added to the drop list in `reset_schema()` (order matters: drop dependents first)
+- Schema migrations: append `(version, description, sql)` to `_MIGRATIONS` in `db.py`; use idempotent DDL
 
 ## Archetypes (9, in a 3x3 grid)
 
