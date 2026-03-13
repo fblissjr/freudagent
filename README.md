@@ -90,6 +90,9 @@ uv run freud-schema feedback list --skill-id 1 --aggregate
 # Run with a real model (requires ANTHROPIC_API_KEY)
 uv run freud-schema run --domain legal --task-type extraction --model anthropic
 
+# Use a non-default database (--db is a global flag)
+uv run freud-schema --db /tmp/test.duckdb db init
+
 # Nuclear option
 uv run freud-schema db reset
 ```

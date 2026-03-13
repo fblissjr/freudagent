@@ -38,11 +38,26 @@ def _print_entry(entry: FreudEntry, verbose: bool = False) -> None:
     print()
 
 
+def _print_json(data: dict | str, indent: str = "  ") -> None:
+    """Pretty-print JSON data (dict or string) with a fixed indent prefix."""
+    if isinstance(data, str):
+        try:
+            data = orjson.loads(data)
+        except Exception:
+            for line in data.split("\n"):
+                print(f"{indent}{line}")
+            return
+    text = orjson.dumps(data, option=orjson.OPT_INDENT_2).decode()
+    for line in text.split("\n"):
+        print(f"{indent}{line}")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="freud-schema",
         description="Experiment harness for data-driven agent orchestration",
     )
+    parser.add_argument("--db", default=None, help="Path to DuckDB file (default: data/freudagent.duckdb)")
     sub = parser.add_subparsers(dest="command")
 
     # --- Data commands ---
@@ -91,10 +106,10 @@ def main(argv: list[str] | None = None) -> None:
     p_prompt.add_argument("--task", default="", help="Task context to include")
 
     # --- Experiment harness commands ---
-    p_db = sub.add_parser("db", help="Database operations")
-    p_db.add_argument("action", choices=["init", "reset", "status"],
-                       help="init: create tables, reset: drop and recreate, status: show counts")
-    p_db.add_argument("--db", default=None, help="Path to DuckDB file (default: data/freudagent.duckdb)")
+    sub.add_parser("db", help="Database operations").add_argument(
+        "action", choices=["init", "reset", "status"],
+        help="init: create tables, reset: drop and recreate, status: show counts",
+    )
 
     p_skill = sub.add_parser("skill", help="Manage skills")
     p_skill_sub = p_skill.add_subparsers(dest="skill_action")
@@ -144,7 +159,6 @@ def main(argv: list[str] | None = None) -> None:
     p_run.add_argument("--model", default="echo", help="Model: echo or anthropic (default: echo)")
     p_run.add_argument("--model-name", default=None, help="Anthropic model name (default: claude-sonnet-4-6)")
     p_run.add_argument("--task", default="", help="Additional task context")
-    p_run.add_argument("--db", default=None, help="Path to DuckDB file")
 
     # --- Extraction commands ---
     p_ext = sub.add_parser("extraction", help="Manage extractions")
@@ -317,7 +331,7 @@ def _handle_db(args) -> None:
 def _handle_skill(args) -> None:
     from freud_schema.tables import Skill
 
-    store = _get_store()
+    store = _get_store(args.db)
     if args.skill_action == "add":
         content = args.content
         if args.file:
@@ -342,7 +356,7 @@ def _handle_skill(args) -> None:
 def _handle_source(args) -> None:
     from freud_schema.tables import Source
 
-    store = _get_store()
+    store = _get_store(args.db)
     if args.source_action == "add":
         source = Source(content_path=args.path, media_type=args.media_type)
         source_id = store.insert_source(source)
@@ -357,7 +371,7 @@ def _handle_source(args) -> None:
 def _handle_rule(args) -> None:
     from freud_schema.tables import Rule
 
-    store = _get_store()
+    store = _get_store(args.db)
     if args.rule_action == "add":
         rule = Rule(
             scope=args.scope, domain=args.domain,
@@ -376,7 +390,7 @@ def _handle_rule(args) -> None:
 def _handle_feedback(args) -> None:
     from freud_schema.tables import Feedback
 
-    store = _get_store()
+    store = _get_store(args.db)
     if args.feedback_action == "list":
         if args.aggregate and args.skill_id:
             agg = store.aggregate_feedback(args.skill_id)
@@ -404,7 +418,7 @@ def _handle_feedback(args) -> None:
             print("--correction must be valid JSON", file=sys.stderr)
             sys.exit(1)
         fb = Feedback(
-            extraction_id=ext.id,
+            extraction_id=args.extraction_id,
             session_id=ext.session_id,
             skill_id=ext.skill_id,
             correction=correction,
@@ -413,7 +427,7 @@ def _handle_feedback(args) -> None:
             created_by=args.by,
         )
         fb_id = store.insert_feedback(fb)
-        print(f"Feedback created: id={fb_id} extraction={ext.id} type={args.type}")
+        print(f"Feedback created: id={fb_id} extraction={args.extraction_id} type={args.type}")
     else:
         print("Use: feedback list|add", file=sys.stderr)
 
@@ -431,13 +445,9 @@ def _handle_run(args) -> None:
               file=sys.stderr)
         sys.exit(1)
 
-    # Resolve sources
-    source_ids = args.source_id
-    if source_ids is None:
-        sources = store.list_sources(status="active")
-        source_ids = [s.id for s in sources]
-
-    if not source_ids:
+    # Resolve source IDs for pre-flight check; let run_simple own the actual resolution
+    source_ids = args.source_id  # None means "all active"
+    if source_ids is not None and not source_ids:
         print("No sources to process.", file=sys.stderr)
         print("Register sources with: freud-schema source add --path ... --media-type ...",
               file=sys.stderr)
@@ -452,7 +462,6 @@ def _handle_run(args) -> None:
 
     model_display = args.model_name or args.model
     print(f"Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={skill.id})")
-    print(f"Sources: {len(source_ids)}")
     print(f"Model: {model_display}")
     print()
 
@@ -466,31 +475,28 @@ def _handle_run(args) -> None:
         task_description=args.task,
     )
 
+    if not extractions:
+        print("No extractions produced (no active sources found).")
+        return
+
+    # Build source lookup to avoid N+1
+    source_map = {s.id: s for s in store.list_sources()}
+
     for i, ext in enumerate(extractions, 1):
-        source = store.get_source(ext.source_id)
+        source = source_map.get(ext.source_id)
         path = source.content_path if source else f"source-{ext.source_id}"
-        print(f"[{i}/{len(source_ids)}] {path}")
+        print(f"[{i}/{len(extractions)}] {path}")
         print(f"  Extraction: id={ext.id} ({ext.validation_status})")
-        raw = ext.output.get("raw", "")
-        try:
-            parsed = orjson.loads(raw)
-            display = orjson.dumps(parsed, option=orjson.OPT_INDENT_2).decode()
-        except Exception:
-            display = raw
-        for line in display.split("\n"):
-            print(f"  {line}")
+        _print_json(ext.output.get("raw", ""))
         print()
 
-    if not extractions:
-        print("No extractions produced.")
-    else:
-        print(f"Done: {len(extractions)} extraction(s) created.")
-        print("Review: freud-schema extraction list")
-        print("Validate: freud-schema extraction validate <id>")
+    print(f"Done: {len(extractions)} extraction(s) created.")
+    print("Review: freud-schema extraction list")
+    print("Validate: freud-schema extraction validate <id>")
 
 
 def _handle_extraction(args) -> None:
-    store = _get_store()
+    store = _get_store(args.db)
     if args.extraction_action == "list":
         exts = store.list_extractions(
             skill_id=args.skill_id,
@@ -500,8 +506,10 @@ def _handle_extraction(args) -> None:
         if not exts:
             print("No extractions found.")
         else:
+            # Build source lookup to avoid N+1
+            source_map = {s.id: s for s in store.list_sources()}
             for e in exts:
-                source = store.get_source(e.source_id)
+                source = source_map.get(e.source_id)
                 path = source.content_path if source else "?"
                 print(f"  [{e.id}] skill={e.skill_id} source={path} "
                       f"status={e.validation_status} confidence={e.confidence}")
@@ -526,9 +534,7 @@ def _handle_extraction(args) -> None:
             print(f"  Validated by: {ext.validated_by} at {ext.validated_at}")
         print(f"  Created: {ext.created_at}")
         print(f"\n  Output:")
-        output_str = orjson.dumps(ext.output, option=orjson.OPT_INDENT_2).decode()
-        for line in output_str.split("\n"):
-            print(f"    {line}")
+        _print_json(ext.output, indent="    ")
     elif args.extraction_action == "validate":
         store.update_validation(args.id, status="validated", validated_by=args.by)
         print(f"Extraction {args.id} marked as validated.")
@@ -540,7 +546,7 @@ def _handle_extraction(args) -> None:
 
 
 def _handle_session(args) -> None:
-    store = _get_store()
+    store = _get_store(args.db)
     if args.session_action == "list":
         sessions = store.list_sessions(status=args.status)
         if not sessions:

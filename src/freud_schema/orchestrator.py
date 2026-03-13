@@ -246,7 +246,7 @@ class EchoModel:
             "model": "echo",
             "system_prompt": system_prompt,
             "user_message": user_message,
-        }, option=orjson.OPT_INDENT_2).decode()
+        }).decode()
 
 
 def get_model(name: str, *, model_name: str | None = None) -> ModelCall:
@@ -303,7 +303,7 @@ def run_simple(
     """
     if source_ids is None:
         sources = store.list_sources(status="active")
-        source_ids = [s.id for s in sources]
+        source_ids = [s.id for s in sources if s.id is not None]
     if not source_ids:
         return []
 

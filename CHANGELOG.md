@@ -21,9 +21,14 @@
 
 ### Changed
 
+- `--db` moved from per-subparser to global root argument (all commands now use same DB)
 - `feedback` CLI restructured to use subparsers: `feedback list` (was top-level), `feedback add` (new)
   - Old: `freud-schema feedback --skill-id 1 --aggregate`
   - New: `freud-schema feedback list --skill-id 1 --aggregate`
+- `EchoModel` returns compact JSON; display layer handles formatting (eliminates double serialize)
+- N+1 source lookups in `_handle_run` and `extraction list` replaced with bulk fetch + map
+- Extracted `_print_json()` helper for duplicated JSON display logic
+- `feedback add` uses `args.extraction_id` directly instead of `ext.id` (type-safe)
 
 ## 0.5.0
 

@@ -27,7 +27,7 @@ data/
 skill/
   skill.md           - Claude Code skill definition
   reference/         - Archetype patterns, translation matrix
-internal/            - Analysis docs (gitignored)
+internal/            - Analysis docs, backlog, session logs (gitignored)
 ```
 
 ## Development
@@ -83,6 +83,8 @@ The harness implements declarative agent orchestration: behavior comes from data
 
 CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add`
 
+`--db` is a global flag on the root parser (before the subcommand). All handlers use it consistently.
+
 Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic]`
 Review: `freud-schema extraction list`, `extraction show N`, `extraction validate N`
 Feedback: `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
@@ -97,3 +99,8 @@ Archetypes span two scopes:
 The orchestrator uses archetype-composed system prompts for its own behavior.
 Subagents use the progressive disclosure hierarchy: rules -> skill -> source -> task.
 Model calls are pluggable (pass any callable). The code is a thin loop; behavior is data.
+
+## Internal Docs
+
+- `internal/BACKLOG.md` -- known gaps, deferred work, and future directions
+- `internal/log/` -- session logs tracking what was done and why
