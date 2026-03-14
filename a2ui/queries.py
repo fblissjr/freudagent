@@ -105,8 +105,7 @@ def get_dashboard_stats(store: ExperimentStore) -> dict[str, Any]:
     validated = sum(1 for e in extractions if e.validation_status == ValidationStatus.VALIDATED)
     rejected = sum(1 for e in extractions if e.validation_status == ValidationStatus.REJECTED)
 
-    sessions = store.list_sessions(limit=100)
-    recent_sessions = sessions[:5]
+    recent_sessions = store.list_sessions(limit=5)
 
     feedback_list = store.list_feedback()
 
@@ -122,7 +121,6 @@ def get_dashboard_stats(store: ExperimentStore) -> dict[str, Any]:
             "rejected": rejected,
         },
         "sessions": {
-            "total": len(sessions),
             "recent": [_to_dict(s) for s in recent_sessions],
         },
         "feedback": {

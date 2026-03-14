@@ -22,9 +22,10 @@ _ADDENDUM_PATH = pathlib.Path(__file__).resolve().parent / "prompt_addendum.md"
 
 def _read_or_fallback(path: pathlib.Path, label: str) -> str:
     """Read a file, returning a placeholder if not found."""
-    if path.exists():
+    try:
         return path.read_text()
-    return f"[{label} not found at {path}]"
+    except FileNotFoundError:
+        return f"[{label} not found at {path}]"
 
 
 @lru_cache(maxsize=1)

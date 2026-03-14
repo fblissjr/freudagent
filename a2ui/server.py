@@ -21,6 +21,7 @@ from mcp.server.lowlevel import Server
 
 from adapter import adapt_v09_to_v08
 from bridge import A2UIBridge
+from freud_schema.tables import ValidationStatus
 from prompt import build_system_prompt, build_user_prompt
 from providers import get_a2ui_provider
 from queries import (
@@ -38,7 +39,7 @@ from queries import (
 
 _bridge = A2UIBridge()
 _store_cache: Any = None
-_system_prompt: str | None = None
+_provider_cache: dict[str, Any] = {}
 
 
 def _get_store():
@@ -49,12 +50,11 @@ def _get_store():
     return _store_cache
 
 
-def _get_system_prompt() -> str:
-    """Return the cached system prompt (built once at first use)."""
-    global _system_prompt
-    if _system_prompt is None:
-        _system_prompt = build_system_prompt()
-    return _system_prompt
+def _get_provider(name: str):
+    """Return a cached A2UI provider (providers are stateless after construction)."""
+    if name not in _provider_cache:
+        _provider_cache[name] = get_a2ui_provider(name)
+    return _provider_cache[name]
 
 
 # ------------------------------------------------------------------
@@ -163,13 +163,7 @@ def _gather_data(store: Any, surface: str, params: dict[str, Any]) -> dict[str, 
         return get_dashboard_stats(store)
 
     elif surface == "extraction_list":
-        exts = get_extractions(
-            store,
-            skill_id=params.get("skill_id"),
-            validation_status=params.get("validation_status"),
-            limit=params.get("limit", 50),
-        )
-        return {"extractions": exts, "count": len(exts)}
+        return _handle_list_extractions(params)
 
     elif surface == "extraction_card":
         ext_id = params.get("extraction_id")
@@ -215,8 +209,8 @@ def _handle_compose_surface(arguments: dict[str, Any]) -> dict[str, Any]:
     if isinstance(data, dict) and "error" in data:
         return data
 
-    provider = get_a2ui_provider(provider_name)
-    system = _get_system_prompt()
+    provider = _get_provider(provider_name)
+    system = build_system_prompt()  # lru_cache handles caching
     user = build_user_prompt(surface, data, description=description)
 
     result = provider.generate(system, user)
@@ -292,14 +286,12 @@ def _handle_action(action: dict[str, Any], provider: str = "echo") -> dict[str, 
     if name == "validate_extraction":
         ext_id = context.get("extraction_id")
         if ext_id is not None:
-            from freud_schema.tables import ValidationStatus
             store.update_validation(ext_id, status=ValidationStatus.VALIDATED, validated_by="a2ui")
             return {"success": True, "action": "validated", "extraction_id": ext_id}
 
     elif name == "reject_extraction":
         ext_id = context.get("extraction_id")
         if ext_id is not None:
-            from freud_schema.tables import ValidationStatus
             store.update_validation(ext_id, status=ValidationStatus.REJECTED, validated_by="a2ui")
             return {"success": True, "action": "rejected", "extraction_id": ext_id}
 

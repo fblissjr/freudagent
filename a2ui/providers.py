@@ -43,10 +43,11 @@ class A2UIResult:
 
 _CATALOG_ID = "https://a2ui.org/specification/v0_9/basic_catalog.json"
 
+# Shared pattern: content inside markdown code fences (with or without lang tag)
+_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
+
 # Pattern: "Generate an A2UI v0.9 surface for: <surface_name>"
 _SURFACE_RE = re.compile(r"surface for:\s*(\S+)", re.IGNORECASE)
-# Pattern: data block between ```json ... ```
-_DATA_BLOCK_RE = re.compile(r"```json\s*\n(.*?)```", re.DOTALL)
 
 
 def _echo_build_messages(surface_id: str, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -140,7 +141,7 @@ class EchoA2UIProvider:
 
         # Extract data from the ```json``` block in the user prompt
         data: dict[str, Any] = {}
-        data_match = _DATA_BLOCK_RE.search(user)
+        data_match = _FENCE_RE.search(user)
         if data_match:
             try:
                 parsed = orjson.loads(data_match.group(1))
@@ -256,9 +257,6 @@ def get_a2ui_provider(name: str, model: str | None = None) -> A2UIProvider:
 # ──────────────────────────────────────────────────────────────────
 # JSON extraction from LLM output
 # ──────────────────────────────────────────────────────────────────
-
-
-_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
 
 
 def _extract_json_messages(raw: str) -> list[dict[str, Any]]:

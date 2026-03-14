@@ -172,7 +172,6 @@ export class FreudAgentApp extends SignalWatcher(LitElement) {
       if (result.valid && result.messages) {
         this.#processor.processMessages(result.messages);
         this.lastModel = result.model || this.provider;
-        this.requestUpdate();
       } else if (result.error) {
         this.error = result.error;
       } else if (result.errors) {
@@ -231,7 +230,6 @@ export class FreudAgentApp extends SignalWatcher(LitElement) {
       );
       if (result.success && result.messages) {
         this.#processor.processMessages(result.messages);
-        this.requestUpdate();
       } else if (result.success) {
         // Reload current surface after a state-changing action
         await this.#loadSurface(this.currentSurface);
@@ -301,14 +299,16 @@ export class FreudAgentApp extends SignalWatcher(LitElement) {
   }
 
   #renderSurfaceContent() {
-    // Try to render any available surface
     const surfaces = this.#processor.getSurfaces();
     if (surfaces.size === 0) {
       return html`<div class="loading">No surface loaded</div>`;
     }
 
-    // Render the first available surface
+    // Try the requested surface first, fall back to first available
+    if (surfaces.has(this.currentSurface)) {
+      return this.#renderSurface(this.currentSurface);
+    }
     const firstId = surfaces.keys().next().value;
-    return this.#renderSurface(firstId);
+    return this.#renderSurface(firstId!);
   }
 }
