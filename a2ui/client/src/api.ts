@@ -35,14 +35,17 @@ export async function compose(
   return resp.json();
 }
 
-export async function sendAction(action: {
-  name: string;
-  context: Record<string, any>;
-}): Promise<ActionResult> {
+export async function sendAction(
+  action: {
+    name: string;
+    context: Record<string, any>;
+  },
+  provider: string = "echo",
+): Promise<ActionResult> {
   const resp = await fetch("/action", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action }),
+    body: JSON.stringify({ action, provider }),
   });
   return resp.json();
 }

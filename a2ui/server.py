@@ -283,7 +283,7 @@ _TOOL_HANDLERS = {
 # ------------------------------------------------------------------
 
 
-def _handle_action(action: dict[str, Any]) -> dict[str, Any]:
+def _handle_action(action: dict[str, Any], provider: str = "echo") -> dict[str, Any]:
     """Process a userAction from the web client."""
     name = action.get("name", "")
     context = action.get("context", {})
@@ -308,11 +308,10 @@ def _handle_action(action: dict[str, Any]) -> dict[str, Any]:
         if ext_id is not None:
             detail = get_extraction_detail(store, ext_id)
             if detail:
-                # Generate a surface for this extraction via the LLM pipeline
                 result = _handle_compose_surface({
                     "surface": "extraction_card",
                     "params": {"extraction_id": ext_id},
-                    "provider": "echo",
+                    "provider": provider,
                 })
                 if result.get("valid"):
                     return {"success": True, "messages": result["messages"]}
@@ -377,7 +376,8 @@ def create_http_app(mcp_app: Server) -> Any:
         body = await request.body()
         action_data = orjson.loads(body)
         user_action = action_data.get("action", action_data)
-        result = _handle_action(user_action)
+        provider = action_data.get("provider", "echo")
+        result = _handle_action(user_action, provider=provider)
         return JSONResponse(result)
 
     async def api_extractions(request: Request) -> Response:

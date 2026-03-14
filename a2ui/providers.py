@@ -41,59 +41,118 @@ class A2UIResult:
 # ──────────────────────────────────────────────────────────────────
 
 
-_ECHO_MESSAGES: list[dict[str, Any]] = [
-    {
-        "version": "v0.9",
-        "createSurface": {
-            "surfaceId": "echo-surface",
-            "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json",
-            "sendDataModel": True,
-        },
-    },
-    {
-        "version": "v0.9",
-        "updateComponents": {
-            "surfaceId": "echo-surface",
-            "components": [
-                {"id": "root", "component": "Card", "child": "main-col"},
-                {
-                    "id": "main-col",
-                    "component": "Column",
-                    "children": ["title", "divider", "prompt-text"],
-                    "align": "stretch",
-                    "gap": 12,
-                },
-                {"id": "title", "component": "Text", "text": "Echo Surface", "variant": "h2"},
-                {"id": "divider", "component": "Divider"},
-                {
-                    "id": "prompt-text",
-                    "component": "Text",
-                    "text": {"path": "/prompt"},
-                    "variant": "body",
-                },
-            ],
-        },
-    },
-    {
-        "version": "v0.9",
-        "updateDataModel": {
-            "surfaceId": "echo-surface",
-            "value": {
-                "prompt": "(echo provider -- no LLM call)",
-                "provider": "echo",
+_CATALOG_ID = "https://a2ui.org/specification/v0_9/basic_catalog.json"
+
+# Pattern: "Generate an A2UI v0.9 surface for: <surface_name>"
+_SURFACE_RE = re.compile(r"surface for:\s*(\S+)", re.IGNORECASE)
+# Pattern: data block between ```json ... ```
+_DATA_BLOCK_RE = re.compile(r"```json\s*\n(.*?)```", re.DOTALL)
+
+
+def _echo_build_messages(surface_id: str, data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build A2UI messages that display the actual data for a surface."""
+    # Build component tree from the data keys
+    children = ["title", "divider"]
+    components: list[dict[str, Any]] = [
+        {"id": "title", "component": "Text", "text": {"path": "/title"}, "variant": "h2"},
+        {"id": "divider", "component": "Divider"},
+    ]
+
+    # Render each top-level key as a label + value row
+    for i, key in enumerate(data):
+        if key in ("title",):
+            continue
+        row_id = f"row-{i}"
+        label_id = f"label-{i}"
+        val_id = f"val-{i}"
+        children.extend([row_id])
+        components.extend([
+            {
+                "id": row_id,
+                "component": "Row",
+                "children": [label_id, val_id],
+                "align": "center",
+                "justify": "spaceBetween",
+            },
+            {"id": label_id, "component": "Text", "text": key, "variant": "caption"},
+            {"id": val_id, "component": "Text", "text": {"path": f"/{key}"}, "variant": "body"},
+        ])
+
+    components.insert(0, {
+        "id": "main-col",
+        "component": "Column",
+        "children": children,
+        "align": "stretch",
+        "gap": 8,
+    })
+    components.insert(0, {"id": "root", "component": "Card", "child": "main-col"})
+
+    # Flatten nested dicts/lists to strings for display
+    display_data: dict[str, Any] = {}
+    for k, v in data.items():
+        if isinstance(v, (dict, list)):
+            display_data[k] = orjson.dumps(v).decode()
+        elif v is None:
+            display_data[k] = ""
+        else:
+            display_data[k] = v
+
+    if "title" not in display_data:
+        display_data["title"] = surface_id.replace("_", " ").replace("-", " ").title()
+
+    return [
+        {
+            "version": "v0.9",
+            "createSurface": {
+                "surfaceId": surface_id,
+                "catalogId": _CATALOG_ID,
+                "sendDataModel": True,
             },
         },
-    },
-]
+        {
+            "version": "v0.9",
+            "updateComponents": {
+                "surfaceId": surface_id,
+                "components": components,
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateDataModel": {
+                "surfaceId": surface_id,
+                "value": display_data,
+            },
+        },
+    ]
 
 
 class EchoA2UIProvider:
-    """Returns canned A2UI messages for testing. No API key needed."""
+    """Builds A2UI surfaces from the actual data without an LLM call.
+
+    Parses the user prompt to extract the surface name and data block,
+    then generates a component tree that displays each data field.
+    """
 
     def generate(self, system: str, user: str) -> A2UIResult:
-        # Include the user prompt in the data model so it's visible
-        messages = orjson.loads(orjson.dumps(_ECHO_MESSAGES))
-        messages[2]["updateDataModel"]["value"]["prompt"] = user
+        # Extract surface name from user prompt
+        surface_match = _SURFACE_RE.search(user)
+        surface_id = surface_match.group(1) if surface_match else "echo-surface"
+
+        # Extract data from the ```json``` block in the user prompt
+        data: dict[str, Any] = {}
+        data_match = _DATA_BLOCK_RE.search(user)
+        if data_match:
+            try:
+                parsed = orjson.loads(data_match.group(1))
+                if isinstance(parsed, dict):
+                    data = parsed
+            except Exception:
+                pass
+
+        if not data:
+            data = {"info": "(no data provided)", "provider": "echo"}
+
+        messages = _echo_build_messages(surface_id, data)
         return A2UIResult(messages=messages, model="echo")
 
 

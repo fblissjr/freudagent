@@ -187,19 +187,7 @@ export class FreudAgentApp extends SignalWatcher(LitElement) {
 
   #renderSurface(surfaceId: string) {
     const surface = this.#processor.getSurfaces().get(surfaceId);
-    if (!surface) {
-      // Try the echo surface ID
-      const echoSurface = this.#processor.getSurfaces().get("echo-surface");
-      if (!echoSurface) return nothing;
-      return html`
-        <a2ui-surface
-          .surface=${{ ...echoSurface }}
-          .surfaceId=${"echo-surface"}
-          .processor=${this.#processor}
-          @a2uiaction=${(e: any) => this.#handleAction(e, "echo-surface")}
-        ></a2ui-surface>
-      `;
-    }
+    if (!surface) return nothing;
     return html`
       <a2ui-surface
         .surface=${{ ...surface }}
@@ -237,10 +225,10 @@ export class FreudAgentApp extends SignalWatcher(LitElement) {
     }
 
     try {
-      const result = await api.sendAction({
-        name: action.name,
-        context,
-      });
+      const result = await api.sendAction(
+        { name: action.name, context },
+        this.provider,
+      );
       if (result.success && result.messages) {
         this.#processor.processMessages(result.messages);
         this.requestUpdate();
