@@ -1,5 +1,72 @@
 # Changelog
 
+## 0.11.0
+
+### Added
+
+- **LLM-generated A2UI surfaces**: replaced static Python surface templates with
+  runtime LLM generation (Claude, Gemini, or echo fallback)
+  - `adapter.py` -- v0.9-to-v0.8 message translator for `@a2ui/lit` renderer
+    (component restructuring, property mapping, typed data model conversion)
+  - `providers.py` -- `A2UIProvider` protocol with 3 implementations:
+    `EchoA2UIProvider`, `ClaudeA2UIProvider`, `GeminiA2UIProvider`
+  - `prompt.py` -- system prompt assembly from skill files + component catalog +
+    FreudAgent data shapes + few-shot examples
+  - `prompt_addendum.md` -- FreudAgent entity descriptions for LLM context
+- **Lit client** (`a2ui/client/`): Vite + Lit app using `@a2ui/lit` renderer
+  - `src/app.ts` -- main app component with nav, provider selector, surface rendering
+  - `src/api.ts` -- HTTP client for compose + action endpoints
+  - `src/theme.ts` -- dark theme for `@a2ui/lit`
+  - Builds to `a2ui/static/` (replaces old vanilla JS client)
+- **Provider parameter** on `compose_surface` tool -- select LLM at request time
+- **Free-form surface requests** -- no more hardcoded surface enum; LLM generates any layout
+- 38 new tests: adapter (28), providers (10)
+
+### Changed
+
+- `compose_surface` now uses LLM pipeline: provider -> bridge validate -> adapter convert
+- `queries.py` simplified: `model_dump(mode='json')` replaces 5 manual `*_to_dict` functions
+- `server.py` serves built Lit app as static files via Starlette `StaticFiles`
+- `pyproject.toml` updated: `anthropic` and `google-genai` optional deps, updated py-modules
+
+### Removed
+
+- `surfaces.py` -- 370 lines of hand-built component trees replaced by LLM generation
+- `tests/test_surfaces.py` -- tests for deleted surfaces
+- `static/index.html` -- vanilla JS renderer replaced by Lit client build output
+
+## 0.10.0
+
+### Added
+
+- **A2UI integration** (`a2ui/`): visual surfaces for the experiment harness via A2UI v0.9 protocol
+  - `server.py` -- MCP server with stdio (Claude Desktop) and HTTP (standalone web) modes
+  - `bridge.py` -- structural A2UI validator (version, message types, component topology,
+    JSON Pointer syntax, circular ref detection); optional `a2ui-agent` upgrade path
+  - `queries.py` -- data access layer wrapping `ExperimentStore` for A2UI data models
+  - `surfaces.py` -- 5 A2UI surface templates: extraction card, extraction list,
+    session timeline, feedback summary, dashboard
+  - `static/index.html` -- standalone web client with vanilla JS A2UI renderer
+    (Text, Column, Row, Card, Button, Icon, Divider, Image, TextField, Tabs),
+    SSE consumer, action sender, dark theme
+- **5 MCP tools**: `render_a2ui`, `compose_surface`, `list_extractions`,
+  `show_extraction`, `dashboard`
+- **Interactivity**: validate/reject extractions from the web UI via POST actions,
+  feedback submission
+- **A2UI List component** in extraction list surface -- constant component count
+  regardless of item count (data-driven via `itemTemplate`)
+- **Session timeline grouping** -- children appear under their parent session,
+  visually indented by depth level
+- 34 tests: bridge validation (17), surface template validity (17)
+
+### Changed
+
+- Store uses a cached singleton connection (one DuckDB connection per server
+  lifetime, not per tool call)
+- Removed dead SSE infrastructure from web client (REST-only transport for now)
+- Dropped `sse-starlette` dependency
+- Shared `conftest.py` for test fixtures
+
 ## 0.9.0
 
 ### Added

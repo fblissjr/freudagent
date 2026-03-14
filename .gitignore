@@ -10,6 +10,8 @@ internal/
 *.duckdb
 *.duckdb.wal
 coderef/
+node_modules/
+a2ui/static/
 
 # C extensions
 *.so

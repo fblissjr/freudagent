@@ -30,6 +30,16 @@ tests/
 skill/
   skill.md           - Claude Code skill definition
   reference/         - Archetype patterns, translation matrix
+a2ui/
+  server.py          - MCP server (stdio + HTTP modes)
+  bridge.py          - A2UI v0.9 structural validator
+  queries.py         - Data access layer (ExperimentStore -> dicts)
+  adapter.py         - v0.9-to-v0.8 message translator for @a2ui/lit
+  providers.py       - A2UI LLM providers (echo, Claude, Gemini)
+  prompt.py          - System prompt assembly from skill files
+  prompt_addendum.md - FreudAgent data shapes for LLM context
+  client/            - Vite + Lit client (builds to static/)
+  tests/             - Adapter, bridge, provider tests
 docs/
   tutorial-arxiv-extraction.md - End-to-end tutorial using an arxiv paper
 internal/            - Analysis docs, backlog, session logs (gitignored)
