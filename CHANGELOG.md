@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.12.0
+
+### Added
+
+- **RLM (Recursive Language Model) provider**: inference-time scaffold that treats
+  the user's prompt as a Python REPL variable, enabling iterative code-based
+  exploration of large inputs
+  - `rlm.py` -- `RLMProvider`, REPL engine, system prompt, source content loading
+  - `RLMProvider` wraps any inner provider with a multi-turn REPL loop: the model
+    writes code to probe, slice, and transform input via a persistent namespace
+  - `llm_query()` function injected into REPL namespace for recursive sub-calls
+  - `FINAL()`/`FINAL_VAR()` termination functions for explicit answer delivery
+  - Sandboxed execution: restricted builtins (no `open`, `import`, `exec`),
+    per-iteration timeout via `signal.alarm`, output truncation
+  - Source content loading: `load_source_content()` reads text/JSON files directly,
+    attempts `pdftotext` for PDFs, degrades gracefully for unsupported types
+  - Source tag parsing: `<source>` XML tags in user messages trigger automatic
+    content loading into the `context` variable
+  - RLM metadata in session results: iteration count, sub-query count, per-iteration
+    trace (code length, stdout/stderr length, termination action)
+- **`complete_chat()` method** on `OpenAICompatProvider` and `ClaudeProvider`:
+  multi-turn message history support for RLM and other iterative patterns.
+  Backward-compatible -- `complete()` remains the required protocol method.
+- **`recursive-decomposer` preset**: dream-work + free-association + fixation +
+  pleasure-principle, mapping RLM behaviors to Freudian archetypes
+- `metadata` field on `CompletionResult` for provider-specific structured data
+- CLI flags: `--max-iterations` (REPL iteration limit), `--sub-model` (provider
+  for `llm_query()` sub-calls)
+- `rlm` and `rlm-anthropic` provider names in `get_provider()` factory
+- 33 new tests: parsing, sandboxed execution, source loading, REPL loop,
+  termination, token aggregation, multi-turn, preset integration, orchestrator pipeline
+
+### Changed
+
+- `OpenAICompatProvider.complete()` now delegates to `complete_chat()` internally
+- `run_subtask()` merges `CompletionResult.metadata` into session result JSON
+
 ## 0.11.0
 
 ### Added

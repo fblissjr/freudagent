@@ -268,7 +268,7 @@ def test_compose_system_prompt_unknown_archetype():
 
 
 def test_preset_count():
-    assert len(PRESETS) == 5
+    assert len(PRESETS) == 6
 
 
 def test_compose_by_category():

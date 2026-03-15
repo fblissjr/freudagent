@@ -48,6 +48,7 @@ class CompletionResult:
     output_tokens: int | None = None
     model: str | None = None
     cost_usd: float | None = None
+    metadata: dict | None = None
 
 
 class Provider(Protocol):
@@ -196,10 +197,14 @@ def run_subtask(
             [actual_model, session_id],
         )
 
+        session_result = {"raw": result.content}
+        if result.metadata:
+            session_result.update(result.metadata)
+
         store.complete_session(
             session_id,
             status=SessionStatus.COMPLETED,
-            result={"raw": result.content},
+            result=session_result,
             token_usage=token_usage,
         )
     except Exception as exc:
@@ -369,6 +374,29 @@ class ClaudeProvider:
             model=response.model,
         )
 
+    def complete_chat(self, messages: list[dict]) -> CompletionResult:
+        """Multi-turn completion for RLM and other iterative patterns."""
+        system = ""
+        chat_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                system = msg["content"]
+            else:
+                chat_messages.append(msg)
+
+        response = self._client.messages.create(
+            model=self._model,
+            max_tokens=4096,
+            system=system,
+            messages=chat_messages,
+        )
+        return CompletionResult(
+            content=response.content[0].text,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            model=response.model,
+        )
+
 
 class OpenAICompatProvider:
     """Calls any OpenAI-compatible endpoint (heylookitsanllm, llama.cpp, vLLM, Ollama).
@@ -391,16 +419,18 @@ class OpenAICompatProvider:
         self._model = model
 
     def complete(self, system: str, user: str) -> CompletionResult:
-        import httpx  # type: ignore[import-untyped]
+        return self.complete_chat([
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ])
 
+    def complete_chat(self, messages: list[dict]) -> CompletionResult:
+        """Multi-turn completion for RLM and other iterative patterns."""
         response = self._client.post(
             "/v1/chat/completions",
             json={
                 "model": self._model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
+                "messages": messages,
                 "stream": False,
             },
         )
@@ -423,14 +453,19 @@ def get_provider(
     *,
     model_name: str | None = None,
     base_url: str | None = None,
+    max_iterations: int = 10,
+    sub_model: str | None = None,
 ) -> Provider:
     """Factory for provider instances.
 
     Args:
         name: "echo" for pipeline verification, "anthropic" for Claude API,
-              "local" for any OpenAI-compatible endpoint.
+              "local" for any OpenAI-compatible endpoint, "rlm" for RLM
+              wrapping local, "rlm-anthropic" for RLM wrapping Claude.
         model_name: Model name override (provider-specific default otherwise).
         base_url: Base URL for local provider (default: http://localhost:8080).
+        max_iterations: Maximum REPL iterations for RLM providers.
+        sub_model: Provider name for llm_query() sub-calls (RLM only).
     """
     if name == "echo":
         return EchoProvider()
@@ -441,7 +476,26 @@ def get_provider(
             base_url=base_url or "http://localhost:8080",
             model=model_name or "default",
         )
-    raise ValueError(f"Unknown provider: {name!r}. Use 'echo', 'anthropic', or 'local'.")
+    if name in ("rlm", "rlm-anthropic"):
+        from freud_schema.rlm import RLMProvider
+
+        if name == "rlm":
+            inner = OpenAICompatProvider(
+                base_url=base_url or "http://localhost:8080",
+                model=model_name or "default",
+            )
+        else:
+            inner = ClaudeProvider(model=model_name or "claude-sonnet-4-6")
+
+        sub_provider = None
+        if sub_model:
+            sub_provider = get_provider(sub_model, model_name=model_name, base_url=base_url)
+
+        return RLMProvider(inner, sub_provider=sub_provider, max_iterations=max_iterations)
+    raise ValueError(
+        f"Unknown provider: {name!r}. "
+        f"Use 'echo', 'anthropic', 'local', 'rlm', or 'rlm-anthropic'."
+    )
 
 
 # ---------------------------------------------------------------------------

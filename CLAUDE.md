@@ -21,12 +21,14 @@ src/freud_schema/
   tables.py          - Pydantic models + enum classes (single source of truth for valid values)
   store.py           - CRUD operations with generic dict-based row conversion
   orchestrator.py    - Provider protocol, orchestrator loop + subagent runner
+  rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
 tests/
   test_schema.py     - Freud corpus, archetypes, harness composition
   test_experiment.py - DuckDB schema, store, orchestrator, providers
+  test_rlm.py        - RLM provider, REPL loop, sandbox, source loading
 skill/
   skill.md           - Claude Code skill definition
   reference/         - Archetype patterns, translation matrix
@@ -77,8 +79,9 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - All CLI `--status`/`--scope`/`--type` args must have `choices=[e.value for e in EnumClass]`
 - For ad-hoc DB queries, use the `duckdb` MCP tools -- do not write Python scripts
 - Providers use dynamic imports (`anthropic`, `httpx`) -- import inside `__init__`, raise `ImportError` with install hint
-- New providers implement the `Provider` protocol (single method: `complete(system, user) -> CompletionResult`)
+- New providers implement the `Provider` protocol (required: `complete(system, user) -> CompletionResult`; optional: `complete_chat(messages) -> CompletionResult` for multi-turn)
 - `get_provider()` is the only factory -- add new provider names there, not ad-hoc constructors
+- RLM providers (`rlm`, `rlm-anthropic`) wrap an inner provider with a REPL loop; `complete_chat()` preferred, fallback to flattened single-turn
 
 ## Archetypes (9, in a 3x3 grid)
 
@@ -88,13 +91,14 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 | Behavioral | repetition-compulsion, pleasure-principle, dream-work | How agents decide |
 | Diagnostic | free-association, freudian-slip, fixation | How agents explore and self-correct |
 
-## Presets (5)
+## Presets (6)
 
 - `careful-executor` -- safety-first with loop detection and termination
 - `creative-explorer` -- exploratory reasoning with resource awareness
 - `iterative-refiner` -- feedback-driven refinement with diagnostic analysis
 - `minimal-safe` -- lightweight safety baseline
 - `hierarchical-orchestrator` -- tree-shaped orchestrator with ephemeral subagents
+- `recursive-decomposer` -- RLM-aligned: condensation, exploration, attention, completion
 
 ## Experiment Harness (7-table schema)
 
@@ -136,7 +140,12 @@ Archetypes span two scopes:
 The orchestrator uses archetype-composed system prompts for its own behavior.
 Subagents use the progressive disclosure hierarchy: rules -> skill -> source -> task.
 Model calls are pluggable via the `Provider` protocol (3 built-in: `EchoProvider`, `ClaudeProvider`,
-`OpenAICompatProvider`). The code is a thin loop; behavior is data.
+`OpenAICompatProvider`; 1 wrapper: `RLMProvider`). The code is a thin loop; behavior is data.
+
+`RLMProvider` wraps any inner provider with a Python REPL loop: the model writes code to
+probe, slice, and transform its input, can recursively call itself via `llm_query()`, and
+terminates with `FINAL()`/`FINAL_VAR()`. Sandboxed by default (restricted builtins, timeout).
+Use `--model rlm` (local MLX) or `--model rlm-anthropic` (Claude API).
 
 ## DuckDB MCP Server
 

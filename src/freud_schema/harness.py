@@ -94,6 +94,12 @@ PRESETS: dict[str, list[str]] = {
         "fixation",
         "pleasure-principle",
     ],
+    "recursive-decomposer": [
+        "dream-work",
+        "free-association",
+        "fixation",
+        "pleasure-principle",
+    ],
 }
 
 

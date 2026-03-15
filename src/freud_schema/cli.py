@@ -163,11 +163,16 @@ def main(argv: list[str] | None = None) -> None:
     p_run.add_argument("--task-type", required=True, help="Skill task type")
     p_run.add_argument("--source-id", type=int, action="append", default=None,
                        help="Source ID(s) to process (repeatable, default: all active)")
-    p_run.add_argument("--model", default="echo", help="Provider: echo, anthropic, or local (default: echo)")
+    p_run.add_argument("--model", default="echo",
+                       help="Provider: echo, anthropic, local, rlm, or rlm-anthropic (default: echo)")
     p_run.add_argument("--model-name", default=None, help="Model name override (provider-specific default)")
     p_run.add_argument("--endpoint", default=None, help="Base URL for local provider (default: http://localhost:8080)")
     p_run.add_argument("--preset", default=None,
                        help="Archetype preset to compose into system prompt (e.g. careful-executor)")
+    p_run.add_argument("--max-iterations", type=int, default=10,
+                       help="Max REPL iterations for RLM providers (default: 10)")
+    p_run.add_argument("--sub-model", default=None,
+                       help="Provider for llm_query() sub-calls in RLM (default: same as --model)")
     p_run.add_argument("--task", default="", help="Additional task context")
 
     # --- Extraction commands ---
@@ -475,6 +480,8 @@ def _handle_run(args) -> None:
             args.model,
             model_name=args.model_name,
             base_url=args.endpoint,
+            max_iterations=args.max_iterations,
+            sub_model=args.sub_model,
         )
     except (ValueError, ImportError) as e:
         print(str(e), file=sys.stderr)
