@@ -44,6 +44,7 @@ a2ui/
   tests/             - Adapter, bridge, provider tests
 docs/
   tutorial-arxiv-extraction.md - End-to-end tutorial using an arxiv paper
+  tutorial-rlm-provider.md     - RLM provider tutorial: REPL loop, sub-calls, presets
 internal/            - Analysis docs, backlog, session logs (gitignored)
 ```
 

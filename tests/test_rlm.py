@@ -1,11 +1,13 @@
 """Tests for the RLM (Recursive Language Model) provider."""
 
-import pytest
-
-from freud_schema.orchestrator import CompletionResult, EchoProvider
+from freud_schema.orchestrator import (
+    CompletionResult,
+    format_source_tag,
+    parse_source_tags,
+    strip_source_tags,
+)
 from freud_schema.rlm import (
     RLMProvider,
-    RLM_SYSTEM_PROMPT,
     extract_repl_block,
     load_source_content,
     run_code_in_namespace,
@@ -129,6 +131,38 @@ def test_load_source_content_unsupported_type(tmp_path):
     f.write_bytes(b"\x00\x01\x02")
     result = load_source_content(str(f), "application/octet-stream")
     assert "Unsupported" in result
+
+
+# ---------------------------------------------------------------------------
+# Source tag format round-trip (format <-> parse)
+# ---------------------------------------------------------------------------
+
+
+def test_source_tag_round_trip():
+    """format_source_tag output is correctly parsed by parse_source_tags."""
+    tag = format_source_tag(42, "application/pdf", "/data/policy.pdf")
+    parsed = parse_source_tags(tag)
+    assert len(parsed) == 1
+    assert parsed[0]["id"] == "42"
+    assert parsed[0]["media_type"] == "application/pdf"
+    assert parsed[0]["path"] == "/data/policy.pdf"
+
+
+def test_source_tag_round_trip_multiple():
+    """Multiple tags in a block are all parsed."""
+    tags = (
+        format_source_tag(1, "text/plain", "/a.txt") + "\n"
+        + format_source_tag(2, "application/json", "/b.json") + "\n"
+        + "Execute extraction task."
+    )
+    parsed = parse_source_tags(tags)
+    assert len(parsed) == 2
+    assert parsed[0]["path"] == "/a.txt"
+    assert parsed[1]["path"] == "/b.json"
+
+    remainder = strip_source_tags(tags)
+    assert "Execute extraction task" in remainder
+    assert "<source" not in remainder
 
 
 # ---------------------------------------------------------------------------

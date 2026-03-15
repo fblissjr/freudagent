@@ -25,6 +25,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from freud_schema.orchestrator import CompletionResult, Provider
 
+from freud_schema.orchestrator import parse_source_tags, strip_source_tags
+
 
 # ---------------------------------------------------------------------------
 # RLM system prompt (adapted from the paper's Appendix C)
@@ -80,12 +82,6 @@ treated as the final answer.
 # ---------------------------------------------------------------------------
 
 _REPL_BLOCK_RE = re.compile(r"```repl\n(.*?)```", re.DOTALL)
-_SOURCE_TAG_RE = re.compile(
-    r'<source\s+[^>]*?path="([^"]*)"[^>]*/>', re.DOTALL
-)
-_SOURCE_ATTRS_RE = re.compile(
-    r'<source\s+(?=.*?path="([^"]*)")(?=.*?type="([^"]*)")', re.DOTALL
-)
 
 
 def extract_repl_block(text: str) -> str | None:
@@ -258,17 +254,19 @@ class RLMProvider:
 
     def _build_context(self, user: str) -> str:
         """Build context from user message, loading source content when possible."""
-        source_matches = _SOURCE_ATTRS_RE.findall(user)
-        if not source_matches:
+        sources = parse_source_tags(user)
+        if not sources:
             return user
 
         parts = []
-        for path, media_type in source_matches:
-            content = load_source_content(path, media_type)
-            parts.append(f"--- Source: {path} ({media_type}) ---\n{content}")
+        for src in sources:
+            content = load_source_content(src["path"], src["media_type"])
+            parts.append(
+                f"--- Source: {src['path']} ({src['media_type']}) ---\n{content}"
+            )
 
         # Include non-source text (task params etc.)
-        non_source = _SOURCE_TAG_RE.sub("", user).strip()
+        non_source = strip_source_tags(user)
         if non_source:
             parts.append(f"--- Task ---\n{non_source}")
 

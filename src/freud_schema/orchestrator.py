@@ -15,6 +15,7 @@ Architecture:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -55,6 +56,36 @@ class Provider(Protocol):
     """Any object that can produce a completion from system + user messages."""
 
     def complete(self, system: str, user: str) -> CompletionResult: ...
+
+
+# ---------------------------------------------------------------------------
+# Source tag format (single source of truth for generation + parsing)
+# ---------------------------------------------------------------------------
+
+_SOURCE_TAG_RE = re.compile(
+    r'<source\s+id="(\d+)"\s+type="([^"]*)"\s+path="([^"]*)"\s*/>'
+)
+
+
+def format_source_tag(source_id: int, media_type: str, path: str) -> str:
+    """Render a source reference tag for inclusion in user messages."""
+    return f'<source id="{source_id}" type="{media_type}" path="{path}" />'
+
+
+def parse_source_tags(text: str) -> list[dict[str, str]]:
+    """Parse source tags from a user message.
+
+    Returns list of dicts with keys: id, media_type, path.
+    """
+    return [
+        {"id": m.group(1), "media_type": m.group(2), "path": m.group(3)}
+        for m in _SOURCE_TAG_RE.finditer(text)
+    ]
+
+
+def strip_source_tags(text: str) -> str:
+    """Remove source tags from text, returning the remaining content."""
+    return _SOURCE_TAG_RE.sub("", text).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -104,10 +135,9 @@ def assemble_runner_context(
         for sid in source_ids:
             source = source_map.get(sid)
             if source:
-                source_block += (
-                    f"<source id=\"{source.id}\" type=\"{source.media_type}\" "
-                    f"path=\"{source.content_path}\" />\n"
-                )
+                source_block += format_source_tag(
+                    source.id, source.media_type, source.content_path
+                ) + "\n"
         if source_block:
             source_block = f"# Sources\n\n{source_block}\n"
 
