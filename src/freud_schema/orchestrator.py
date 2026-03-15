@@ -519,7 +519,10 @@ def get_provider(
 
         sub_provider = None
         if sub_model:
-            sub_provider = get_provider(sub_model, model_name=model_name, base_url=base_url)
+            # Sub-provider gets its own defaults -- don't forward model_name
+            # from the outer provider (e.g., a Claude model name is wrong for
+            # a local sub-provider).
+            sub_provider = get_provider(sub_model, base_url=base_url)
 
         return RLMProvider(inner, sub_provider=sub_provider, max_iterations=max_iterations)
     raise ValueError(

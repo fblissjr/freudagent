@@ -12,6 +12,7 @@ from freud_schema.rlm import (
     load_source_content,
     run_code_in_namespace,
 )
+from freud_schema.tables import SkillStatus
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +216,17 @@ class _SingleTurnProvider:
         return CompletionResult(content=self._response, model="mock-single")
 
 
+class _CapturingProvider:
+    """Provider that records complete_chat calls for inspection."""
+
+    def __init__(self):
+        self.calls: list[list[dict]] = []
+
+    def complete_chat(self, messages):
+        self.calls.append(messages)
+        return CompletionResult(content="done", model="mock")
+
+
 # ---------------------------------------------------------------------------
 # RLMProvider: direct response (no code block)
 # ---------------------------------------------------------------------------
@@ -406,18 +418,12 @@ def test_rlm_uses_complete_chat():
 
 def test_rlm_system_prompt_composition():
     """FreudAgent system prompt is appended to RLM system prompt."""
-    calls_seen = []
-
-    class _CapturingProvider:
-        def complete_chat(self, messages):
-            calls_seen.append(messages)
-            return CompletionResult(content="done", model="mock")
-
-    rlm = RLMProvider(_CapturingProvider(), max_iterations=1)
+    provider = _CapturingProvider()
+    rlm = RLMProvider(provider, max_iterations=1)
     rlm.complete("Extract policy numbers.", "input data")
 
     # The system message should contain both RLM instructions and task instructions
-    system_msg = calls_seen[0][0]
+    system_msg = provider.calls[0][0]
     assert system_msg["role"] == "system"
     assert "REPL" in system_msg["content"]  # RLM prompt
     assert "Extract policy numbers" in system_msg["content"]  # FreudAgent prompt
@@ -430,17 +436,11 @@ def test_rlm_system_prompt_composition():
 
 def test_rlm_context_preview():
     """Initial user message contains context metadata and preview."""
-    calls_seen = []
-
-    class _CapturingProvider:
-        def complete_chat(self, messages):
-            calls_seen.append(messages)
-            return CompletionResult(content="done", model="mock")
-
-    rlm = RLMProvider(_CapturingProvider(), max_iterations=1)
+    provider = _CapturingProvider()
+    rlm = RLMProvider(provider, max_iterations=1)
     rlm.complete("", "A" * 1000)
 
-    user_msg = calls_seen[0][1]
+    user_msg = provider.calls[0][1]
     assert user_msg["role"] == "user"
     assert "1000 chars" in user_msg["content"]
     assert "..." in user_msg["content"]  # Truncated preview
@@ -461,18 +461,12 @@ def test_rlm_loads_source_content(tmp_path):
         f"Execute extraction task."
     )
 
-    calls_seen = []
-
-    class _CapturingProvider:
-        def complete_chat(self, messages):
-            calls_seen.append(messages)
-            return CompletionResult(content="done", model="mock")
-
-    rlm = RLMProvider(_CapturingProvider(), max_iterations=1)
+    provider = _CapturingProvider()
+    rlm = RLMProvider(provider, max_iterations=1)
     rlm.complete("", user_msg)
 
     # Context preview should show loaded file content, not the XML tag
-    user_content = calls_seen[0][1]["content"]
+    user_content = provider.calls[0][1]["content"]
     assert "actual file content here" in user_content
     assert "Execute extraction task" in user_content
 
@@ -526,17 +520,11 @@ def test_rlm_with_preset_system_prompt():
     from freud_schema.harness import compose_preset
 
     preset_prompt = compose_preset("creative-explorer")
-    calls_seen = []
-
-    class _CapturingProvider:
-        def complete_chat(self, messages):
-            calls_seen.append(messages)
-            return CompletionResult(content="done", model="mock")
-
-    rlm = RLMProvider(_CapturingProvider(), max_iterations=1)
+    provider = _CapturingProvider()
+    rlm = RLMProvider(provider, max_iterations=1)
     rlm.complete(preset_prompt, "test data")
 
-    system_content = calls_seen[0][0]["content"]
+    system_content = provider.calls[0][0]["content"]
     # Should have both RLM and archetype content
     assert "REPL" in system_content
     assert "Operating Principles" in system_content
@@ -548,19 +536,14 @@ def test_rlm_with_preset_system_prompt():
 # ---------------------------------------------------------------------------
 
 
-def test_rlm_in_orchestrator_pipeline():
+def test_rlm_in_orchestrator_pipeline(store):
     """RLMProvider works end-to-end through run_subtask."""
-    from freud_schema.db import connect
     from freud_schema.orchestrator import run_subtask
-    from freud_schema.store import ExperimentStore
     from freud_schema.tables import Skill, Source, Subtask
-
-    con = connect(":memory:")
-    store = ExperimentStore(con)
 
     store.insert_skill(Skill(
         domain="test", task_type="extraction",
-        content="Extract data.", status="active",
+        content="Extract data.", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/test.txt", media_type="text/plain",
@@ -585,5 +568,3 @@ def test_rlm_in_orchestrator_pipeline():
     assert len(sessions) == 1
     session = sessions[0]
     assert "rlm" in session.result
-
-    con.close()

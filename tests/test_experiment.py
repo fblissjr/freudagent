@@ -34,15 +34,6 @@ from freud_schema.tables import (
 )
 
 
-@pytest.fixture
-def store():
-    """In-memory DuckDB store for each test."""
-    con = connect(":memory:")
-    s = ExperimentStore(con)
-    yield s
-    con.close()
-
-
 # ---------------------------------------------------------------------------
 # Schema tests
 # ---------------------------------------------------------------------------

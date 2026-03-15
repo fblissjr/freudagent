@@ -102,17 +102,17 @@ def load_source_content(path: str, media_type: str) -> str:
     gracefully for unsupported types.
     """
     p = Path(path)
-    if not p.exists():
-        return f"[Source file not found: {path}]"
 
     if media_type.startswith("text/") or media_type in (
         "application/json",
         "application/jsonl",
     ):
-        return p.read_text(encoding="utf-8", errors="replace")
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except FileNotFoundError:
+            return f"[Source file not found: {path}]"
 
     if media_type == "application/pdf":
-        # Try pdftotext from poppler-utils; degrade gracefully
         try:
             import subprocess  # noqa: S404 -- sandboxed pdftotext only
 
@@ -143,7 +143,7 @@ def load_source_content(path: str, media_type: str) -> str:
 # exploits (e.g., obj.__class__.__bases__[0].__subclasses__()) -- for that you'd
 # need RestrictedPython's AST-level guards. Acceptable tradeoff for an experiment
 # harness where the "attacker" is an LLM we prompted, not an adversary.
-_SAFE_BUILTINS = {
+_SAFE_BUILTIN_NAMES = {
     "abs", "all", "any", "bin", "bool", "bytes", "callable", "chr",
     "complex", "dict", "dir", "divmod", "enumerate", "filter", "float",
     "format", "frozenset", "getattr", "hasattr", "hash", "hex", "id",
@@ -153,16 +153,13 @@ _SAFE_BUILTINS = {
     "str", "sum", "tuple", "type", "vars", "zip",
 }
 
+import builtins as _builtins_module  # noqa: E402
 
-def _make_sandbox_builtins() -> dict:
-    """Create a restricted builtins dict for sandboxed code execution."""
-    import builtins
-
-    return {
-        name: getattr(builtins, name)
-        for name in _SAFE_BUILTINS
-        if hasattr(builtins, name)
-    }
+_SANDBOX_BUILTINS: dict = {
+    name: getattr(_builtins_module, name)
+    for name in _SAFE_BUILTIN_NAMES
+    if hasattr(_builtins_module, name)
+}
 
 
 def run_code_in_namespace(
@@ -184,7 +181,7 @@ def run_code_in_namespace(
         "__builtins__" not in namespace
         or not isinstance(namespace.get("__builtins__"), dict)
     ):
-        namespace["__builtins__"] = _make_sandbox_builtins()
+        namespace["__builtins__"] = _SANDBOX_BUILTINS.copy()
 
     old_handler = None
     use_alarm = sys.platform != "win32" and timeout > 0
@@ -335,10 +332,11 @@ class RLMProvider:
         last_model = None
         final_content = ""
         response_text = ""
+        use_chat = hasattr(self._inner, "complete_chat")
 
         for iteration in range(self._max_iterations):
             # Call inner provider (prefer multi-turn if available)
-            if hasattr(self._inner, "complete_chat"):
+            if use_chat:
                 result = self._inner.complete_chat(messages)
             else:
                 # Fallback: flatten to single-turn
