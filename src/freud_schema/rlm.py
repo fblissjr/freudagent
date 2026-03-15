@@ -138,6 +138,11 @@ def load_source_content(path: str, media_type: str) -> str:
 # Sandboxed code execution
 # ---------------------------------------------------------------------------
 
+# Restricted builtins for sandboxed execution. Blocks import, open, exec, eval,
+# compile, and other dangerous builtins. This does NOT prevent attribute-access
+# exploits (e.g., obj.__class__.__bases__[0].__subclasses__()) -- for that you'd
+# need RestrictedPython's AST-level guards. Acceptable tradeoff for an experiment
+# harness where the "attacker" is an LLM we prompted, not an adversary.
 _SAFE_BUILTINS = {
     "abs", "all", "any", "bin", "bool", "bytes", "callable", "chr",
     "complex", "dict", "dir", "divmod", "enumerate", "filter", "float",
