@@ -18,11 +18,14 @@ cd freudagent
 uv sync --extra dev
 ```
 
-## Tutorial
+## Tutorials
 
 New here? Start with the [end-to-end tutorial](docs/tutorial-arxiv-extraction.md) --
 extracts structured data from an arxiv paper using the full pipeline. Covers the
 why behind every step, not just the commands.
+
+Then try the [RLM provider tutorial](docs/tutorial-rlm-provider.md) -- wraps any
+model with a Python REPL loop for iterative, code-driven extraction of large inputs.
 
 ## Usage
 
@@ -95,6 +98,18 @@ uv run freud-schema run --domain legal --task-type extraction --model anthropic
 uv run freud-schema run --domain legal --task-type extraction \
   --model local --model-name qwen2.5-coder-1.5b --endpoint http://localhost:8080
 
+# Run with RLM (iterative REPL loop -- model writes code to probe the input)
+uv run freud-schema run --domain legal --task-type extraction \
+  --model rlm --endpoint http://localhost:8080 --max-iterations 10
+
+# RLM with Claude as the inner provider
+uv run freud-schema run --domain legal --task-type extraction \
+  --model rlm-anthropic --max-iterations 8
+
+# RLM with a separate sub-model for llm_query() recursive calls
+uv run freud-schema run --domain legal --task-type extraction \
+  --model rlm-anthropic --sub-model local --endpoint http://localhost:8080
+
 # Use a non-default database (--db is a global flag)
 uv run freud-schema --db /tmp/test.duckdb db init
 
@@ -144,7 +159,7 @@ print(a.prompt_fragment)
 single agent. **Inter-agent** archetypes (e.g. `ephemeral`) define topology
 and lifecycle between agents.
 
-## Presets (5)
+## Presets (6)
 
 | Preset | Archetypes | Use Case |
 |--------|-----------|----------|
@@ -153,12 +168,14 @@ and lifecycle between agents.
 | `iterative-refiner` | dream-work, pleasure-principle, freudian-slip | Feedback-driven refinement |
 | `minimal-safe` | structural-triad, repetition-compulsion, pleasure-principle | Lightweight safety baseline |
 | `hierarchical-orchestrator` | ephemeral, dream-work, fixation, pleasure-principle | Tree-shaped orchestrator with ephemeral subagents |
+| `recursive-decomposer` | dream-work, free-association, fixation, pleasure-principle | RLM-aligned iterative decomposition |
 
 ## Experiment Harness
 
 A 7-table DuckDB schema implementing declarative agent orchestration: behavior
 comes from data (skills, rules, sources), not code. The orchestrator is a thin
-loop. Model calls are pluggable via the Provider protocol (`echo`, `anthropic`, `local`).
+loop. Model calls are pluggable via the Provider protocol (`echo`, `anthropic`,
+`local`, `rlm`, `rlm-anthropic`).
 
 Subagents get context via the progressive disclosure hierarchy:
 **rules -> skill -> source -> task**.
@@ -186,9 +203,18 @@ src/freud_schema/
   tables.py          - Pydantic models + enum classes (single source of truth for valid values)
   store.py           - CRUD operations with generic dict-based row conversion
   orchestrator.py    - Provider protocol, orchestrator loop + subagent runner
+  rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
+tests/
+  conftest.py        - Shared fixtures (in-memory DuckDB store)
+  test_schema.py     - Freud corpus, archetypes, harness composition
+  test_experiment.py - DuckDB schema, store, orchestrator, providers
+  test_rlm.py        - RLM provider, REPL loop, sandbox, source loading
+docs/
+  tutorial-arxiv-extraction.md - End-to-end arxiv extraction pipeline
+  tutorial-rlm-provider.md     - RLM provider: REPL loop, sub-calls, presets
 skill/
   skill.md           - Claude Code skill definition
   reference/         - Archetype patterns, translation matrix

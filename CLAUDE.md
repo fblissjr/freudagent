@@ -127,7 +127,7 @@ CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` ->
 
 `--db` is a global flag on the root parser (before the subcommand). All handlers use it consistently.
 
-Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic|local] [--endpoint URL]`
+Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic|local|rlm|rlm-anthropic] [--endpoint URL] [--max-iterations N] [--sub-model NAME]`
 Review: `freud-schema extraction list`, `extraction show N`, `extraction validate N`
 Feedback: `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
 History: `freud-schema session list`
