@@ -45,7 +45,7 @@ It calls a provider once per source. It is not orchestration.
 |-------|------|-------------------|
 | L1 | Always loaded | CLAUDE.md, skill frontmatter, rules |
 | L2 | Loaded on match | `skill/skill.md` body (CLI reference, workflow) |
-| L3 | Loaded on demand | `skill/reference/*.md` (schema, archetypes, hierarchy, flywheel) |
+| L3 | Loaded on demand | `skill/reference/*.md` (schema, archetypes, hierarchy, flywheel, retrieval thesis) |
 
 This applies to FreudAgent's own skill structure: the frontmatter triggers on
 activation keywords, the body routes to references, references provide depth.
@@ -89,6 +89,7 @@ skill/
     flywheel.md         - L3: Feedback loop, 12 atoms, correction flow
     archetype_patterns.md - L3: Detailed patterns with examples
     translation_matrix.md - L3: German-English term mapping
+    retrieval-thesis.md   - L3: Progressive disclosure rationale, skills as retrieval
 a2ui/
   server.py          - MCP server (stdio + HTTP modes)
   bridge.py          - A2UI v0.9 structural validator
@@ -102,6 +103,7 @@ a2ui/
 docs/
   tutorial-arxiv-extraction.md - End-to-end tutorial using an arxiv paper
   tutorial-rlm-provider.md     - RLM provider tutorial: REPL loop, sub-calls, presets
+  tutorial-flywheel.md         - Flywheel tutorial: feedback loop end-to-end
 internal/            - Analysis docs, backlog, session logs (gitignored)
 ```
 
@@ -124,7 +126,7 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Categories use the `ArchetypeCategory` enum (3 categories: STRUCTURAL, BEHAVIORAL, DIAGNOSTIC)
 - `related_archetypes` must be bidirectional: if A lists B, B must list A
 - Tests use a module-scoped `entries` fixture for JSONL data (no repeated `load_entries()` calls)
-- Experiment tests use in-memory DuckDB (`:memory:`)
+- Experiment tests use in-memory DuckDB (`:memory:`) for store-level tests, `tmp_path` for CLI end-to-end tests
 - No phantom dependencies -- only add to `pyproject.toml` what the code actually imports
 - New tables must be added to the drop list in `reset_schema()` (order matters: drop dependents first)
 - No migration path -- breaking schema changes use `reset_schema()` (experiment repo, no legacy data)
@@ -182,14 +184,15 @@ No migration path. For breaking changes, use `freud-schema db reset`.
 `init_schema()` uses `CREATE TABLE IF NOT EXISTS` (idempotent).
 `reset_schema()` drops and recreates everything.
 
-CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add`
+CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add` -> `skill deprecate` -> `skill add --version N`
 
 `--db` is a global flag on the root parser (before the subcommand). All handlers use it consistently.
 
 Test execution: `freud-schema run --domain D --task-type T [--model echo|anthropic|local|rlm|rlm-anthropic] [--endpoint URL] [--max-iterations N] [--sub-model NAME]`
 Review: `freud-schema extraction list`, `extraction show N`, `extraction validate N`
 Feedback: `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
-History: `freud-schema session list`
+Skill lifecycle: `freud-schema skill deprecate N`, `skill activate N`
+History: `freud-schema session list`, `session show N`
 
 ## Architecture Notes
 

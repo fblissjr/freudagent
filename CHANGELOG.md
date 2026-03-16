@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.13.1
+
+### Added
+
+- **CLI: `skill deprecate <id>` and `skill activate <id>`** -- expose existing store
+  methods for skill lifecycle management
+- **CLI: `session show <id>`** -- display full session details including context loaded,
+  token usage, and result JSON
+- **CLI: `--version` flag on `skill add`** -- specify skill version (default: 1) for
+  flywheel v1/v2 comparisons
+- **Retrieval thesis** (`skill/reference/retrieval-thesis.md`): architecture note
+  connecting FreudAgent's L1/L2/L3 hierarchy to the progressive disclosure thesis
+- **Flywheel tutorial** (`docs/tutorial-flywheel.md`): end-to-end walkthrough of the
+  feedback loop -- extract, review, correct, refine skill, re-extract, compare
+- **Claude Code native path** (step 6b in arxiv tutorial): documents how Claude Code
+  consumes the data layer natively vs the CLI test utility
+- 6 new tests: skill deprecate/activate CLI, session show, skill version roundtrip,
+  nonexistent ID error handling for deprecate/activate/session show
+
 ## 0.13.0
 
 ### Changed

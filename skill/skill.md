@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.13.0
+version: 0.13.1
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -53,6 +53,7 @@ FreudAgent handles data.
 | Feedback loop, flywheel atoms | `reference/flywheel.md` |
 | Archetype usage patterns and examples | `reference/archetype_patterns.md` |
 | German-English translation nuances | `reference/translation_matrix.md` |
+| Retrieval thesis, progressive disclosure rationale | `reference/retrieval-thesis.md` |
 
 ## CLI Reference
 
@@ -65,7 +66,7 @@ All commands use `freud-schema` (or `uv run freud-schema`). The `--db` flag is g
 freud-schema db init                          # Create tables
 freud-schema db status                        # Show row counts
 freud-schema rule add --content "..." --priority 10
-freud-schema skill add --domain D --task-type T --content "..." --status active
+freud-schema skill add --domain D --task-type T --content "..." --status active [--version N]
 freud-schema source add --path /data/doc.pdf --media-type application/pdf
 ```
 
@@ -96,10 +97,18 @@ freud-schema list-presets
 freud-schema prompt --preset careful-executor
 ```
 
+### Skill Lifecycle
+
+```bash
+freud-schema skill deprecate <id>
+freud-schema skill activate <id>
+```
+
 ### Session History
 
 ```bash
 freud-schema session list [--status completed]
+freud-schema session show <id>
 ```
 
 ## Corpus

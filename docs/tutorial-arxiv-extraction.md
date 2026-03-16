@@ -223,6 +223,42 @@ responded. This is how you answer "what happened?" after the fact, and how
 you compare providers (did the local model use fewer tokens? did it fail
 more often?).
 
+## 6b. How Claude Code does this natively
+
+The `freud-schema run` command is a test utility. It proves the data layer works by
+calling a provider once per source in a Python loop. But the intended runtime is
+the harness itself -- Claude Code, Agent SDK, or whatever orchestrates.
+
+**Activation.** When you mention "extraction", "arxiv", or "experiment harness" in
+conversation, Claude Code matches the skill frontmatter keywords and loads
+`skill/skill.md` (L2). The routing table there points to the specific reference
+files (L3) Claude Code needs. This is the same progressive disclosure hierarchy
+the CLI implements, but the harness handles routing natively.
+
+**File access.** Claude Code reads the PDF directly via the Read tool. The CLI test
+utility passes source metadata (path, MIME type) but doesn't read the file -- that's
+a known gap for the test utility. Claude Code has no such gap. It reads the file,
+understands the content, and extracts from it directly.
+
+**Data access.** Claude Code uses the DuckDB MCP tools (`execute_query`, `list_tables`,
+`list_columns`) or the CLI to store extractions, add feedback, and query results. Same
+schema, same tables, different interface.
+
+**Orchestration.** If the task requires decomposition (e.g., "extract from these 5
+papers and compare"), Claude Code uses its Agent tool to spawn subagents. Each subagent
+gets precisely scoped context via `assemble_runner_context()`. The harness handles the
+tree; FreudAgent provides the data.
+
+| Aspect | CLI path (`freud-schema run`) | Claude Code native |
+|--------|-------------------------------|-------------------|
+| Purpose | Pipeline verification | Production use |
+| File access | Metadata only (path, MIME type) | Full content via Read tool |
+| Orchestration | Single-shot loop | Agent tool for decomposition |
+| Storage | Automatic via `run_single()` | CLI or MCP tools |
+| Context assembly | Same `assemble_runner_context()` | Same function, plus L1/L2/L3 skill routing |
+
+Same schema. Same data. Different orchestrator. That's the thesis.
+
 ## 7. Run with a real model
 
 Pick one:

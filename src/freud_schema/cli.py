@@ -126,7 +126,12 @@ def main(argv: list[str] | None = None) -> None:
     p_skill_add.add_argument("--content", help="Skill content (or use --file)")
     p_skill_add.add_argument("--file", help="Read skill content from file")
     p_skill_add.add_argument("--status", default="draft", choices=[e.value for e in SkillStatus])
+    p_skill_add.add_argument("--version", type=int, default=1)
     p_skill_sub.add_parser("list", help="List all skills")
+    p_skill_deprecate = p_skill_sub.add_parser("deprecate", help="Deprecate a skill")
+    p_skill_deprecate.add_argument("id", type=int)
+    p_skill_activate = p_skill_sub.add_parser("activate", help="Activate a skill")
+    p_skill_activate.add_argument("id", type=int)
 
     p_source = sub.add_parser("source", help="Manage sources")
     p_source_sub = p_source.add_subparsers(dest="source_action")
@@ -197,6 +202,8 @@ def main(argv: list[str] | None = None) -> None:
     p_sess_list = p_sess_sub.add_parser("list", help="List sessions")
     p_sess_list.add_argument("--status", default=None, choices=[e.value for e in SessionStatus])
     p_sess_list.add_argument("--limit", type=int, default=20)
+    p_sess_show = p_sess_sub.add_parser("show", help="Show session details")
+    p_sess_show.add_argument("id", type=int)
 
     args = parser.parse_args(argv)
     if not args.command:
@@ -363,15 +370,24 @@ def _handle_skill(args) -> None:
             sys.exit(1)
         skill = Skill(
             domain=args.domain, task_type=args.task_type,
+            version=args.version,
             content=content, status=args.status,
         )
         skill_id = store.insert_skill(skill)
-        print(f"Skill created: id={skill_id} domain={args.domain} task_type={args.task_type} status={args.status}")
+        print(f"Skill created: id={skill_id} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
     elif args.skill_action == "list":
         for s in store.list_skills():
             print(f"  [{s.id}] {s.domain}/{s.task_type} v{s.version} ({s.status})")
+    elif args.skill_action in ("deprecate", "activate"):
+        if store.get_skill(args.id) is None:
+            print(f"Skill {args.id} not found.", file=sys.stderr)
+            sys.exit(1)
+        action = store.deprecate_skill if args.skill_action == "deprecate" else store.activate_skill
+        action(args.id)
+        verb = "deprecated" if args.skill_action == "deprecate" else "activated"
+        print(f"Skill {args.id} {verb}.")
     else:
-        print("Use: skill add|list", file=sys.stderr)
+        print("Use: skill add|list|deprecate|activate", file=sys.stderr)
 
 
 def _handle_source(args) -> None:
@@ -599,8 +615,35 @@ def _handle_session(args) -> None:
                 parent = f" parent={s.parent_session_id}" if s.parent_session_id else ""
                 skill_info = f" skill={s.skill_id}" if s.skill_id else ""
                 print(f"  [{s.id}] {s.agent_role} {s.task_type} [{s.status}]{parent}{skill_info} model={s.model_used}")
+    elif args.session_action == "show":
+        session = store.get_session(args.id)
+        if session is None:
+            print(f"Session {args.id} not found.", file=sys.stderr)
+            sys.exit(1)
+        print(f"  Session: {session.id}")
+        print(f"  Task: {session.task_description}")
+        print(f"  Type: {session.task_type}")
+        print(f"  Role: {session.agent_role}")
+        print(f"  Status: {session.status}")
+        print(f"  Model: {session.model_used}")
+        if session.skill_id:
+            print(f"  Skill: {session.skill_id}")
+        if session.parent_session_id:
+            print(f"  Parent: {session.parent_session_id}")
+        print(f"  Created: {session.created_at}")
+        if session.completed_at:
+            print(f"  Completed: {session.completed_at}")
+        if session.context_loaded:
+            print(f"\n  Context loaded:")
+            _print_json(session.context_loaded, indent="    ")
+        if session.token_usage:
+            print(f"\n  Token usage:")
+            _print_json(session.token_usage, indent="    ")
+        if session.result:
+            print(f"\n  Result:")
+            _print_json(session.result, indent="    ")
     else:
-        print("Use: session list", file=sys.stderr)
+        print("Use: session list|show", file=sys.stderr)
 
 
 if __name__ == "__main__":

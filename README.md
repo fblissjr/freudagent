@@ -25,6 +25,9 @@ why behind every step, not just the commands.
 Then try the [RLM provider tutorial](docs/tutorial-rlm-provider.md) -- wraps any
 model with a Python REPL loop for iterative, code-driven extraction of large inputs.
 
+Then walk through the [flywheel tutorial](docs/tutorial-flywheel.md) -- demonstrates
+the full feedback loop: extract, review, correct, refine skill, re-extract, compare.
+
 ## Usage
 
 ### CLI -- Freud Corpus
@@ -88,6 +91,17 @@ uv run freud-schema feedback add \
 
 # 7. View the flywheel signal
 uv run freud-schema feedback list --skill-id 1 --aggregate
+
+# 8. Refine: deprecate v1, add v2 with fixes, re-run
+uv run freud-schema skill deprecate 1
+uv run freud-schema skill add \
+  --domain legal --task-type extraction \
+  --content "Improved extraction instructions..." \
+  --status active --version 2
+uv run freud-schema run --domain legal --task-type extraction
+
+# 9. Inspect session details
+uv run freud-schema session show 1
 
 # Run with Claude (requires ANTHROPIC_API_KEY)
 uv run freud-schema run --domain legal --task-type extraction --model anthropic
@@ -214,6 +228,7 @@ tests/
 docs/
   tutorial-arxiv-extraction.md - End-to-end arxiv extraction pipeline
   tutorial-rlm-provider.md     - RLM provider: REPL loop, sub-calls, presets
+  tutorial-flywheel.md         - Flywheel tutorial: feedback loop end-to-end
 skill/
   skill.md              - L2: routing document (CLI reference, workflow)
   reference/
@@ -224,6 +239,7 @@ skill/
     flywheel.md         - L3: Feedback loop, 12 atoms, correction flow
     archetype_patterns.md - L3: Detailed patterns with examples
     translation_matrix.md - L3: German-English term mapping
+    retrieval-thesis.md   - L3: Progressive disclosure rationale
 ```
 
 ## Development

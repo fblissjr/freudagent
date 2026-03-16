@@ -736,6 +736,82 @@ def test_run_single_with_preset(store):
     assert "Extract test data" in parsed["system_prompt"]
 
 
+# ---------------------------------------------------------------------------
+# CLI command tests (skill deprecate/activate, session show, skill --version)
+# ---------------------------------------------------------------------------
+
+
+def test_cli_skill_deprecate_activate(tmp_path):
+    """CLI skill deprecate/activate change status end-to-end."""
+    from freud_schema.cli import main
+    db = str(tmp_path / "test.duckdb")
+    main(["--db", db, "db", "init"])
+    main(["--db", db, "skill", "add", "--domain", "d", "--task-type", "t",
+          "--content", "c", "--status", "active"])
+    # deprecate skill 1
+    main(["--db", db, "skill", "deprecate", "1"])
+    from freud_schema.db import connect
+    from freud_schema.store import ExperimentStore
+    store = ExperimentStore(connect(db))
+    skill = store.get_skill(1)
+    assert skill is not None
+    assert skill.status == SkillStatus.DEPRECATED
+    # activate it back
+    main(["--db", db, "skill", "activate", "1"])
+    store = ExperimentStore(connect(db))
+    skill = store.get_skill(1)
+    assert skill is not None
+    assert skill.status == SkillStatus.ACTIVE
+
+
+def test_cli_session_show(tmp_path, capsys):
+    """CLI session show prints full session details."""
+    from freud_schema.cli import main
+    db = str(tmp_path / "test.duckdb")
+    main(["--db", db, "db", "init"])
+    main(["--db", db, "skill", "add", "--domain", "d", "--task-type", "t",
+          "--content", "c", "--status", "active"])
+    main(["--db", db, "source", "add", "--path", "a.pdf", "--media-type", "application/pdf"])
+    main(["--db", db, "run", "--domain", "d", "--task-type", "t", "--model", "echo"])
+    # now show the session created by the run
+    main(["--db", db, "session", "show", "1"])
+    out = capsys.readouterr().out
+    assert "Session: 1" in out
+    assert "Model:" in out
+    assert "Status:" in out
+
+
+def test_cli_skill_deprecate_nonexistent():
+    """skill deprecate on nonexistent ID exits with error."""
+    from freud_schema.cli import main
+    with pytest.raises(SystemExit):
+        main(["--db", ":memory:", "skill", "deprecate", "999"])
+
+
+def test_cli_skill_activate_nonexistent():
+    """skill activate on nonexistent ID exits with error."""
+    from freud_schema.cli import main
+    with pytest.raises(SystemExit):
+        main(["--db", ":memory:", "skill", "activate", "999"])
+
+
+def test_cli_session_show_nonexistent():
+    """session show on nonexistent ID exits with error."""
+    from freud_schema.cli import main
+    with pytest.raises(SystemExit):
+        main(["--db", ":memory:", "session", "show", "999"])
+
+
+def test_skill_version_roundtrip(store):
+    """Skills inserted with a specific version preserve it."""
+    skill_id = store.insert_skill(Skill(
+        domain="arxiv", task_type="extraction", version=2,
+        content="v2 content", status=SkillStatus.ACTIVE,
+    ))
+    fetched = store.get_skill(skill_id)
+    assert fetched.version == 2
+
+
 def test_run_single_with_invalid_preset(store):
     """Invalid preset raises ValueError."""
     skill_id = store.insert_skill(Skill(
