@@ -1,16 +1,13 @@
-"""Thin orchestrator loop and subagent runner for the experiment harness.
+"""Context assembly and provider protocol for the experiment harness.
 
-The orchestrator decomposes tasks, the runner executes subtasks. Model calls
-are pluggable via the Provider protocol: any object with a complete() method
-that returns a CompletionResult. This lets the harness work with Claude,
-OpenAI-compatible local servers (heylookitsanllm, llama.cpp, vLLM, Ollama),
-or echo providers for testing.
+The data layer assembles context (rules, skills, sources) into prompts.
+Providers are pluggable model interfaces for testing. Orchestration is
+the harness's job -- FreudAgent provides the data, not the loop.
 
 Architecture:
-    - Orchestrator context: task description + rules + skill/source metadata
-      (small -- routing decisions, not work)
-    - Runner context: rules -> skill -> source -> task parameters
+    - Context assembly: rules -> skill -> source -> task parameters
       (progressive disclosure hierarchy)
+    - Providers: echo, anthropic, local, rlm (pluggable via Protocol)
 """
 
 from __future__ import annotations
@@ -28,9 +25,6 @@ from freud_schema.tables import (
     Extraction,
     Session,
     SessionStatus,
-    SourceStatus,
-    Subtask,
-    TaskPlan,
     ValidationStatus,
 )
 
@@ -148,66 +142,52 @@ def assemble_runner_context(
 
 
 # ---------------------------------------------------------------------------
-# Runner: execute a single subtask
+# Single-shot execution (test utility)
 # ---------------------------------------------------------------------------
 
 
-def run_subtask(
+def run_single(
     store: ExperimentStore,
-    subtask: Subtask,
     *,
+    skill_id: int,
+    source_id: int,
     provider: Provider,
-    parent_session_id: int | None = None,
+    domain: str | None = None,
+    task_params: str = "",
     model_name: str = "unknown",
-    prior_results: dict | None = None,
     preset: str | None = None,
 ) -> Extraction | None:
-    """Execute a single subtask: assemble context, call model, store results.
+    """Execute a single source against a skill: assemble context, call model, store results.
 
-    Returns the Extraction if the subtask produces one, None otherwise.
+    This is a test utility, not an orchestrator. It proves the data layer works
+    end-to-end without requiring API keys (with EchoProvider).
+
+    Returns the Extraction if successful, None on model failure.
     """
-    # Resolve skill
-    skill = store.get_active_skill(
-        domain=subtask.skill_domain,
-        task_type=subtask.skill_task_type,
-    )
-    if skill is None:
-        return None
-    assert skill.id is not None  # always set after DB fetch
-
     # Create session record
     session = Session(
-        task_description=f"{subtask.type}: {subtask.skill_domain}/{subtask.skill_task_type}",
-        task_type=subtask.type,
-        parent_session_id=parent_session_id,
+        task_description=f"test: skill={skill_id} source={source_id}",
+        task_type="test",
         agent_role=AgentRole.SUBAGENT,
-        skill_id=skill.id,
+        skill_id=skill_id,
         context_loaded={
-            "skill_id": skill.id,
-            "source_ids": subtask.source_ids,
-            "prior_results": prior_results is not None,
+            "skill_id": skill_id,
+            "source_id": source_id,
         },
         model_used=model_name,
         status=SessionStatus.RUNNING,
     )
     session_id = store.insert_session(session)
 
-    # Assemble context -- Fix A: prior_results no longer gated on subtask.context
-    task_params = ""
-    if prior_results:
-        task_params = f"Prior results: {prior_results}\n\n"
-    task_params += f"Execute {subtask.type} task."
-
     system_prompt, user_message = assemble_runner_context(
         store,
-        skill_id=skill.id,
-        source_ids=subtask.source_ids,
-        domain=subtask.skill_domain,
+        skill_id=skill_id,
+        source_ids=[source_id],
+        domain=domain,
         task_params=task_params,
         preset=preset,
     )
 
-    # Call model
     try:
         result = provider.complete(system_prompt, user_message)
 
@@ -222,10 +202,7 @@ def run_subtask(
 
         # Prefer model name from response over caller's string
         actual_model = result.model or model_name
-        store.con.execute(
-            "UPDATE sessions SET model_used = ? WHERE id = ?",
-            [actual_model, session_id],
-        )
+        store.update_session_model(session_id, actual_model)
 
         session_result = {"raw": result.content}
         if result.metadata:
@@ -243,117 +220,16 @@ def run_subtask(
         )
         return None
 
-    # Store extraction if we have source(s)
-    extraction = None
-    if subtask.source_ids:
-        extraction = Extraction(
-            source_id=subtask.source_ids[0],
-            skill_id=skill.id,
-            session_id=session_id,
-            output={"raw": result.content},
-            validation_status=ValidationStatus.PENDING,
-        )
-        ext_id = store.insert_extraction(extraction)
-        # Fix C: re-fetch instead of mutating frozen-ish model
-        extraction = store.get_extraction(ext_id)
-
-    return extraction
-
-
-# ---------------------------------------------------------------------------
-# Orchestrator: decompose and coordinate
-# ---------------------------------------------------------------------------
-
-
-def run_task(
-    store: ExperimentStore,
-    plan: TaskPlan,
-    *,
-    provider: Provider,
-    task_description: str = "",
-    model_name: str = "unknown",
-    preset: str | None = None,
-) -> list[Extraction]:
-    """Execute a task plan: process subtasks in dependency order.
-
-    Subtasks with no dependencies run first. Subtasks with depends_on
-    wait until their dependencies complete. Results from dependencies
-    are passed as prior_results.
-
-    Args:
-        preset: When provided, archetype-composed system prompt is
-            prepended to each subtask's context.
-    """
-    # Create orchestrator session
-    orch_session = Session(
-        task_description=task_description or "orchestrator",
-        task_type="orchestration",
-        agent_role=AgentRole.ORCHESTRATOR,
-        model_used=model_name,
-        context_loaded={
-            "preset": preset,
-            "subtask_count": len(plan.subtasks),
-        },
-        status=SessionStatus.RUNNING,
+    # Store extraction
+    extraction = Extraction(
+        source_id=source_id,
+        skill_id=skill_id,
+        session_id=session_id,
+        output={"raw": result.content},
+        validation_status=ValidationStatus.PENDING,
     )
-    orch_session_id = store.insert_session(orch_session)
-
-    # Fix B: wrap in try/except/finally so session always completes
-    results: dict[int, Extraction | None] = {}
-    extractions: list[Extraction] = []
-    failed_count = 0
-
-    try:
-        for idx, subtask in enumerate(plan.subtasks):
-            # Collect results from dependencies
-            prior = {}
-            for dep_idx in subtask.depends_on:
-                dep_result = results.get(dep_idx)
-                if dep_result:
-                    prior[f"subtask_{dep_idx}"] = dep_result.output
-
-            extraction = run_subtask(
-                store,
-                subtask,
-                provider=provider,
-                parent_session_id=orch_session_id,
-                model_name=model_name,
-                prior_results=prior if prior else None,
-                preset=preset,
-            )
-            results[idx] = extraction
-            if extraction:
-                extractions.append(extraction)
-            else:
-                failed_count += 1
-    except Exception:
-        store.complete_session(
-            orch_session_id,
-            status=SessionStatus.FAILED,
-            result={
-                "error": "unexpected exception",
-                "extraction_count": len(extractions),
-                "extraction_ids": [e.id for e in extractions],
-            },
-        )
-        raise
-    else:
-        # Determine final status
-        if failed_count == len(plan.subtasks):
-            final_status = SessionStatus.FAILED
-        else:
-            final_status = SessionStatus.COMPLETED
-
-        store.complete_session(
-            orch_session_id,
-            status=final_status,
-            result={
-                "extraction_count": len(extractions),
-                "extraction_ids": [e.id for e in extractions],
-            },
-        )
-
-    return extractions
+    ext_id = store.insert_extraction(extraction)
+    return extraction.model_copy(update={"id": ext_id})
 
 
 # ---------------------------------------------------------------------------
@@ -531,52 +407,3 @@ def get_provider(
     )
 
 
-# ---------------------------------------------------------------------------
-# Convenience: run without manual TaskPlan construction
-# ---------------------------------------------------------------------------
-
-
-def run_simple(
-    store: ExperimentStore,
-    *,
-    domain: str,
-    task_type: str,
-    source_ids: list[int] | None = None,
-    provider: Provider,
-    model_name: str = "unknown",
-    task_description: str = "",
-    preset: str | None = None,
-) -> list[Extraction]:
-    """Run a skill against source(s) without manual TaskPlan creation.
-
-    If source_ids is None, processes all active sources. Creates one
-    Subtask per source, all independent (no dependencies).
-
-    When preset is provided, archetype-composed system prompt is
-    prepended to each subtask's context.
-    """
-    if source_ids is None:
-        sources = store.list_sources(status=SourceStatus.ACTIVE)
-        source_ids = [s.id for s in sources if s.id is not None]
-    if not source_ids:
-        return []
-
-    subtasks = [
-        Subtask(
-            type=task_type,
-            skill_domain=domain,
-            skill_task_type=task_type,
-            source_ids=[sid],
-        )
-        for sid in source_ids
-    ]
-
-    plan = TaskPlan(subtasks=subtasks)
-    return run_task(
-        store,
-        plan,
-        provider=provider,
-        task_description=task_description or f"{domain}/{task_type}",
-        model_name=model_name,
-        preset=preset,
-    )

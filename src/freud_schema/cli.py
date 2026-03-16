@@ -158,7 +158,7 @@ def main(argv: list[str] | None = None) -> None:
     p_fb_add.add_argument("--by", default=None)
 
     # --- Run command ---
-    p_run = sub.add_parser("run", help="Execute the orchestrator against sources")
+    p_run = sub.add_parser("run", help="Test execution: assemble context and call provider once per source")
     p_run.add_argument("--domain", required=True, help="Skill domain")
     p_run.add_argument("--task-type", required=True, help="Skill task type")
     p_run.add_argument("--source-id", type=int, action="append", default=None,
@@ -454,7 +454,13 @@ def _handle_feedback(args) -> None:
 
 
 def _handle_run(args) -> None:
-    from freud_schema.orchestrator import get_provider, run_simple
+    """Single-shot execution: assemble context + call provider once per source.
+
+    This is a test utility that verifies the data layer works end-to-end.
+    It is NOT orchestration -- orchestration is the harness's job.
+    """
+    from freud_schema.orchestrator import get_provider, run_single
+    from freud_schema.tables import SourceStatus
 
     store = _get_store(args.db)
 
@@ -465,10 +471,14 @@ def _handle_run(args) -> None:
         print("Add one with: freud-schema skill add --domain ... --task-type ... --content ... --status active",
               file=sys.stderr)
         sys.exit(1)
+    assert skill.id is not None
 
-    # Resolve source IDs for pre-flight check; let run_simple own the actual resolution
+    # Resolve source IDs
     source_ids = args.source_id  # None means "all active"
-    if source_ids is not None and not source_ids:
+    if source_ids is None:
+        sources = store.list_sources(status=SourceStatus.ACTIVE)
+        source_ids = [s.id for s in sources if s.id is not None]
+    if not source_ids:
         print("No sources to process.", file=sys.stderr)
         print("Register sources with: freud-schema source add --path ... --media-type ...",
               file=sys.stderr)
@@ -494,19 +504,24 @@ def _handle_run(args) -> None:
         print(f"Preset: {args.preset}")
     print()
 
-    extractions = run_simple(
-        store,
-        domain=args.domain,
-        task_type=args.task_type,
-        source_ids=source_ids,
-        provider=provider,
-        model_name=model_display,
-        task_description=args.task,
-        preset=args.preset,
-    )
+    # Single-shot: one call per source
+    extractions = []
+    for sid in source_ids:
+        ext = run_single(
+            store,
+            skill_id=skill.id,
+            source_id=sid,
+            provider=provider,
+            domain=args.domain,
+            task_params=args.task,
+            model_name=model_display,
+            preset=args.preset,
+        )
+        if ext is not None:
+            extractions.append(ext)
 
     if not extractions:
-        print("No extractions produced (no active sources found).")
+        print("No extractions produced.")
         return
 
     source_map = store.get_sources_by_ids([e.source_id for e in extractions])

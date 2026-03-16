@@ -1,12 +1,10 @@
 # freudagent
 
-Mostly a joke repo.
+A meta-framework for declarative agent orchestration that lives INSIDE the harness
+(Claude Code, Agent SDK), not outside it. Pure data layer: schema, context assembly,
+prompt composition. The harness handles orchestration. FreudAgent handles data.
 
-Satirical experiment and meta-harness for data-driven agent orchestration, grounded in an inside joke of
-Freudian archetypes. Not a framework, but a satirical test bed for answering: "Does declarative
-data-driven orchestration produce measurably better results than code-driven workflow approaches?"
-
-But still mostly a joke repo. Becoming less so over time though. Weird.
+Mostly a joke repo. But the thesis is serious.
 
 ## Setup
 
@@ -71,7 +69,7 @@ uv run freud-schema skill add \
   --status active
 uv run freud-schema source add --path ./contracts/sample.pdf --media-type application/pdf
 
-# 3. Run the orchestrator (echo model shows assembled context)
+# 3. Test execution (echo model shows assembled context, one call per source)
 uv run freud-schema run --domain legal --task-type extraction
 
 # 4. Review results
@@ -173,11 +171,12 @@ and lifecycle between agents.
 ## Experiment Harness
 
 A 7-table DuckDB schema implementing declarative agent orchestration: behavior
-comes from data (skills, rules, sources), not code. The orchestrator is a thin
-loop. Model calls are pluggable via the Provider protocol (`echo`, `anthropic`,
-`local`, `rlm`, `rlm-anthropic`).
+comes from data (skills, rules, sources), not code. The schema IS the architecture.
+Model calls are pluggable via the Provider protocol (`echo`, `anthropic`,
+`local`, `rlm`, `rlm-anthropic`). The CLI `run` command is a test utility
+(single-shot, one call per source) -- real orchestration is the harness's job.
 
-Subagents get context via the progressive disclosure hierarchy:
+Context assembly implements progressive disclosure:
 **rules -> skill -> source -> task**.
 
 | Table | Purpose |
@@ -186,7 +185,7 @@ Subagents get context via the progressive disclosure hierarchy:
 | `skills` | Declarative instructions loaded at runtime (domain + task_type + version) |
 | `sources` | Raw artifacts to process (file paths, MIME types, metadata) |
 | `extractions` | Structured output from agent runs (with validation status) |
-| `sessions` | Logged agent executions (orchestrator + subagent, token tracking) |
+| `sessions` | Logged agent executions (token tracking) |
 | `feedback` | Human corrections on extractions (the flywheel signal) |
 | `rules` | Constraints applied globally or per-domain (priority-ordered) |
 
@@ -202,7 +201,7 @@ src/freud_schema/
   db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
   tables.py          - Pydantic models + enum classes (single source of truth for valid values)
   store.py           - CRUD operations with generic dict-based row conversion
-  orchestrator.py    - Provider protocol, orchestrator loop + subagent runner
+  orchestrator.py    - Context assembly, provider protocol, test utility
   rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
@@ -210,14 +209,21 @@ data/
 tests/
   conftest.py        - Shared fixtures (in-memory DuckDB store)
   test_schema.py     - Freud corpus, archetypes, harness composition
-  test_experiment.py - DuckDB schema, store, orchestrator, providers
+  test_experiment.py - DuckDB schema, store, context assembly, providers
   test_rlm.py        - RLM provider, REPL loop, sandbox, source loading
 docs/
   tutorial-arxiv-extraction.md - End-to-end arxiv extraction pipeline
   tutorial-rlm-provider.md     - RLM provider: REPL loop, sub-calls, presets
 skill/
-  skill.md           - Claude Code skill definition
-  reference/         - Archetype patterns, translation matrix
+  skill.md              - L2: routing document (CLI reference, workflow)
+  reference/
+    schema.md           - L3: DuckDB schema, enums, FK relationships
+    archetypes.md       - L3: 3x3 grid, presets, prompt composition
+    context-assembly.md - L3: Progressive disclosure layers
+    hierarchy.md        - L3: Tree architecture, harness mapping
+    flywheel.md         - L3: Feedback loop, 12 atoms, correction flow
+    archetype_patterns.md - L3: Detailed patterns with examples
+    translation_matrix.md - L3: German-English term mapping
 ```
 
 ## Development

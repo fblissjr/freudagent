@@ -1,12 +1,62 @@
 # FreudAgent
 
-Mostly a joke repo.
+A meta-framework for declarative agent orchestration that lives INSIDE the harness
+(Claude Code, Agent SDK), not outside it. Pure data layer: schema, context assembly,
+prompt composition. The harness handles orchestration. FreudAgent handles data.
 
-Satirical experiment and meta-harness for data-driven agent orchestration, grounded in an inside joke of
-Freudian archetypes. Not a framework, but a satirical test bed for answering: "Does declarative
-data-driven orchestration produce measurably better results than code-driven workflow approaches?"
+Mostly a joke repo. But the thesis is serious.
 
-But still mostly a joke repo. Becoming less so over time though. Weird.
+## Thesis
+
+Agents are trees, not workflows. The harness is the moat. Build inside it with data
+and structure, don't wrap it.
+
+- **The meta-framework is inside the harness, not outside it.** FreudAgent doesn't
+  orchestrate -- the harness does. FreudAgent provides what the harness needs: skills,
+  rules, sources, archetypes, and assembled context.
+- **Every handoff is where it breaks.** Pipelines (A -> B -> C) degrade context at
+  each hop. Trees return through the parent, preserving integrity.
+- **Behavior comes from data, not code.** The schema IS the architecture. Skills are
+  instructions, rules are constraints, archetypes are behavioral shaping -- all data.
+
+## What FreudAgent Provides (the data layer)
+
+- **7-table DuckDB schema**: skills, sources, extractions, sessions, feedback, rules,
+  meta_schema_version
+- **Context assembly**: `assemble_runner_context()` implements progressive disclosure
+  (rules -> skill -> source -> task)
+- **9 Freudian archetypes** in a 3x3 grid (composable prompt fragments)
+- **6 presets** (archetype compositions for common agent patterns)
+- **CLI** for data management and inspection (`freud-schema`)
+- **Pluggable providers** for testing (echo, Claude, OpenAI-compat, RLM)
+
+## What FreudAgent Does NOT Provide (the harness's job)
+
+- Orchestration (task decomposition, routing, looping)
+- Agent lifecycle (spawning, scoping, cleanup)
+- Execution decisions (which subagent for which task)
+
+The CLI `run` command is a **test utility** that proves context assembly works.
+It calls a provider once per source. It is not orchestration.
+
+## Progressive Disclosure Hierarchy
+
+| Level | What | FreudAgent Example |
+|-------|------|-------------------|
+| L1 | Always loaded | CLAUDE.md, skill frontmatter, rules |
+| L2 | Loaded on match | `skill/skill.md` body (CLI reference, workflow) |
+| L3 | Loaded on demand | `skill/reference/*.md` (schema, archetypes, hierarchy, flywheel) |
+
+This applies to FreudAgent's own skill structure: the frontmatter triggers on
+activation keywords, the body routes to references, references provide depth.
+
+## How the Harness Consumes FreudAgent
+
+| Harness | How |
+|---------|-----|
+| Claude Code | skill.md as L2, references as L3, DuckDB via MCP/CLI |
+| Agent SDK | 12 flywheel atoms map to agents/tools/handoffs |
+| Local inference | Providers for testing context assembly |
 
 ## Project Structure
 
@@ -18,20 +68,27 @@ src/freud_schema/
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
   db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
-  tables.py          - Pydantic models + enum classes (single source of truth for valid values)
+  tables.py          - Pydantic models + enum classes (single source of truth)
   store.py           - CRUD operations with generic dict-based row conversion
-  orchestrator.py    - Provider protocol, orchestrator loop + subagent runner
+  orchestrator.py    - Context assembly, provider protocol, test utility
   rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
 tests/
   test_schema.py     - Freud corpus, archetypes, harness composition
-  test_experiment.py - DuckDB schema, store, orchestrator, providers
+  test_experiment.py - DuckDB schema, store, context assembly, providers
   test_rlm.py        - RLM provider, REPL loop, sandbox, source loading
 skill/
-  skill.md           - Claude Code skill definition
-  reference/         - Archetype patterns, translation matrix
+  skill.md              - L2: routing document (CLI reference, workflow)
+  reference/
+    schema.md           - L3: DuckDB schema, enums, FK relationships
+    archetypes.md       - L3: 3x3 grid, presets, prompt composition
+    context-assembly.md - L3: Progressive disclosure layers
+    hierarchy.md        - L3: Tree architecture, harness mapping
+    flywheel.md         - L3: Feedback loop, 12 atoms, correction flow
+    archetype_patterns.md - L3: Detailed patterns with examples
+    translation_matrix.md - L3: German-English term mapping
 a2ui/
   server.py          - MCP server (stdio + HTTP modes)
   bridge.py          - A2UI v0.9 structural validator
@@ -75,6 +132,9 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - `freud-schema db ddl` prints full DDL for piping to `duckdb` CLI
 - 8 enum classes in `tables.py` are the single source of truth for valid column values
 - CHECK constraints and FK constraints are generated from enums and embedded in DDL
+- All DB access goes through `ExperimentStore` methods -- never use `store.con.execute` directly
+- After `store.insert_*()`, use `model.model_copy(update={"id": new_id})` instead of re-fetching from DB
+- Construct Pydantic models with enum members (`SkillStatus.ACTIVE`), not string literals (`"active"`)
 - Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
 - All SQL queries use parameterized enum values (no hardcoded string literals)
 - All CLI `--status`/`--scope`/`--type` args must have `choices=[e.value for e in EnumClass]`
@@ -103,8 +163,7 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 
 ## Experiment Harness (7-table schema)
 
-The harness implements declarative agent orchestration: behavior comes from data
-(skills, rules, sources), not code. The schema is the architecture.
+The schema IS the architecture. Behavior comes from data (skills, rules, sources), not code.
 
 | Table | Purpose |
 |-------|---------|
@@ -112,7 +171,7 @@ The harness implements declarative agent orchestration: behavior comes from data
 | skills | Declarative instructions loaded at runtime (domain + task_type + version) |
 | sources | Raw artifacts to process (file paths, MIME types, metadata) |
 | extractions | Structured output from agent runs (with validation status) |
-| sessions | Logged agent executions (orchestrator + subagent, token tracking) |
+| sessions | Logged agent executions (token tracking) |
 | feedback | Human corrections on extractions (the flywheel signal) |
 | rules | Constraints applied globally or per-domain (priority-ordered) |
 
@@ -127,23 +186,25 @@ CLI workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` ->
 
 `--db` is a global flag on the root parser (before the subcommand). All handlers use it consistently.
 
-Execution: `freud-schema run --domain D --task-type T [--model echo|anthropic|local|rlm|rlm-anthropic] [--endpoint URL] [--max-iterations N] [--sub-model NAME]`
+Test execution: `freud-schema run --domain D --task-type T [--model echo|anthropic|local|rlm|rlm-anthropic] [--endpoint URL] [--max-iterations N] [--sub-model NAME]`
 Review: `freud-schema extraction list`, `extraction show N`, `extraction validate N`
 Feedback: `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
 History: `freud-schema session list`
 
 ## Architecture Notes
 
+The code is a thin data layer; behavior is data:
+- `assemble_runner_context()` in `orchestrator.py` -- core context assembly
+- `compose_preset()` in `harness.py` -- archetype composition
+- `ExperimentStore` in `store.py` -- all CRUD operations
+- `get_provider()` in `orchestrator.py` -- provider factory
+- `run_single()` in `orchestrator.py` -- test utility (single-shot, not orchestration)
+
 Archetypes span two scopes:
 - **Intra-agent** (`structural-triad`): roles within a single agent
 - **Inter-agent** (`ephemeral`): hierarchical topology and ephemeral subagent lifecycle
 
-The orchestrator uses archetype-composed system prompts for its own behavior.
-Subagents use the progressive disclosure hierarchy: rules -> skill -> source -> task.
-Model calls are pluggable via the `Provider` protocol (3 built-in: `EchoProvider`, `ClaudeProvider`,
-`OpenAICompatProvider`; 1 wrapper: `RLMProvider`). The code is a thin loop; behavior is data.
-
-`RLMProvider` wraps any inner provider with a Python REPL loop: the model writes code to
+RLMProvider wraps any inner provider with a Python REPL loop: the model writes code to
 probe, slice, and transform its input, can recursively call itself via `llm_query()`, and
 terminates with `FINAL()`/`FINAL_VAR()`. Sandboxed by default (restricted builtins, timeout).
 Use `--model rlm` (local MLX) or `--model rlm-anthropic` (Claude API).

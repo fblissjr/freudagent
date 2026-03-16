@@ -536,12 +536,12 @@ def test_rlm_with_preset_system_prompt():
 # ---------------------------------------------------------------------------
 
 
-def test_rlm_in_orchestrator_pipeline(store):
-    """RLMProvider works end-to-end through run_subtask."""
-    from freud_schema.orchestrator import run_subtask
-    from freud_schema.tables import Skill, Source, Subtask
+def test_rlm_in_pipeline(store):
+    """RLMProvider works end-to-end through run_single."""
+    from freud_schema.orchestrator import run_single
+    from freud_schema.tables import Skill, Source
 
-    store.insert_skill(Skill(
+    skill_id = store.insert_skill(Skill(
         domain="test", task_type="extraction",
         content="Extract data.", status=SkillStatus.ACTIVE,
     ))
@@ -552,13 +552,13 @@ def test_rlm_in_orchestrator_pipeline(store):
     inner = _SequenceProvider(["The extracted data is: {result: 42}"])
     rlm = RLMProvider(inner, max_iterations=5)
 
-    subtask = Subtask(
-        type="extraction",
-        skill_domain="test",
-        skill_task_type="extraction",
-        source_ids=[source_id],
+    extraction = run_single(
+        store,
+        skill_id=skill_id,
+        source_id=source_id,
+        provider=rlm,
+        model_name="rlm-mock",
     )
-    extraction = run_subtask(store, subtask, provider=rlm, model_name="rlm-mock")
 
     assert extraction is not None
     assert "42" in extraction.output["raw"]

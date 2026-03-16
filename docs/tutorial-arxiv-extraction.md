@@ -131,7 +131,7 @@ project keeps referencing: extract -> review -> correct -> refine skill ->
 re-extract.
 
 **Why `--status active`:** Skills start as `draft` by default. Only `active`
-skills are picked up by the orchestrator. This prevents half-written
+skills are picked up by the `run` command. This prevents half-written
 instructions from accidentally running.
 
 Verify:
@@ -158,12 +158,13 @@ ran it, how many tokens it used. If sources were just CLI arguments, that
 chain breaks.
 
 **Why the harness doesn't read the file:** This is an intentional gap (see
-`internal/BACKLOG.md` under "Source content ingestion"). The orchestrator
-currently passes source metadata (path, MIME type) to the model, but doesn't
+`internal/BACKLOG.md` under "Source content ingestion"). `run_single()`
+passes source metadata (path, MIME type) to the model, but doesn't
 read the file contents. With Claude Code or Agent SDK as the actual runtime,
 the harness assembles context and the runtime handles file reading. For the
 echo provider (next step), this doesn't matter -- you're verifying the
-pipeline, not the extraction.
+pipeline, not the extraction. (The RLM provider does load file content --
+see the [RLM tutorial](tutorial-rlm-provider.md).)
 
 Verify:
 
@@ -211,13 +212,12 @@ uv run freud-schema extraction list
 # See the full output
 uv run freud-schema extraction show 1
 
-# See the session log (orchestrator + subagent)
+# See the session log
 uv run freud-schema session list
 ```
 
-**Why sessions exist:** Every run creates at least two sessions: one
-`orchestrator` (the coordination layer) and one or more `subagent` (the
-actual work). Sessions track status (running/completed/failed), which skill
+**Why sessions exist:** Every `run` call creates one session per source
+processed. Sessions track status (running/completed/failed), which skill
 was used, what context was loaded, token usage, and the model that actually
 responded. This is how you answer "what happened?" after the fact, and how
 you compare providers (did the local model use fewer tokens? did it fail
@@ -344,7 +344,7 @@ This shows row counts across all tables. After this tutorial, you should see:
 - 1 skill
 - 1 source
 - 2+ extractions (echo + real model)
-- 2+ sessions per extraction (orchestrator + subagent each)
+- 1 session per extraction
 - 1-2 feedback entries
 
 Every row is a data point in the experiment. The schema isn't infrastructure.

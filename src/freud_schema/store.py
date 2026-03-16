@@ -204,6 +204,13 @@ class ExperimentStore:
             [status, _json(result), _json(token_usage), session_id],
         )
 
+    def update_session_model(self, session_id: int, model_used: str) -> None:
+        """Update the model_used field from a provider response."""
+        self.con.execute(
+            "UPDATE sessions SET model_used = ? WHERE id = ?",
+            [model_used, session_id],
+        )
+
     def get_session(self, session_id: int) -> Session | None:
         d = self._fetchone("SELECT * FROM sessions WHERE id = ?", [session_id])
         return Session(**d) if d else None

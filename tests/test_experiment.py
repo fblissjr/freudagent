@@ -2,7 +2,7 @@
 
 import pytest
 
-from freud_schema.db import connect, reset_schema
+from freud_schema.db import reset_schema
 import duckdb
 import orjson
 
@@ -12,24 +12,21 @@ from freud_schema.orchestrator import (
     OpenAICompatProvider,
     assemble_runner_context,
     get_provider,
-    run_simple,
-    run_subtask,
-    run_task,
+    run_single,
 )
-from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     AgentRole,
+    CorrectionType,
     Extraction,
     Feedback,
     Rule,
+    RuleScope,
     Session,
     SessionStatus,
     Skill,
     SkillStatus,
     Source,
     SourceStatus,
-    Subtask,
-    TaskPlan,
     ValidationStatus,
 )
 
@@ -96,35 +93,35 @@ def test_reset_recreates_schema_version(store):
 
 def test_skill_rejects_invalid_status():
     with pytest.raises(Exception):
-        Skill(domain="d", task_type="t", content="c", status="bogus")
+        Skill(domain="d", task_type="t", content="c", status="bogus")  # type: ignore[arg-type]
 
 
 def test_session_rejects_invalid_status():
     with pytest.raises(Exception):
-        Session(task_description="t", task_type="t", status="bogus")
+        Session(task_description="t", task_type="t", status="bogus")  # type: ignore[arg-type]
 
 
 def test_session_rejects_invalid_agent_role():
     with pytest.raises(Exception):
-        Session(task_description="t", task_type="t", agent_role="bogus")
+        Session(task_description="t", task_type="t", agent_role="bogus")  # type: ignore[arg-type]
 
 
 def test_extraction_rejects_invalid_validation_status():
     with pytest.raises(Exception):
-        Extraction(source_id=1, skill_id=1, session_id=1, output={}, validation_status="bogus")
+        Extraction(source_id=1, skill_id=1, session_id=1, output={}, validation_status="bogus")  # type: ignore[arg-type]
 
 
 def test_feedback_rejects_invalid_correction_type():
     with pytest.raises(Exception):
         Feedback(
             extraction_id=1, session_id=1, skill_id=1,
-            correction={}, correction_type="bogus",
+            correction={}, correction_type="bogus",  # type: ignore[arg-type]
         )
 
 
 def test_rule_rejects_invalid_scope():
     with pytest.raises(Exception):
-        Rule(content="test", scope="bogus")
+        Rule(content="test", scope="bogus")  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -150,24 +147,6 @@ def test_fk_constraint_rejects_orphaned_reference(store):
 
 
 # ---------------------------------------------------------------------------
-# Subtask named fields test
-# ---------------------------------------------------------------------------
-
-
-def test_subtask_named_fields():
-    """Subtask uses named skill_domain/skill_task_type fields."""
-    st = Subtask(type="extract", skill_domain="insurance", skill_task_type="extraction")
-    assert st.skill_domain == "insurance"
-    assert st.skill_task_type == "extraction"
-
-
-def test_subtask_old_dict_api_rejected():
-    """Old skill_query dict API is gone."""
-    with pytest.raises(Exception):
-        Subtask(type="x", skill_query={"domain": "d", "task_type": "t"})
-
-
-# ---------------------------------------------------------------------------
 # Skills CRUD
 # ---------------------------------------------------------------------------
 
@@ -178,7 +157,7 @@ def test_insert_and_get_skill(store):
         task_type="extraction",
         content="Extract policy numbers from PDF documents.",
         metadata={"fields": ["policy_number", "effective_date"]},
-        status="active",
+        status=SkillStatus.ACTIVE,
     )
     skill_id = store.insert_skill(skill)
     assert skill_id >= 1
@@ -192,15 +171,15 @@ def test_insert_and_get_skill(store):
 def test_get_active_skill(store):
     store.insert_skill(Skill(
         domain="insurance", task_type="extraction", version=1,
-        content="v1", status="deprecated",
+        content="v1", status=SkillStatus.DEPRECATED,
     ))
     store.insert_skill(Skill(
         domain="insurance", task_type="extraction", version=2,
-        content="v2", status="active",
+        content="v2", status=SkillStatus.ACTIVE,
     ))
     store.insert_skill(Skill(
         domain="insurance", task_type="extraction", version=3,
-        content="v3", status="draft",
+        content="v3", status=SkillStatus.DRAFT,
     ))
 
     active = store.get_active_skill("insurance", "extraction")
@@ -210,9 +189,9 @@ def test_get_active_skill(store):
 
 
 def test_list_skills_filters(store):
-    store.insert_skill(Skill(domain="a", task_type="t", content="1", status="active"))
-    store.insert_skill(Skill(domain="b", task_type="t", content="2", status="active"))
-    store.insert_skill(Skill(domain="a", task_type="t", content="3", status="draft"))
+    store.insert_skill(Skill(domain="a", task_type="t", content="1", status=SkillStatus.ACTIVE))
+    store.insert_skill(Skill(domain="b", task_type="t", content="2", status=SkillStatus.ACTIVE))
+    store.insert_skill(Skill(domain="a", task_type="t", content="3", status=SkillStatus.DRAFT))
 
     assert len(store.list_skills()) == 3
     assert len(store.list_skills(domain="a")) == 2
@@ -252,7 +231,7 @@ def test_insert_and_get_source(store):
 
 def test_list_sources_filters(store):
     store.insert_source(Source(content_path="a.pdf", media_type="application/pdf"))
-    store.insert_source(Source(content_path="b.pdf", media_type="application/pdf", status="archived"))
+    store.insert_source(Source(content_path="b.pdf", media_type="application/pdf", status=SourceStatus.ARCHIVED))
     assert len(store.list_sources()) == 2
     assert len(store.list_sources(status=SourceStatus.ACTIVE)) == 1
     assert len(store.list_sources(status=SourceStatus.ARCHIVED)) == 1
@@ -280,7 +259,7 @@ def test_insert_and_complete_session(store):
     session = Session(
         task_description="Extract from policy",
         task_type="extraction",
-        agent_role="subagent",
+        agent_role=AgentRole.SUBAGENT,
         model_used="claude-sonnet-4-6",
     )
     session_id = store.insert_session(session)
@@ -300,10 +279,10 @@ def test_insert_and_complete_session(store):
 
 def test_insert_and_validate_extraction(store):
     # Setup dependencies
-    skill_id = store.insert_skill(Skill(domain="d", task_type="t", content="c", status="active"))
+    skill_id = store.insert_skill(Skill(domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE))
     source_id = store.insert_source(Source(content_path="a.pdf", media_type="application/pdf"))
     session_id = store.insert_session(Session(
-        task_description="test", task_type="test", agent_role="subagent",
+        task_description="test", task_type="test", agent_role=AgentRole.SUBAGENT,
     ))
 
     ext = Extraction(
@@ -323,10 +302,10 @@ def test_insert_and_validate_extraction(store):
 
 
 def test_get_validated_extractions(store):
-    skill_id = store.insert_skill(Skill(domain="d", task_type="t", content="c", status="active"))
+    skill_id = store.insert_skill(Skill(domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE))
     source_id = store.insert_source(Source(content_path="a.pdf", media_type="application/pdf"))
     session_id = store.insert_session(Session(
-        task_description="test", task_type="test", agent_role="subagent",
+        task_description="test", task_type="test", agent_role=AgentRole.SUBAGENT,
     ))
 
     for i in range(3):
@@ -347,10 +326,10 @@ def test_get_validated_extractions(store):
 
 
 def test_insert_and_aggregate_feedback(store):
-    skill_id = store.insert_skill(Skill(domain="d", task_type="t", content="c", status="active"))
+    skill_id = store.insert_skill(Skill(domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE))
     source_id = store.insert_source(Source(content_path="a.pdf", media_type="application/pdf"))
     session_id = store.insert_session(Session(
-        task_description="test", task_type="test", agent_role="subagent",
+        task_description="test", task_type="test", agent_role=AgentRole.SUBAGENT,
     ))
     ext_id = store.insert_extraction(Extraction(
         source_id=source_id, skill_id=skill_id, session_id=session_id,
@@ -360,18 +339,18 @@ def test_insert_and_aggregate_feedback(store):
     store.insert_feedback(Feedback(
         extraction_id=ext_id, session_id=session_id, skill_id=skill_id,
         correction={"field": {"before": "wrong", "after": "right"}},
-        correction_type="wrong_value",
+        correction_type=CorrectionType.WRONG_VALUE,
         created_by="reviewer",
     ))
     store.insert_feedback(Feedback(
         extraction_id=ext_id, session_id=session_id, skill_id=skill_id,
         correction={"field": {"before": "wrong", "after": "right"}},
-        correction_type="wrong_value",
+        correction_type=CorrectionType.WRONG_VALUE,
     ))
     store.insert_feedback(Feedback(
         extraction_id=ext_id, session_id=session_id, skill_id=skill_id,
         correction={"new_field": "added"},
-        correction_type="missing_field",
+        correction_type=CorrectionType.MISSING_FIELD,
     ))
 
     agg = store.aggregate_feedback(skill_id)
@@ -386,10 +365,10 @@ def test_insert_and_aggregate_feedback(store):
 
 
 def test_rules_global_and_domain(store):
-    store.insert_rule(Rule(scope="global", content="Output valid JSON", priority=10))
-    store.insert_rule(Rule(scope="global", content="Never fabricate data", priority=5))
-    store.insert_rule(Rule(scope="domain-specific", domain="insurance", content="Use ISO dates", priority=3))
-    store.insert_rule(Rule(scope="domain-specific", domain="medical", content="HIPAA compliance", priority=1))
+    store.insert_rule(Rule(scope=RuleScope.GLOBAL, content="Output valid JSON", priority=10))
+    store.insert_rule(Rule(scope=RuleScope.GLOBAL, content="Never fabricate data", priority=5))
+    store.insert_rule(Rule(scope=RuleScope.DOMAIN_SPECIFIC, domain="insurance", content="Use ISO dates", priority=3))
+    store.insert_rule(Rule(scope=RuleScope.DOMAIN_SPECIFIC, domain="medical", content="HIPAA compliance", priority=1))
 
     global_rules = store.get_rules()
     assert len(global_rules) == 2
@@ -407,11 +386,11 @@ def test_rules_global_and_domain(store):
 
 
 def test_assemble_runner_context(store):
-    store.insert_rule(Rule(scope="global", content="Output valid JSON", priority=10))
+    store.insert_rule(Rule(scope=RuleScope.GLOBAL, content="Output valid JSON", priority=10))
     skill_id = store.insert_skill(Skill(
         domain="insurance", task_type="extraction",
         content="Extract policy numbers.\nFormat: XX-XXXXXXX",
-        status="active",
+        status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/policy.pdf", media_type="application/pdf",
@@ -461,86 +440,38 @@ _mock_provider = _MockProvider()
 
 
 # ---------------------------------------------------------------------------
-# Orchestrator end-to-end
+# Single-shot execution (run_single)
 # ---------------------------------------------------------------------------
 
 
-def test_run_subtask(store):
+def test_run_single(store):
     skill_id = store.insert_skill(Skill(
         domain="insurance", task_type="extraction",
-        content="Extract policy fields", status="active",
+        content="Extract policy fields", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/policy.pdf", media_type="application/pdf",
     ))
 
-    subtask = Subtask(
-        type="extraction",
-        skill_domain="insurance",
-        skill_task_type="extraction",
-        source_ids=[source_id],
+    extraction = run_single(
+        store,
+        skill_id=skill_id,
+        source_id=source_id,
+        provider=_mock_provider,
+        model_name="mock",
     )
-    extraction = run_subtask(store, subtask, provider=_mock_provider, model_name="mock")
     assert extraction is not None
     assert "policy_number" in extraction.output["raw"]
 
-
-def test_run_task_with_dependencies(store):
-    store.insert_skill(Skill(
-        domain="insurance", task_type="extraction",
-        content="Extract policy fields", status="active",
-    ))
-    store.insert_skill(Skill(
-        domain="insurance", task_type="validation",
-        content="Validate extraction", status="active",
-    ))
-    source_id = store.insert_source(Source(
-        content_path="/data/policy.pdf", media_type="application/pdf",
-    ))
-
-    plan = TaskPlan(subtasks=[
-        Subtask(
-            type="extraction",
-            skill_domain="insurance",
-            skill_task_type="extraction",
-            source_ids=[source_id],
-        ),
-        Subtask(
-            type="validation",
-            skill_domain="insurance",
-            skill_task_type="validation",
-            source_ids=[source_id],
-            depends_on=[0],
-        ),
-    ])
-
-    extractions = run_task(
-        store, plan,
-        provider=_mock_provider,
-        task_description="Process insurance policy",
-        model_name="mock",
-    )
-    assert len(extractions) == 2
-
-    # Verify sessions were created
+    # Should have created 1 session
     sessions = store.list_sessions()
-    assert len(sessions) >= 3  # 1 orchestrator + 2 subagent
+    assert len(sessions) == 1
+    assert sessions[0].agent_role == AgentRole.SUBAGENT
 
 
-def test_run_subtask_missing_skill(store):
-    subtask = Subtask(
-        type="extraction",
-        skill_domain="nonexistent",
-        skill_task_type="nope",
-        source_ids=[],
-    )
-    result = run_subtask(store, subtask, provider=_mock_provider)
-    assert result is None
-
-
-def test_run_subtask_model_failure(store):
-    store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status="active",
+def test_run_single_model_failure(store):
+    skill_id = store.insert_skill(Skill(
+        domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="a.pdf", media_type="application/pdf",
@@ -550,13 +481,12 @@ def test_run_subtask_model_failure(store):
         def complete(self, system: str, user: str) -> CompletionResult:
             raise RuntimeError("API error")
 
-    subtask = Subtask(
-        type="extraction",
-        skill_domain="d",
-        skill_task_type="t",
-        source_ids=[source_id],
+    result = run_single(
+        store,
+        skill_id=skill_id,
+        source_id=source_id,
+        provider=_FailingProvider(),
     )
-    result = run_subtask(store, subtask, provider=_FailingProvider())
     assert result is None
 
     # Session should be marked as failed
@@ -565,114 +495,7 @@ def test_run_subtask_model_failure(store):
 
 
 # ---------------------------------------------------------------------------
-# Orchestrator bug fix tests
-# ---------------------------------------------------------------------------
-
-
-def test_run_task_prior_results_flow_through(store):
-    """Fix A: prior results actually reach dependent subtasks (no longer gated on subtask.context)."""
-    store.insert_skill(Skill(
-        domain="d", task_type="extract", content="extract", status="active",
-    ))
-    store.insert_skill(Skill(
-        domain="d", task_type="validate", content="validate", status="active",
-    ))
-    source_id = store.insert_source(Source(
-        content_path="a.pdf", media_type="application/pdf",
-    ))
-
-    calls = []
-
-    class _CapturingProvider:
-        def complete(self, system: str, user: str) -> CompletionResult:
-            calls.append({"system_prompt": system, "user_message": user})
-            return CompletionResult(content='{"result": "ok"}')
-
-    plan = TaskPlan(subtasks=[
-        Subtask(
-            type="extract",
-            skill_domain="d",
-            skill_task_type="extract",
-            source_ids=[source_id],
-        ),
-        Subtask(
-            type="validate",
-            skill_domain="d",
-            skill_task_type="validate",
-            source_ids=[source_id],
-            depends_on=[0],
-        ),
-    ])
-
-    run_task(store, plan, provider=_CapturingProvider(), model_name="test")
-
-    # The second call (validate) should include prior results
-    assert len(calls) == 2
-    assert "Prior results" in calls[1]["user_message"]
-
-
-def test_run_task_all_subtasks_fail_marks_session_failed(store):
-    """Fix B: when all subtasks fail, orchestrator session is marked failed."""
-    # No skills inserted, so all subtask skill lookups return None
-    plan = TaskPlan(subtasks=[
-        Subtask(type="x", skill_domain="missing", skill_task_type="missing"),
-        Subtask(type="y", skill_domain="missing", skill_task_type="missing"),
-    ])
-
-    extractions = run_task(store, plan, provider=_mock_provider, model_name="test")
-    assert len(extractions) == 0
-
-    # The orchestrator session should be failed
-    sessions = store.list_sessions(status=SessionStatus.FAILED)
-    # Should have exactly 1 failed session (the orchestrator)
-    orch_sessions = [s for s in sessions if s.agent_role == AgentRole.ORCHESTRATOR]
-    assert len(orch_sessions) == 1
-
-
-def test_run_task_exception_marks_session_failed(store):
-    """Fix B: unexpected exceptions propagate but session is still marked failed."""
-    store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status="active",
-    ))
-    source_id = store.insert_source(Source(
-        content_path="a.pdf", media_type="application/pdf",
-    ))
-
-    call_count = 0
-
-    class _SometimesFailingProvider:
-        def complete(self, system: str, user: str) -> CompletionResult:
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                return CompletionResult(content='{"ok": true}')
-            raise RuntimeError("boom")
-
-    plan = TaskPlan(subtasks=[
-        Subtask(
-            type="t", skill_domain="d", skill_task_type="t",
-            source_ids=[source_id],
-        ),
-        Subtask(
-            type="t", skill_domain="d", skill_task_type="t",
-            source_ids=[source_id],
-        ),
-    ])
-
-    # run_subtask catches model exceptions, so the orchestrator should complete
-    # with partial failure. Let's just verify session state is correct.
-    extractions = run_task(store, plan, provider=_SometimesFailingProvider(), model_name="test")
-    # First subtask produces extraction, second fails
-    assert len(extractions) == 1
-
-    # Orchestrator should be completed (not all failed)
-    orch = [s for s in store.list_sessions() if s.agent_role == AgentRole.ORCHESTRATOR]
-    assert len(orch) == 1
-    assert orch[0].status == SessionStatus.COMPLETED
-
-
-# ---------------------------------------------------------------------------
-# Built-in providers and run_simple
+# Built-in providers
 # ---------------------------------------------------------------------------
 
 
@@ -705,89 +528,30 @@ def test_get_provider_unknown():
         get_provider("nonexistent")
 
 
-def test_run_simple(store):
-    store.insert_skill(Skill(
-        domain="insurance", task_type="extraction",
-        content="Extract policy fields", status="active",
-    ))
-    store.insert_source(Source(content_path="/data/a.pdf", media_type="application/pdf"))
-    store.insert_source(Source(content_path="/data/b.pdf", media_type="application/pdf"))
-    store.insert_rule(Rule(scope="global", content="Output valid JSON"))
-
-    extractions = run_simple(
-        store,
-        domain="insurance",
-        task_type="extraction",
-        provider=_mock_provider,
-        model_name="mock",
-    )
-    assert len(extractions) == 2
-
-    # Should have created sessions (1 orchestrator + 2 subagent)
-    sessions = store.list_sessions()
-    assert len(sessions) >= 3
-
-
-def test_run_simple_specific_sources(store):
-    store.insert_skill(Skill(
-        domain="d", task_type="t",
-        content="do stuff", status="active",
-    ))
-    sid1 = store.insert_source(Source(content_path="a.pdf", media_type="application/pdf"))
-    store.insert_source(Source(content_path="b.pdf", media_type="application/pdf"))
-    sid3 = store.insert_source(Source(content_path="c.pdf", media_type="application/pdf"))
-
-    extractions = run_simple(
-        store,
-        domain="d",
-        task_type="t",
-        source_ids=[sid1, sid3],
-        provider=_mock_provider,
-        model_name="mock",
-    )
-    assert len(extractions) == 2
-
-
-def test_run_simple_no_sources(store):
-    store.insert_skill(Skill(
-        domain="d", task_type="t",
-        content="do stuff", status="active",
-    ))
-
-    extractions = run_simple(
-        store,
-        domain="d",
-        task_type="t",
-        provider=_mock_provider,
-        model_name="mock",
-    )
-    assert len(extractions) == 0
-
-
-def test_run_simple_with_echo_provider(store):
+def test_run_single_with_echo_provider(store):
     """End-to-end: run with echo provider, verify context assembly in output."""
-    store.insert_rule(Rule(scope="global", content="Always output valid JSON"))
-    store.insert_skill(Skill(
+    store.insert_rule(Rule(scope=RuleScope.GLOBAL, content="Always output valid JSON"))
+    skill_id = store.insert_skill(Skill(
         domain="legal", task_type="extraction",
-        content="Extract party names from contracts.", status="active",
+        content="Extract party names from contracts.", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/contract.pdf", media_type="application/pdf",
     ))
 
     echo = EchoProvider()
-    extractions = run_simple(
+    extraction = run_single(
         store,
-        domain="legal",
-        task_type="extraction",
-        source_ids=[source_id],
+        skill_id=skill_id,
+        source_id=source_id,
         provider=echo,
+        domain="legal",
         model_name="echo",
     )
-    assert len(extractions) == 1
+    assert extraction is not None
 
     # The echo provider output should contain the assembled context
-    raw = extractions[0].output["raw"]
+    raw = extraction.output["raw"]
     parsed = orjson.loads(raw)
     assert "Always output valid JSON" in parsed["system_prompt"]
     assert "Extract party names" in parsed["system_prompt"]
@@ -801,8 +565,8 @@ def test_run_simple_with_echo_provider(store):
 
 def test_provider_populates_token_usage(store):
     """Provider returning token counts populates session.token_usage."""
-    store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status="active",
+    skill_id = store.insert_skill(Skill(
+        domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="a.pdf", media_type="application/pdf",
@@ -815,13 +579,15 @@ def test_provider_populates_token_usage(store):
         model="test-model-v1",
     )
 
-    subtask = Subtask(
-        type="t", skill_domain="d", skill_task_type="t",
-        source_ids=[source_id],
+    run_single(
+        store,
+        skill_id=skill_id,
+        source_id=source_id,
+        provider=token_provider,
+        model_name="fallback",
     )
-    run_subtask(store, subtask, provider=token_provider, model_name="fallback")
 
-    # Find the subagent session
+    # Find the session
     sessions = store.list_sessions()
     assert len(sessions) == 1
     session = sessions[0]
@@ -830,8 +596,8 @@ def test_provider_populates_token_usage(store):
 
 def test_provider_populates_model_used(store):
     """session.model_used comes from CompletionResult.model, not caller string."""
-    store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status="active",
+    skill_id = store.insert_skill(Skill(
+        domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="a.pdf", media_type="application/pdf",
@@ -842,11 +608,13 @@ def test_provider_populates_model_used(store):
         model="claude-3-5-sonnet-20241022",
     )
 
-    subtask = Subtask(
-        type="t", skill_domain="d", skill_task_type="t",
-        source_ids=[source_id],
+    run_single(
+        store,
+        skill_id=skill_id,
+        source_id=source_id,
+        provider=model_provider,
+        model_name="anthropic",
     )
-    run_subtask(store, subtask, provider=model_provider, model_name="anthropic")
 
     sessions = store.list_sessions()
     assert len(sessions) == 1
@@ -896,7 +664,7 @@ def test_assemble_runner_context_with_preset(store):
     """Preset injects archetype system prompt into context assembly."""
     skill_id = store.insert_skill(Skill(
         domain="test", task_type="extraction",
-        content="Test skill content.", status="active",
+        content="Test skill content.", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/test.pdf", media_type="application/pdf",
@@ -923,7 +691,7 @@ def test_assemble_runner_context_without_preset(store):
     """Without preset, no archetype content in system prompt."""
     skill_id = store.insert_skill(Skill(
         domain="test", task_type="extraction",
-        content="Test skill content.", status="active",
+        content="Test skill content.", status=SkillStatus.ACTIVE,
     ))
 
     system_prompt, _user_message = assemble_runner_context(
@@ -937,29 +705,29 @@ def test_assemble_runner_context_without_preset(store):
     assert "Test skill content" in system_prompt
 
 
-def test_run_simple_with_preset(store):
-    """run_simple with preset passes archetype context through to echo output."""
-    store.insert_skill(Skill(
+def test_run_single_with_preset(store):
+    """run_single with preset passes archetype context through to echo output."""
+    skill_id = store.insert_skill(Skill(
         domain="test", task_type="extraction",
-        content="Extract test data.", status="active",
+        content="Extract test data.", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/test.pdf", media_type="application/pdf",
     ))
 
     echo = EchoProvider()
-    extractions = run_simple(
+    extraction = run_single(
         store,
-        domain="test",
-        task_type="extraction",
-        source_ids=[source_id],
+        skill_id=skill_id,
+        source_id=source_id,
         provider=echo,
+        domain="test",
         model_name="echo",
         preset="careful-executor",
     )
-    assert len(extractions) == 1
+    assert extraction is not None
 
-    raw = extractions[0].output["raw"]
+    raw = extraction.output["raw"]
     parsed = orjson.loads(raw)
     # Archetype fragments should be in the system prompt
     assert "Operating Principles" in parsed["system_prompt"]
@@ -968,11 +736,11 @@ def test_run_simple_with_preset(store):
     assert "Extract test data" in parsed["system_prompt"]
 
 
-def test_run_simple_with_invalid_preset(store):
+def test_run_single_with_invalid_preset(store):
     """Invalid preset raises ValueError."""
-    store.insert_skill(Skill(
+    skill_id = store.insert_skill(Skill(
         domain="test", task_type="extraction",
-        content="content", status="active",
+        content="content", status=SkillStatus.ACTIVE,
     ))
     source_id = store.insert_source(Source(
         content_path="/data/test.pdf", media_type="application/pdf",
@@ -980,11 +748,10 @@ def test_run_simple_with_invalid_preset(store):
 
     echo = EchoProvider()
     with pytest.raises(ValueError, match="Unknown preset"):
-        run_simple(
+        run_single(
             store,
-            domain="test",
-            task_type="extraction",
-            source_ids=[source_id],
+            skill_id=skill_id,
+            source_id=source_id,
             provider=echo,
             preset="nonexistent-preset",
         )

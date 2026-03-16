@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.13.0
+
+### Changed
+
+- **Pure data layer**: Removed orchestration from library. FreudAgent is now strictly
+  a data layer (schema, context assembly, providers). Orchestration is the harness's job.
+- CLI `run` command simplified to single-shot execution (`run_single()`) -- test utility,
+  not orchestrator
+- CLAUDE.md rewritten to position FreudAgent as a meta-framework inside the harness
+- `skill/` restructured to demonstrate L1/L2/L3 progressive disclosure hierarchy
+  - `skill.md` rewritten as L2 routing document
+  - 5 new L3 reference files: schema, archetypes, context-assembly, hierarchy, flywheel
+
+### Removed
+
+- `run_task()`, `run_subtask()`, `run_simple()` from orchestrator module
+- `TaskPlan`, `Subtask` Pydantic models from tables module
+- 13 orchestration tests replaced by direct context assembly + provider tests
+
 ## 0.12.0
 
 ### Added

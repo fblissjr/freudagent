@@ -59,7 +59,7 @@ In the RLM provider, the pipeline still calls `provider.complete(system, user)`
 5. The model calls `FINAL("answer")` or `FINAL_VAR("variable")` to terminate
 6. RLMProvider returns the final answer as a normal `CompletionResult`
 
-The orchestrator, skill, rules, and session tracking are unaware this happened.
+The context assembly, skill, rules, and session tracking are unaware this happened.
 To them, it's just a provider that took longer to respond.
 
 ## 2. Source content loading
@@ -128,7 +128,7 @@ uv run freud-schema run --domain arxiv --task-type extraction \
 
 What happens inside:
 
-1. The orchestrator assembles context as usual (rules + skill + source tag)
+1. Context is assembled as usual (rules + skill + source tag)
 2. RLMProvider intercepts the `complete()` call
 3. Source content is loaded from disk into the `context` variable
 4. The model receives the RLM system prompt + the FreudAgent system prompt
@@ -203,7 +203,7 @@ After an RLM run, the session result contains extra metadata:
 uv run freud-schema session list
 ```
 
-Look at the subagent session. Its `result` JSON includes:
+Look at the session record. Its `result` JSON includes:
 
 ```json
 {

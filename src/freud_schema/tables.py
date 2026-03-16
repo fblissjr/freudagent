@@ -158,19 +158,3 @@ class Rule(BaseModel):
     updated_at: datetime | None = None
 
 
-class Subtask(BaseModel):
-    """A decomposed unit of work within an orchestrator session."""
-
-    type: str
-    skill_domain: str
-    skill_task_type: str
-    source_ids: list[int] = Field(default_factory=list)
-    context: dict | None = None
-    depends_on: list[int] = Field(default_factory=list)
-
-
-class TaskPlan(BaseModel):
-    """The orchestrator's decomposition of a task into subtasks."""
-
-    subtasks: list[Subtask]
-    human_review_required: bool = False
