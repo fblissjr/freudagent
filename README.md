@@ -225,6 +225,8 @@ skill/
     archetype_patterns.md - L3: Detailed patterns with examples
     translation_matrix.md - L3: German-English term mapping
     retrieval-thesis.md   - L3: Progressive disclosure rationale
+.claude/
+  skills/db-query.md  - Claude Code skill: DuckDB schema reference and common queries
 ```
 
 ## Development
@@ -236,10 +238,10 @@ uv run pytest tests/ -v
 
 Core dependencies: pydantic >= 2.0, duckdb >= 0.9, orjson >= 3.9.
 
-Optional provider dependencies:
+Optional dependencies (for testing context assembly against real models):
 ```bash
-uv sync --extra anthropic   # Claude API provider
-uv sync --extra local       # OpenAI-compatible local provider (httpx)
+uv sync --extra anthropic   # Claude API
+uv sync --extra local       # OpenAI-compatible endpoints (httpx)
 ```
 
 ## License
