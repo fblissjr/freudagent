@@ -351,7 +351,8 @@ def _handle_db(args) -> None:
         version = get_schema_version(con)
         print(f"  Schema version: {version}")
         for table in ("skills", "sources", "extractions", "sessions", "feedback", "rules"):
-            count = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            row = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+            count = row[0] if row else 0
             print(f"  {table:15s} {count:>6} rows")
     con.close()
 

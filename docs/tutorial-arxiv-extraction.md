@@ -259,12 +259,14 @@ tree; FreudAgent provides the data.
 
 Same schema. Same data. Different orchestrator. That's the thesis.
 
-## 7. Run with a real model
+## 7. Run with a real model (optional)
 
-Pick one:
+The test utility supports pluggable providers for comparing context assembly
+against real model output. This is optional -- echo is sufficient for verifying
+the pipeline.
 
 ```bash
-# Claude API (requires ANTHROPIC_API_KEY in environment)
+# Claude API (requires ANTHROPIC_API_KEY)
 uv run freud-schema run --domain arxiv --task-type extraction --model anthropic
 
 # Local OpenAI-compatible server (heylookitsanllm, llama.cpp, vLLM, Ollama)
@@ -272,17 +274,9 @@ uv run freud-schema run --domain arxiv --task-type extraction \
   --model local --model-name qwen2.5-coder-1.5b --endpoint http://localhost:8080
 ```
 
-**Why multiple providers:** The experiment harness is provider-agnostic by
-design. The same skill, rules, and source produce the same context regardless
-of whether Claude, a local model, or echo processes it. This lets you compare:
-does Claude's extraction outperform a 1.5B local model? By how much? At what
-cost? The `sessions` table records token counts and model names from the actual
-response, so the data for that comparison accumulates automatically.
-
-**Why `--model-name` is separate from `--model`:** `--model` selects the
-provider (the transport layer: Anthropic SDK, httpx, or echo). `--model-name`
-selects the specific model within that provider. For Anthropic, it defaults to
-`claude-sonnet-4-6`. For local, it's whatever your server is running.
+The same skill, rules, and source produce the same context regardless of
+provider. The `sessions` table records token counts and model names, so
+provider comparisons accumulate automatically.
 
 ## 8. Review and validate
 
@@ -394,8 +388,9 @@ It's the result.
   them at once (omit `--source-id` to process all active sources).
 
 - **Write a v2 skill.** Based on feedback, write a better extraction prompt.
-  Add it as a new skill (same domain/task-type, version 2, status active),
-  deprecate v1, and re-run. Compare extractions.
+  Add it with `--version 2 --status active`, deprecate v1 with
+  `freud-schema skill deprecate 1`, and re-run. Compare extractions.
+  See the [flywheel tutorial](tutorial-flywheel.md) for a full walkthrough.
 
 - **Compare providers.** Run the same skill against Claude and a local model.
   Use `session list` to compare token counts and check extractions for quality

@@ -1,10 +1,11 @@
 # Tutorial: Using the RLM provider for large-context extraction
 
-This walks through the RLM (Recursive Language Model) provider, which wraps
+The RLM (Recursive Language Model) provider is a test utility feature that wraps
 any model with a Python REPL loop. Instead of passing the entire source to the
 model in one shot, the model writes code to explore, slice, and transform the
-input iteratively. This is useful when sources are too large for a single
-context window, or when the extraction task benefits from programmatic probing.
+input iteratively. This is useful for verifying context assembly behavior when
+sources are too large for a single context window, or when the extraction task
+benefits from programmatic probing.
 
 Building on the arxiv extraction tutorial -- same database, same skills, same
 rules. The difference is in how the model processes the source.
@@ -308,7 +309,6 @@ The questions to answer:
 - **Tune max-iterations.** Some tasks converge in 3 iterations, others need 15.
   Check the trace data to find the right ceiling for your domain.
 
-- **Phase 2 (coming).** RLM-as-verifier: use the same REPL mechanics to verify
-  extraction correctness. `extraction validate N --model rlm` passes the
-  extraction output as `context` instead of the source content, with a
-  verification-focused skill.
+- **Compare with the flywheel.** After running RLM extractions, use the
+  [flywheel tutorial](tutorial-flywheel.md) to add feedback, refine the skill,
+  and measure whether RLM's iterative approach produces fewer corrections.

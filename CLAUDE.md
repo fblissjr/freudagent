@@ -28,7 +28,7 @@ and structure, don't wrap it.
 - **9 Freudian archetypes** in a 3x3 grid (composable prompt fragments)
 - **6 presets** (archetype compositions for common agent patterns)
 - **CLI** for data management and inspection (`freud-schema`)
-- **Pluggable providers** for testing (echo, Claude, OpenAI-compat, RLM)
+- **Test providers** for verifying context assembly (echo, plus optional Claude/local/RLM)
 
 ## What FreudAgent Does NOT Provide (the harness's job)
 
@@ -56,7 +56,7 @@ activation keywords, the body routes to references, references provide depth.
 |---------|-----|
 | Claude Code | skill.md as L2, references as L3, DuckDB via MCP/CLI |
 | Agent SDK | 12 flywheel atoms map to agents/tools/handoffs |
-| Local inference | Providers for testing context assembly |
+| CLI test utility | `freud-schema run` verifies context assembly with pluggable providers |
 
 ## Project Structure
 

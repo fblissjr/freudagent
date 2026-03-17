@@ -103,24 +103,10 @@ uv run freud-schema run --domain legal --task-type extraction
 # 9. Inspect session details
 uv run freud-schema session show 1
 
-# Run with Claude (requires ANTHROPIC_API_KEY)
-uv run freud-schema run --domain legal --task-type extraction --model anthropic
-
-# Run with a local OpenAI-compatible server (heylookitsanllm, llama.cpp, vLLM, Ollama)
-uv run freud-schema run --domain legal --task-type extraction \
-  --model local --model-name qwen2.5-coder-1.5b --endpoint http://localhost:8080
-
-# Run with RLM (iterative REPL loop -- model writes code to probe the input)
-uv run freud-schema run --domain legal --task-type extraction \
-  --model rlm --endpoint http://localhost:8080 --max-iterations 10
-
-# RLM with Claude as the inner provider
-uv run freud-schema run --domain legal --task-type extraction \
-  --model rlm-anthropic --max-iterations 8
-
-# RLM with a separate sub-model for llm_query() recursive calls
-uv run freud-schema run --domain legal --task-type extraction \
-  --model rlm-anthropic --sub-model local --endpoint http://localhost:8080
+# Test with a real model (optional -- echo is sufficient for pipeline verification)
+# --model anthropic (requires ANTHROPIC_API_KEY)
+# --model local --endpoint http://localhost:8080 (any OpenAI-compatible server)
+# --model rlm / rlm-anthropic (iterative REPL loop -- see docs/tutorial-rlm-provider.md)
 
 # Use a non-default database (--db is a global flag)
 uv run freud-schema --db /tmp/test.duckdb db init
@@ -186,9 +172,8 @@ and lifecycle between agents.
 
 A 7-table DuckDB schema implementing declarative agent orchestration: behavior
 comes from data (skills, rules, sources), not code. The schema IS the architecture.
-Model calls are pluggable via the Provider protocol (`echo`, `anthropic`,
-`local`, `rlm`, `rlm-anthropic`). The CLI `run` command is a test utility
-(single-shot, one call per source) -- real orchestration is the harness's job.
+The CLI `run` command is a test utility (single-shot, one call per source)
+for verifying context assembly. Real orchestration is the harness's job.
 
 Context assembly implements progressive disclosure:
 **rules -> skill -> source -> task**.
