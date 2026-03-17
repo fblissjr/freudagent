@@ -105,7 +105,9 @@ docs/
   tutorial-rlm-provider.md     - RLM provider tutorial: REPL loop, sub-calls, presets
   tutorial-flywheel.md         - Flywheel tutorial: feedback loop end-to-end
 internal/            - Analysis docs, backlog, session logs (gitignored)
-.claude/             - Local Claude Code config and skills (gitignored -- edits here won't be committed)
+.claude/
+  skills/            - Project-specific Claude Code skills (committed)
+  settings.local.json - Personal permission settings (gitignored)
 ```
 
 ## Development
