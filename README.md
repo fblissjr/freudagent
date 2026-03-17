@@ -1,5 +1,13 @@
 # freudagent
 
+<p align="center">
+  <a href="assets/theman-medium.png">
+    <img src="assets/theman-medium.png" alt="freud agent logo" width="400">
+  </a>
+  <br>
+</p>
+
+
 A meta-framework for declarative agent orchestration that lives INSIDE the harness
 (Claude Code, Agent SDK), not outside it. Pure data layer: schema, context assembly,
 prompt composition. The harness handles orchestration. FreudAgent handles data.
