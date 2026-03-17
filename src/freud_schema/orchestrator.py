@@ -42,7 +42,6 @@ class CompletionResult:
     input_tokens: int | None = None
     output_tokens: int | None = None
     model: str | None = None
-    cost_usd: float | None = None
     metadata: dict | None = None
 
 
