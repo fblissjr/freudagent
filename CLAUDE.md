@@ -105,6 +105,7 @@ docs/
   tutorial-rlm-provider.md     - RLM provider tutorial: REPL loop, sub-calls, presets
   tutorial-flywheel.md         - Flywheel tutorial: feedback loop end-to-end
 internal/            - Analysis docs, backlog, session logs (gitignored)
+.claude/             - Local Claude Code config and skills (gitignored -- edits here won't be committed)
 ```
 
 ## Development
@@ -132,6 +133,7 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - No migration path -- breaking schema changes use `reset_schema()` (experiment repo, no legacy data)
 - DDL is stored as `list[str]` (one statement per element, no semicolon splitting)
 - `freud-schema db ddl` prints full DDL for piping to `duckdb` CLI
+- Version must stay in sync across `pyproject.toml`, `skill/skill.md` frontmatter, and `CHANGELOG.md`
 - 8 enum classes in `tables.py` are the single source of truth for valid column values
 - CHECK constraints and FK constraints are generated from enums and embedded in DDL
 - All DB access goes through `ExperimentStore` methods -- never use `store.con.execute` directly
@@ -140,6 +142,7 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
 - All SQL queries use parameterized enum values (no hardcoded string literals)
 - All CLI `--status`/`--scope`/`--type` args must have `choices=[e.value for e in EnumClass]`
+- CLI handlers that modify a record by ID must check existence first and `sys.exit(1)` if not found
 - For ad-hoc DB queries, use the `duckdb` MCP tools -- do not write Python scripts
 - Providers use dynamic imports (`anthropic`, `httpx`) -- import inside `__init__`, raise `ImportError` with install hint
 - New providers implement the `Provider` protocol (required: `complete(system, user) -> CompletionResult`; optional: `complete_chat(messages) -> CompletionResult` for multi-turn)
