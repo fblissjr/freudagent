@@ -15,7 +15,7 @@ src/freud_schema/
   db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL
   tables.py          - Pydantic models + 8 enum classes (single source of truth)
   store.py           - CRUD operations (ExperimentStore)
-  orchestrator.py    - Context assembly, provider protocol, test utility
+  orchestrator.py    - Context assembly, provider protocol, provider implementations
   harness.py         - Archetype composition into system prompts
   archetypes.py      - 9 archetypes in a 3x3 grid
   models.py          - Pydantic models (FreudEntry, AgenticArchetype)
@@ -108,10 +108,12 @@ Schema docs: `.claude/skills/db-query.md`
 ### CLI
 - `--status`/`--scope`/`--type` args must use `choices=[e.value for e in EnumClass]`
 - Handlers that modify by ID must check existence first and `sys.exit(1)` if not found
+- CLI exposes data operations only -- no execution/orchestration commands (harness's job)
 
 ### Tests
 - Module-scoped `entries` fixture for JSONL (no repeated `load_entries()`)
 - In-memory DuckDB (`:memory:`) for store tests, `tmp_path` for CLI end-to-end tests
+- `ExperimentStore` in tests must use `with` blocks or explicit `.close()` (matches CLI handlers)
 
 ### Versioning
 - Version must stay in sync across `pyproject.toml`, `skill/skill.md` frontmatter, and `CHANGELOG.md`
