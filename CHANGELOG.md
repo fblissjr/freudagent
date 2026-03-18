@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.14.0
+
+### Removed
+
+- **`freud-schema run` CLI command** -- orchestration belongs to the harness, not
+  the data layer. Use Claude Code (MCP tools + Agent tool) or Agent SDK for extraction.
+- `run_single()` from orchestrator module
+- `_handle_run` CLI handler and `run` subparser
+- 8 tests for removed orchestration code; 1 test rewritten to insert session directly
+
+## 0.13.2
+
+### Fixed
+
+- **DuckDB lock detection**: `connect()` catches `IOException` on locked database files
+  and raises a clear message directing users to MCP tools instead of raw traceback
+- **Connection lifecycle**: `ExperimentStore` now supports context manager protocol
+  (`with ExperimentStore(...) as store:`). All 8 CLI handlers use `with` blocks --
+  previously leaked connections.
+
+### Changed
+
+- **DuckDB MCP routing docs**: CLAUDE.md, db-query skill, skill.md, and arxiv tutorial
+  now explicitly state that CLI cannot access the DB while MCP server is active.
+  MCP tools are the primary interface during Claude Code sessions.
+
 ## 0.13.1
 
 ### Added

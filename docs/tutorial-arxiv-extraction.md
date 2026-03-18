@@ -131,8 +131,8 @@ project keeps referencing: extract -> review -> correct -> refine skill ->
 re-extract.
 
 **Why `--status active`:** Skills start as `draft` by default. Only `active`
-skills are picked up by the `run` command. This prevents half-written
-instructions from accidentally running.
+skills are picked up by `get_active_skill()` when the harness assembles context.
+This prevents half-written instructions from accidentally being used.
 
 Verify:
 
@@ -172,31 +172,35 @@ Verify:
 uv run freud-schema source list
 ```
 
-## 5. Run with echo (verify the pipeline)
+## 5. Verify context assembly
 
-Before spending API calls or GPU cycles, verify that the pipeline assembles
-context correctly.
+Before spending API calls or GPU cycles, verify that the data layer assembles
+context correctly. The `EchoProvider` returns the exact system prompt and user
+message that a real model would receive.
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction
+```python
+from freud_schema.db import connect
+from freud_schema.store import ExperimentStore
+from freud_schema.orchestrator import EchoProvider, assemble_runner_context
+
+store = ExperimentStore(connect("data/freudagent.duckdb"))
+skill = store.get_active_skill("arxiv", "extraction")
+sources = store.list_sources()
+
+system_prompt, user_message = assemble_runner_context(
+    store, skill_id=skill.id, source_ids=[s.id for s in sources], domain="arxiv",
+)
+
+# See exactly what a model would receive
+echo = EchoProvider()
+result = echo.complete(system_prompt, user_message)
+print(result.content)
+store.close()
 ```
 
-**Why echo first:** The echo provider returns the exact system prompt and user
-message that a real model would receive. If your rules are missing, your skill
-is malformed, or your source didn't register, you'll see it in the echo output
--- for free, in milliseconds. This is the same principle as a dry run or a
-`--whatif` flag, but it produces a real database record so you can inspect the
-full session.
-
-The output will be a JSON object showing the assembled context:
-
-```json
-{
-  "model": "echo",
-  "system_prompt": "# Rules\n\n- Output valid JSON...\n\n# Skill: arxiv / extraction (v1)\n\nYou are extracting...",
-  "user_message": "<source id=\"1\" type=\"application/pdf\" path=\"data/papers/attention-is-all-you-need.pdf\" />\nExecute extraction task."
-}
-```
+Or in Claude Code, use the DuckDB MCP tools to inspect skills, rules, and sources
+directly. The harness (Claude Code, Agent SDK) handles extraction -- step 6b below
+is the primary path.
 
 Look for:
 - Are all 3 rules present in the system prompt?
@@ -216,18 +220,17 @@ uv run freud-schema extraction show 1
 uv run freud-schema session list
 ```
 
-**Why sessions exist:** Every `run` call creates one session per source
-processed. Sessions track status (running/completed/failed), which skill
-was used, what context was loaded, token usage, and the model that actually
-responded. This is how you answer "what happened?" after the fact, and how
-you compare providers (did the local model use fewer tokens? did it fail
-more often?).
+**Why sessions exist:** Every extraction creates a session record. Sessions
+track status (running/completed/failed), which skill was used, what context
+was loaded, token usage, and the model that actually responded. This is how
+you answer "what happened?" after the fact, and how you compare providers
+(did the local model use fewer tokens? did it fail more often?).
 
-## 6b. How Claude Code does this natively
+## 6b. How the harness does extraction
 
-The `freud-schema run` command is a test utility. It proves the data layer works by
-calling a provider once per source in a Python loop. But the intended runtime is
-the harness itself -- Claude Code, Agent SDK, or whatever orchestrates.
+Extraction is the harness's job -- Claude Code, Agent SDK, or whatever orchestrates.
+The CLI manages data (skills, rules, sources, feedback). The harness reads data,
+calls models, and stores results.
 
 **Activation.** When you mention "extraction", "arxiv", or "experiment harness" in
 conversation, Claude Code matches the skill frontmatter keywords and loads
@@ -235,48 +238,33 @@ conversation, Claude Code matches the skill frontmatter keywords and loads
 files (L3) Claude Code needs. This is the same progressive disclosure hierarchy
 the CLI implements, but the harness handles routing natively.
 
-**File access.** Claude Code reads the PDF directly via the Read tool. The CLI test
-utility passes source metadata (path, MIME type) but doesn't read the file -- that's
-a known gap for the test utility. Claude Code has no such gap. It reads the file,
-understands the content, and extracts from it directly.
+**File access.** Claude Code reads the PDF directly via the Read tool. It reads the
+file, understands the content, and extracts from it directly.
 
 **Data access.** Claude Code uses the DuckDB MCP tools (`execute_query`, `list_tables`,
-`list_columns`) or the CLI to store extractions, add feedback, and query results. Same
-schema, same tables, different interface.
+`list_columns`) for all database operations. The CLI cannot access the database while
+the MCP server is active -- DuckDB allows only one process to connect to a file at a time.
+Use MCP tools (`execute_query`) for all database access during Claude Code sessions.
+Use the CLI for standalone scripting or when MCP is not running.
 
 **Orchestration.** If the task requires decomposition (e.g., "extract from these 5
 papers and compare"), Claude Code uses its Agent tool to spawn subagents. Each subagent
 gets precisely scoped context via `assemble_runner_context()`. The harness handles the
 tree; FreudAgent provides the data.
 
-| Aspect | CLI path (`freud-schema run`) | Claude Code native |
-|--------|-------------------------------|-------------------|
-| Purpose | Pipeline verification | Production use |
-| File access | Metadata only (path, MIME type) | Full content via Read tool |
-| Orchestration | Single-shot loop | Agent tool for decomposition |
-| Storage | Automatic via `run_single()` | CLI or MCP tools |
-| Context assembly | Same `assemble_runner_context()` | Same function, plus L1/L2/L3 skill routing |
+Same schema. Same data. The harness orchestrates; FreudAgent provides data. That's the thesis.
 
-Same schema. Same data. Different orchestrator. That's the thesis.
+## 7. Run extraction via the harness
 
-## 7. Run with a real model (optional)
+Extraction happens through the harness (Claude Code, Agent SDK), not the CLI.
+The provider infrastructure (`get_provider()`, `EchoProvider`, `ClaudeProvider`,
+`OpenAICompatProvider`, `RLMProvider`) and context assembly (`assemble_runner_context()`)
+are available as Python APIs for the harness to call.
 
-The test utility supports pluggable providers for comparing context assembly
-against real model output. This is optional -- echo is sufficient for verifying
-the pipeline.
-
-```bash
-# Claude API (requires ANTHROPIC_API_KEY)
-uv run freud-schema run --domain arxiv --task-type extraction --model anthropic
-
-# Local OpenAI-compatible server (heylookitsanllm, llama.cpp, vLLM, Ollama)
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model local --model-name qwen2.5-coder-1.5b --endpoint http://localhost:8080
-```
-
-The same skill, rules, and source produce the same context regardless of
-provider. The `sessions` table records token counts and model names, so
-provider comparisons accumulate automatically.
+In Claude Code, extraction is native: read the source, call the model, store results
+via MCP tools. The same skill, rules, and source produce the same context regardless
+of which harness orchestrates. The `sessions` table records token counts and model
+names, so provider comparisons accumulate automatically.
 
 ## 8. Review and validate
 
@@ -340,16 +328,24 @@ better extractions -> less feedback. The database makes the loop measurable.
 ## 10. Try with a preset (archetype composition)
 
 Presets compose Freudian archetypes into the system prompt, changing agent
-behavior without changing the skill or rules.
+behavior without changing the skill or rules. The harness passes the preset
+name to `assemble_runner_context()` or calls `compose_preset()` directly.
 
-```bash
+```python
+from freud_schema.harness import compose_preset
+
 # Safety-first: censor-gate filters output, repetition-compulsion detects loops
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model echo --preset careful-executor
+prompt = compose_preset("careful-executor")
 
 # Exploratory: free-association encourages lateral connections
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model echo --preset creative-explorer
+prompt = compose_preset("creative-explorer")
+```
+
+Or via CLI for inspection:
+
+```bash
+uv run freud-schema prompt --preset careful-executor
+uv run freud-schema prompt --preset creative-explorer
 ```
 
 **Why archetypes matter for an experiment harness:** The thesis question is
@@ -359,7 +355,7 @@ to filter uncertain outputs) actually reduce hallucination? Does
 "free-association" (which encourages exploring tangential connections) find
 things a strict extractor misses? You can only answer these questions if the
 behavior change is declarative (data in the prompt) rather than procedural
-(different code paths). Compare the echo output of the two presets above --
+(different code paths). Compare the output of the two presets above --
 the system prompt changes, but nothing else does.
 
 ## 11. Check the database state
@@ -384,8 +380,8 @@ It's the result.
 
 ## What to try next
 
-- **Add more papers.** Register several arxiv sources and run against all of
-  them at once (omit `--source-id` to process all active sources).
+- **Add more papers.** Register several arxiv sources and extract from all of
+  them via the harness.
 
 - **Write a v2 skill.** Based on feedback, write a better extraction prompt.
   Add it with `--version 2 --status active`, deprecate v1 with

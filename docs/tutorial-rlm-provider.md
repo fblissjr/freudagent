@@ -1,14 +1,15 @@
 # Tutorial: Using the RLM provider for large-context extraction
 
-The RLM (Recursive Language Model) provider is a test utility feature that wraps
-any model with a Python REPL loop. Instead of passing the entire source to the
-model in one shot, the model writes code to explore, slice, and transform the
-input iteratively. This is useful for verifying context assembly behavior when
-sources are too large for a single context window, or when the extraction task
-benefits from programmatic probing.
+The RLM (Recursive Language Model) provider wraps any model with a Python REPL
+loop. Instead of passing the entire source to the model in one shot, the model
+writes code to explore, slice, and transform the input iteratively. This is useful
+when sources are too large for a single context window, or when the extraction
+task benefits from programmatic probing.
 
-Building on the arxiv extraction tutorial -- same database, same skills, same
-rules. The difference is in how the model processes the source.
+The RLM provider is a data-layer abstraction that the harness uses programmatically
+via `get_provider("rlm")`. Building on the arxiv extraction tutorial -- same
+database, same skills, same rules. The difference is in how the model processes
+the source.
 
 ## What you'll learn
 
@@ -96,35 +97,49 @@ apt-get install poppler-utils
 If pdftotext isn't available, the model gets a placeholder message and can
 still work with whatever metadata is in the user message.
 
-## 3. Run with echo (verify RLM context assembly)
+## 3. Verify RLM context assembly
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction --model rlm
+To see the full context the RLM model gets, use the Python API:
+
+```python
+from freud_schema.orchestrator import get_provider, assemble_runner_context, EchoProvider
+from freud_schema.db import connect
+from freud_schema.store import ExperimentStore
+
+store = ExperimentStore(connect("data/freudagent.duckdb"))
+skill = store.get_active_skill("arxiv", "extraction")
+sources = store.list_sources()
+
+# See what context assembly produces
+system_prompt, user_message = assemble_runner_context(
+    store, skill_id=skill.id, source_ids=[s.id for s in sources], domain="arxiv",
+)
+
+# The echo provider shows exactly what a model receives
+echo = EchoProvider()
+print(echo.complete(system_prompt, user_message).content)
+store.close()
 ```
 
-This will fail to connect (no local server for echo to reach), but it
-illustrates that `--model rlm` is accepted. For actual echo verification of
-the RLM wrapper's behavior, the existing `--model echo` pipeline shows what
-context the RLM provider would receive.
-
-To see the full context the RLM model gets (system prompt + REPL instructions
-+ archetype/rules/skill), run with echo first:
-
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction --model echo
-```
-
-The system prompt in the echo output is what gets prepended with RLM REPL
-instructions when you switch to `--model rlm`.
+The system prompt is what gets prepended with RLM REPL instructions when
+the harness uses `get_provider("rlm")`.
 
 ## 4. Run with RLM (local model)
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model rlm \
-  --model-name "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit" \
-  --endpoint http://localhost:8080 \
-  --max-iterations 10
+The harness uses the RLM provider programmatically:
+
+```python
+from freud_schema.orchestrator import get_provider
+
+rlm = get_provider(
+    "rlm",
+    model_name="mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
+    base_url="http://localhost:8080",
+    max_iterations=10,
+)
+
+# The harness calls rlm.complete(system_prompt, user_message)
+result = rlm.complete(system_prompt, user_message)
 ```
 
 What happens inside:
@@ -144,10 +159,9 @@ with 10 and adjust based on how many iterations your model typically needs.
 
 ## 5. Run with RLM (Claude API)
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model rlm-anthropic \
-  --max-iterations 8
+```python
+rlm_claude = get_provider("rlm-anthropic", max_iterations=8)
+result = rlm_claude.complete(system_prompt, user_message)
 ```
 
 Same mechanics, different inner provider. `rlm-anthropic` wraps `ClaudeProvider`
@@ -159,12 +173,13 @@ The `llm_query()` function in the REPL namespace lets the model make recursive
 sub-calls. By default, these go to the same inner provider. But you can use a
 different (cheaper, faster) model for sub-calls:
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model rlm-anthropic \
-  --sub-model local \
-  --endpoint http://localhost:8080 \
-  --max-iterations 10
+```python
+rlm = get_provider(
+    "rlm-anthropic",
+    sub_model="local",
+    base_url="http://localhost:8080",
+    max_iterations=10,
+)
 ```
 
 This uses Claude for the main REPL loop but a local model for `llm_query()`
@@ -183,12 +198,18 @@ The `recursive-decomposer` preset maps RLM behaviors to Freudian archetypes:
 | Context budget management | `fixation` | Deliberate attention allocation |
 | Knowing when to stop | `pleasure-principle` | Recognizing completion |
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction \
-  --model rlm \
-  --endpoint http://localhost:8080 \
-  --preset recursive-decomposer \
-  --max-iterations 10
+```python
+from freud_schema.harness import compose_preset
+
+preset_prompt = compose_preset("recursive-decomposer")
+rlm = get_provider("rlm", base_url="http://localhost:8080", max_iterations=10)
+
+# Prepend archetype identity to the system prompt
+system_prompt_with_preset, user_message = assemble_runner_context(
+    store, skill_id=skill.id, source_ids=[s.id for s in sources],
+    domain="arxiv", preset="recursive-decomposer",
+)
+result = rlm.complete(system_prompt_with_preset, user_message)
 ```
 
 The preset's archetype fragments are appended to the RLM system prompt as
@@ -198,13 +219,8 @@ measurably change iteration count, sub-call efficiency, and extraction quality?
 
 ## 8. Inspect RLM session metadata
 
-After an RLM run, the session result contains extra metadata:
-
-```bash
-uv run freud-schema session list
-```
-
-Look at the session record. Its `result` JSON includes:
+After an RLM run, the `CompletionResult.metadata` contains RLM-specific data.
+If the harness stores this in a session record, it looks like:
 
 ```json
 {
@@ -263,29 +279,32 @@ programmatically.
 ## 10. Compare single-shot vs RLM
 
 The real test: run the same skill, rules, and source with different providers
-and compare results.
+and compare results. The harness calls each provider with the same assembled context:
 
-```bash
+```python
+from freud_schema.orchestrator import get_provider
+
 # Single-shot (baseline)
-uv run freud-schema run --domain arxiv --task-type extraction --model anthropic
+claude = get_provider("anthropic")
+result_baseline = claude.complete(system_prompt, user_message)
 
 # RLM with same model
-uv run freud-schema run --domain arxiv --task-type extraction --model rlm-anthropic --max-iterations 8
+rlm = get_provider("rlm-anthropic", max_iterations=8)
+result_rlm = rlm.complete(system_prompt, user_message)
 
 # RLM with preset
-uv run freud-schema run --domain arxiv --task-type extraction --model rlm-anthropic --max-iterations 8 --preset recursive-decomposer
+system_with_preset, user_msg = assemble_runner_context(
+    store, skill_id=skill.id, source_ids=[s.id for s in sources],
+    domain="arxiv", preset="recursive-decomposer",
+)
+result_rlm_preset = rlm.complete(system_with_preset, user_msg)
 ```
 
-Then compare:
+Then compare using CLI or MCP tools:
 
 ```bash
-# List all extractions for this skill
 uv run freud-schema extraction list --skill-id 1
-
-# Show each extraction and compare quality
 uv run freud-schema extraction show <id>
-
-# Check token usage in sessions
 uv run freud-schema session list
 ```
 

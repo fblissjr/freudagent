@@ -80,8 +80,9 @@ uv run freud-schema skill add \
   --status active
 uv run freud-schema source add --path ./contracts/sample.pdf --media-type application/pdf
 
-# 3. Test execution (echo model shows assembled context, one call per source)
-uv run freud-schema run --domain legal --task-type extraction
+# 3. Extract (via the harness -- Claude Code, Agent SDK, or programmatic API)
+# The CLI manages data; the harness orchestrates extraction.
+# See docs/tutorial-arxiv-extraction.md for the full workflow.
 
 # 4. Review results
 uv run freud-schema extraction list
@@ -100,21 +101,15 @@ uv run freud-schema feedback add \
 # 7. View the flywheel signal
 uv run freud-schema feedback list --skill-id 1 --aggregate
 
-# 8. Refine: deprecate v1, add v2 with fixes, re-run
+# 8. Refine: deprecate v1, add v2 with fixes, re-extract via harness
 uv run freud-schema skill deprecate 1
 uv run freud-schema skill add \
   --domain legal --task-type extraction \
   --content "Improved extraction instructions..." \
   --status active --version 2
-uv run freud-schema run --domain legal --task-type extraction
 
 # 9. Inspect session details
 uv run freud-schema session show 1
-
-# Test with a real model (optional -- echo is sufficient for pipeline verification)
-# --model anthropic (requires ANTHROPIC_API_KEY)
-# --model local --endpoint http://localhost:8080 (any OpenAI-compatible server)
-# --model rlm / rlm-anthropic (iterative REPL loop -- see docs/tutorial-rlm-provider.md)
 
 # Use a non-default database (--db is a global flag)
 uv run freud-schema --db /tmp/test.duckdb db init
@@ -180,8 +175,8 @@ and lifecycle between agents.
 
 A 7-table DuckDB schema implementing declarative agent orchestration: behavior
 comes from data (skills, rules, sources), not code. The schema IS the architecture.
-The CLI `run` command is a test utility (single-shot, one call per source)
-for verifying context assembly. Real orchestration is the harness's job.
+The CLI exposes data operations (CRUD, review, feedback). Extraction is the
+harness's job (Claude Code, Agent SDK).
 
 Context assembly implements progressive disclosure:
 **rules -> skill -> source -> task**.

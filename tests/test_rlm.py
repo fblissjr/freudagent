@@ -12,7 +12,6 @@ from freud_schema.rlm import (
     load_source_content,
     run_code_in_namespace,
 )
-from freud_schema.tables import SkillStatus
 
 
 # ---------------------------------------------------------------------------
@@ -531,40 +530,3 @@ def test_rlm_with_preset_system_prompt():
     assert "free-association" in system_content
 
 
-# ---------------------------------------------------------------------------
-# Integration: RLM in orchestrator pipeline
-# ---------------------------------------------------------------------------
-
-
-def test_rlm_in_pipeline(store):
-    """RLMProvider works end-to-end through run_single."""
-    from freud_schema.orchestrator import run_single
-    from freud_schema.tables import Skill, Source
-
-    skill_id = store.insert_skill(Skill(
-        domain="test", task_type="extraction",
-        content="Extract data.", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="/data/test.txt", media_type="text/plain",
-    ))
-
-    inner = _SequenceProvider(["The extracted data is: {result: 42}"])
-    rlm = RLMProvider(inner, max_iterations=5)
-
-    extraction = run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=rlm,
-        model_name="rlm-mock",
-    )
-
-    assert extraction is not None
-    assert "42" in extraction.output["raw"]
-
-    # Session should have RLM metadata
-    sessions = store.list_sessions()
-    assert len(sessions) == 1
-    session = sessions[0]
-    assert "rlm" in session.result

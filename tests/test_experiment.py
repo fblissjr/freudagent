@@ -12,7 +12,6 @@ from freud_schema.orchestrator import (
     OpenAICompatProvider,
     assemble_runner_context,
     get_provider,
-    run_single,
 )
 from freud_schema.tables import (
     AgentRole,
@@ -411,90 +410,6 @@ def test_assemble_runner_context(store):
 
 
 # ---------------------------------------------------------------------------
-# Mock provider for testing
-# ---------------------------------------------------------------------------
-
-
-class _MockProvider:
-    """Mock provider that returns a fixed extraction."""
-
-    def __init__(self, content: str = '{"policy_number": "XX-1234567", "effective_date": "2026-01-01"}',
-                 input_tokens: int | None = None,
-                 output_tokens: int | None = None,
-                 model: str | None = None):
-        self._content = content
-        self._input_tokens = input_tokens
-        self._output_tokens = output_tokens
-        self._model = model
-
-    def complete(self, system: str, user: str) -> CompletionResult:
-        return CompletionResult(
-            content=self._content,
-            input_tokens=self._input_tokens,
-            output_tokens=self._output_tokens,
-            model=self._model,
-        )
-
-
-_mock_provider = _MockProvider()
-
-
-# ---------------------------------------------------------------------------
-# Single-shot execution (run_single)
-# ---------------------------------------------------------------------------
-
-
-def test_run_single(store):
-    skill_id = store.insert_skill(Skill(
-        domain="insurance", task_type="extraction",
-        content="Extract policy fields", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="/data/policy.pdf", media_type="application/pdf",
-    ))
-
-    extraction = run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=_mock_provider,
-        model_name="mock",
-    )
-    assert extraction is not None
-    assert "policy_number" in extraction.output["raw"]
-
-    # Should have created 1 session
-    sessions = store.list_sessions()
-    assert len(sessions) == 1
-    assert sessions[0].agent_role == AgentRole.SUBAGENT
-
-
-def test_run_single_model_failure(store):
-    skill_id = store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="a.pdf", media_type="application/pdf",
-    ))
-
-    class _FailingProvider:
-        def complete(self, system: str, user: str) -> CompletionResult:
-            raise RuntimeError("API error")
-
-    result = run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=_FailingProvider(),
-    )
-    assert result is None
-
-    # Session should be marked as failed
-    sessions = store.list_sessions(status=SessionStatus.FAILED)
-    assert len(sessions) == 1
-
-
-# ---------------------------------------------------------------------------
 # Built-in providers
 # ---------------------------------------------------------------------------
 
@@ -526,99 +441,6 @@ def test_get_provider_local():
 def test_get_provider_unknown():
     with pytest.raises(ValueError, match="Unknown provider"):
         get_provider("nonexistent")
-
-
-def test_run_single_with_echo_provider(store):
-    """End-to-end: run with echo provider, verify context assembly in output."""
-    store.insert_rule(Rule(scope=RuleScope.GLOBAL, content="Always output valid JSON"))
-    skill_id = store.insert_skill(Skill(
-        domain="legal", task_type="extraction",
-        content="Extract party names from contracts.", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="/data/contract.pdf", media_type="application/pdf",
-    ))
-
-    echo = EchoProvider()
-    extraction = run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=echo,
-        domain="legal",
-        model_name="echo",
-    )
-    assert extraction is not None
-
-    # The echo provider output should contain the assembled context
-    raw = extraction.output["raw"]
-    parsed = orjson.loads(raw)
-    assert "Always output valid JSON" in parsed["system_prompt"]
-    assert "Extract party names" in parsed["system_prompt"]
-    assert "contract.pdf" in parsed["user_message"]
-
-
-# ---------------------------------------------------------------------------
-# Provider populates token_usage and model_used
-# ---------------------------------------------------------------------------
-
-
-def test_provider_populates_token_usage(store):
-    """Provider returning token counts populates session.token_usage."""
-    skill_id = store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="a.pdf", media_type="application/pdf",
-    ))
-
-    token_provider = _MockProvider(
-        content='{"result": "ok"}',
-        input_tokens=150,
-        output_tokens=42,
-        model="test-model-v1",
-    )
-
-    run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=token_provider,
-        model_name="fallback",
-    )
-
-    # Find the session
-    sessions = store.list_sessions()
-    assert len(sessions) == 1
-    session = sessions[0]
-    assert session.token_usage == {"input_tokens": 150, "output_tokens": 42}
-
-
-def test_provider_populates_model_used(store):
-    """session.model_used comes from CompletionResult.model, not caller string."""
-    skill_id = store.insert_skill(Skill(
-        domain="d", task_type="t", content="c", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="a.pdf", media_type="application/pdf",
-    ))
-
-    model_provider = _MockProvider(
-        content='{"result": "ok"}',
-        model="claude-3-5-sonnet-20241022",
-    )
-
-    run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=model_provider,
-        model_name="anthropic",
-    )
-
-    sessions = store.list_sessions()
-    assert len(sessions) == 1
-    assert sessions[0].model_used == "claude-3-5-sonnet-20241022"
 
 
 def test_openai_compat_provider_request_format(store):
@@ -705,36 +527,6 @@ def test_assemble_runner_context_without_preset(store):
     assert "Test skill content" in system_prompt
 
 
-def test_run_single_with_preset(store):
-    """run_single with preset passes archetype context through to echo output."""
-    skill_id = store.insert_skill(Skill(
-        domain="test", task_type="extraction",
-        content="Extract test data.", status=SkillStatus.ACTIVE,
-    ))
-    source_id = store.insert_source(Source(
-        content_path="/data/test.pdf", media_type="application/pdf",
-    ))
-
-    echo = EchoProvider()
-    extraction = run_single(
-        store,
-        skill_id=skill_id,
-        source_id=source_id,
-        provider=echo,
-        domain="test",
-        model_name="echo",
-        preset="careful-executor",
-    )
-    assert extraction is not None
-
-    raw = extraction.output["raw"]
-    parsed = orjson.loads(raw)
-    # Archetype fragments should be in the system prompt
-    assert "Operating Principles" in parsed["system_prompt"]
-    assert "structural-triad" in parsed["system_prompt"]
-    # Skill content still present
-    assert "Extract test data" in parsed["system_prompt"]
-
 
 # ---------------------------------------------------------------------------
 # CLI command tests (skill deprecate/activate, session show, skill --version)
@@ -767,18 +559,23 @@ def test_cli_skill_deprecate_activate(tmp_path):
 def test_cli_session_show(tmp_path, capsys):
     """CLI session show prints full session details."""
     from freud_schema.cli import main
+    from freud_schema.db import connect
+    from freud_schema.store import ExperimentStore
+    from freud_schema.tables import Session, AgentRole, SessionStatus
+
     db = str(tmp_path / "test.duckdb")
     main(["--db", db, "db", "init"])
-    main(["--db", db, "skill", "add", "--domain", "d", "--task-type", "t",
-          "--content", "c", "--status", "active"])
-    main(["--db", db, "source", "add", "--path", "a.pdf", "--media-type", "application/pdf"])
-    main(["--db", db, "run", "--domain", "d", "--task-type", "t", "--model", "echo"])
-    # now show the session created by the run
+    store = ExperimentStore(connect(db))
+    store.insert_session(Session(
+        task_description="test task", task_type="test",
+        agent_role=AgentRole.SUBAGENT, status=SessionStatus.COMPLETED,
+        model_used="echo",
+    ))
+    store.close()
     main(["--db", db, "session", "show", "1"])
     out = capsys.readouterr().out
     assert "Session: 1" in out
     assert "Model:" in out
-    assert "Status:" in out
 
 
 def test_cli_skill_deprecate_nonexistent():
@@ -812,22 +609,17 @@ def test_skill_version_roundtrip(store):
     assert fetched.version == 2
 
 
-def test_run_single_with_invalid_preset(store):
-    """Invalid preset raises ValueError."""
+def test_invalid_preset_raises_in_context_assembly(store):
+    """Invalid preset raises ValueError in assemble_runner_context."""
     skill_id = store.insert_skill(Skill(
         domain="test", task_type="extraction",
         content="content", status=SkillStatus.ACTIVE,
     ))
-    source_id = store.insert_source(Source(
-        content_path="/data/test.pdf", media_type="application/pdf",
-    ))
 
-    echo = EchoProvider()
     with pytest.raises(ValueError, match="Unknown preset"):
-        run_single(
+        assemble_runner_context(
             store,
             skill_id=skill_id,
-            source_id=source_id,
-            provider=echo,
+            source_ids=[],
             preset="nonexistent-preset",
         )

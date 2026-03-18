@@ -20,13 +20,6 @@ import orjson
 
 from freud_schema.harness import compose_preset
 from freud_schema.store import ExperimentStore
-from freud_schema.tables import (
-    AgentRole,
-    Extraction,
-    Session,
-    SessionStatus,
-    ValidationStatus,
-)
 
 
 # ---------------------------------------------------------------------------
@@ -139,96 +132,6 @@ def assemble_runner_context(
 
     return system_prompt, user_message
 
-
-# ---------------------------------------------------------------------------
-# Single-shot execution (test utility)
-# ---------------------------------------------------------------------------
-
-
-def run_single(
-    store: ExperimentStore,
-    *,
-    skill_id: int,
-    source_id: int,
-    provider: Provider,
-    domain: str | None = None,
-    task_params: str = "",
-    model_name: str = "unknown",
-    preset: str | None = None,
-) -> Extraction | None:
-    """Execute a single source against a skill: assemble context, call model, store results.
-
-    This is a test utility, not an orchestrator. It proves the data layer works
-    end-to-end without requiring API keys (with EchoProvider).
-
-    Returns the Extraction if successful, None on model failure.
-    """
-    # Create session record
-    session = Session(
-        task_description=f"test: skill={skill_id} source={source_id}",
-        task_type="test",
-        agent_role=AgentRole.SUBAGENT,
-        skill_id=skill_id,
-        context_loaded={
-            "skill_id": skill_id,
-            "source_id": source_id,
-        },
-        model_used=model_name,
-        status=SessionStatus.RUNNING,
-    )
-    session_id = store.insert_session(session)
-
-    system_prompt, user_message = assemble_runner_context(
-        store,
-        skill_id=skill_id,
-        source_ids=[source_id],
-        domain=domain,
-        task_params=task_params,
-        preset=preset,
-    )
-
-    try:
-        result = provider.complete(system_prompt, user_message)
-
-        # Build token usage from CompletionResult
-        token_usage = None
-        if result.input_tokens is not None or result.output_tokens is not None:
-            token_usage = {}
-            if result.input_tokens is not None:
-                token_usage["input_tokens"] = result.input_tokens
-            if result.output_tokens is not None:
-                token_usage["output_tokens"] = result.output_tokens
-
-        # Prefer model name from response over caller's string
-        actual_model = result.model or model_name
-        store.update_session_model(session_id, actual_model)
-
-        session_result = {"raw": result.content}
-        if result.metadata:
-            session_result.update(result.metadata)
-
-        store.complete_session(
-            session_id,
-            status=SessionStatus.COMPLETED,
-            result=session_result,
-            token_usage=token_usage,
-        )
-    except Exception as exc:
-        store.complete_session(
-            session_id, status=SessionStatus.FAILED, result={"error": str(exc)}
-        )
-        return None
-
-    # Store extraction
-    extraction = Extraction(
-        source_id=source_id,
-        skill_id=skill_id,
-        session_id=session_id,
-        output={"raw": result.content},
-        validation_status=ValidationStatus.PENDING,
-    )
-    ext_id = store.insert_extraction(extraction)
-    return extraction.model_copy(update={"id": ext_id})
 
 
 # ---------------------------------------------------------------------------

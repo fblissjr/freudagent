@@ -55,11 +55,10 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 
 `--db` is a global flag (before the subcommand). Defaults to `data/freudagent.duckdb`.
 
-Workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> `run` -> `extraction list/show/validate` -> `feedback add` -> `skill deprecate` -> `skill add --version N`
+Workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> harness extracts -> `extraction list/show/validate` -> `feedback add` -> `skill deprecate` -> `skill add --version N`
 
 Full CLI reference is in `skill/skill.md`. Key commands:
 
-- `freud-schema run --domain D --task-type T [--model echo|anthropic|local|rlm|rlm-anthropic]`
 - `freud-schema extraction list|show|validate|reject`
 - `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
 - `freud-schema skill add|list|deprecate|activate` (add supports `--version N`)
@@ -67,9 +66,25 @@ Full CLI reference is in `skill/skill.md`. Key commands:
 
 ## DuckDB MCP
 
-Use the `duckdb` MCP tools (`execute_query`, `list_tables`, `list_columns`) for ad-hoc
-queries. Schema docs are in `.claude/skills/db-query.md`. For standalone SQL:
-`freud-schema db ddl | duckdb :memory:`
+DuckDB is single-process -- only one connection per file. The MCP server holds it
+during Claude Code sessions, so the `freud-schema` CLI cannot access the same DB file.
+
+**Always use MCP tools for database access:**
+
+- `mcp__duckdb__execute_query` -- Run any SQL (SELECT, INSERT, UPDATE, DELETE, DDL)
+- `mcp__duckdb__list_tables` -- List all tables in the database
+- `mcp__duckdb__list_columns` -- Show columns of a specific table
+
+Do NOT shell out to `freud-schema` CLI for any command that touches the database --
+every subcommand except `db ddl` opens a connection and will fail with a lock error.
+
+Claude Code IS the harness. Orchestration happens natively (Agent tool, Read tool,
+MCP tools). The CLI exposes data operations (CRUD on skills/sources/rules/feedback/
+extractions/sessions, corpus queries, archetype commands) but not execution pipelines.
+
+**Outside Claude Code (scripts, CI, terminal):** Use the `freud-schema` CLI for data management.
+
+Schema docs: `.claude/skills/db-query.md`
 
 ## Conventions
 

@@ -50,7 +50,7 @@ Claude Code's own orchestration capabilities (Agent tool, multi-step reasoning,
 file operations) handle decomposition and routing. FreudAgent provides:
 - DuckDB schema via MCP tools for data access
 - CLI for data management (`freud-schema skill add`, `source add`, etc.)
-- Context assembly for testing (`freud-schema run --model echo`)
+- Context assembly (`assemble_runner_context()`) for harness integration
 - Archetype-composed system prompts for behavioral shaping
 
 ## How Agent SDK Would Consume FreudAgent

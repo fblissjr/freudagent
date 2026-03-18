@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.13.1
+version: 0.14.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -24,7 +24,7 @@ activation:
 scope:
   includes:
     - Managing skills, rules, sources, and feedback in the experiment harness
-    - Running test extractions against sources (single-shot, not orchestration)
+    - Providing context assembly and provider abstractions for harness integration
     - Querying Freud's theoretical corpus (17 core entries)
     - Generating agent system prompts from Freudian archetypes
     - Reviewing and validating extraction output
@@ -60,6 +60,12 @@ FreudAgent handles data.
 All commands use `freud-schema` (or `uv run freud-schema`). The `--db` flag is global
 (before the subcommand) and defaults to `data/freudagent.duckdb`.
 
+> **If DuckDB MCP is available (Claude Code sessions):** Prefer `mcp__duckdb__execute_query`
+> over CLI commands for all database operations. DuckDB is single-process -- the MCP server
+> holds the connection, so CLI commands that touch the DB will fail with a lock error.
+> CLI commands that don't open a connection (corpus queries, archetype/preset commands,
+> `db ddl`) still work.
+
 ### Data Management
 
 ```bash
@@ -68,14 +74,6 @@ freud-schema db status                        # Show row counts
 freud-schema rule add --content "..." --priority 10
 freud-schema skill add --domain D --task-type T --content "..." --status active [--version N]
 freud-schema source add --path /data/doc.pdf --media-type application/pdf
-```
-
-### Test Execution (single-shot, not orchestration)
-
-```bash
-freud-schema run --domain D --task-type T --model echo
-freud-schema run --domain D --task-type T --preset careful-executor --model echo
-freud-schema run --domain D --task-type T --source-id 1 --source-id 3
 ```
 
 ### Review and Feedback

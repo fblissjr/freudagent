@@ -162,24 +162,6 @@ def main(argv: list[str] | None = None) -> None:
     p_fb_add.add_argument("--notes", default=None)
     p_fb_add.add_argument("--by", default=None)
 
-    # --- Run command ---
-    p_run = sub.add_parser("run", help="Test execution: assemble context and call provider once per source")
-    p_run.add_argument("--domain", required=True, help="Skill domain")
-    p_run.add_argument("--task-type", required=True, help="Skill task type")
-    p_run.add_argument("--source-id", type=int, action="append", default=None,
-                       help="Source ID(s) to process (repeatable, default: all active)")
-    p_run.add_argument("--model", default="echo",
-                       help="Provider: echo, anthropic, local, rlm, or rlm-anthropic (default: echo)")
-    p_run.add_argument("--model-name", default=None, help="Model name override (provider-specific default)")
-    p_run.add_argument("--endpoint", default=None, help="Base URL for local provider (default: http://localhost:8080)")
-    p_run.add_argument("--preset", default=None,
-                       help="Archetype preset to compose into system prompt (e.g. careful-executor)")
-    p_run.add_argument("--max-iterations", type=int, default=10,
-                       help="Max REPL iterations for RLM providers (default: 10)")
-    p_run.add_argument("--sub-model", default=None,
-                       help="Provider for llm_query() sub-calls in RLM (default: same as --model)")
-    p_run.add_argument("--task", default="", help="Additional task context")
-
     # --- Extraction commands ---
     p_ext = sub.add_parser("extraction", help="Manage extractions")
     p_ext_sub = p_ext.add_subparsers(dest="extraction_action")
@@ -310,9 +292,6 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "feedback":
         _handle_feedback(args)
 
-    elif args.command == "run":
-        _handle_run(args)
-
     elif args.command == "extraction":
         _handle_extraction(args)
 
@@ -339,312 +318,225 @@ def _handle_db(args) -> None:
         print(get_ddl())
         return
 
-    con = connect(args.db)
-    if args.action == "init":
-        init_schema(con)
-        print("Schema initialized.")
-    elif args.action == "reset":
-        reset_schema(con)
-        print("Schema reset (all data dropped).")
-    elif args.action == "status":
-        init_schema(con)
-        version = get_schema_version(con)
-        print(f"  Schema version: {version}")
-        for table in ("skills", "sources", "extractions", "sessions", "feedback", "rules"):
-            row = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
-            count = row[0] if row else 0
-            print(f"  {table:15s} {count:>6} rows")
-    con.close()
+    with connect(args.db) as con:
+        if args.action == "init":
+            init_schema(con)
+            print("Schema initialized.")
+        elif args.action == "reset":
+            reset_schema(con)
+            print("Schema reset (all data dropped).")
+        elif args.action == "status":
+            init_schema(con)
+            version = get_schema_version(con)
+            print(f"  Schema version: {version}")
+            for table in ("skills", "sources", "extractions", "sessions", "feedback", "rules"):
+                row = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+                count = row[0] if row else 0
+                print(f"  {table:15s} {count:>6} rows")
 
 
 def _handle_skill(args) -> None:
     from freud_schema.tables import Skill
 
-    store = _get_store(args.db)
-    if args.skill_action == "add":
-        content = args.content
-        if args.file:
-            with open(args.file) as f:
-                content = f.read()
-        if not content:
-            print("Provide --content or --file", file=sys.stderr)
-            sys.exit(1)
-        skill = Skill(
-            domain=args.domain, task_type=args.task_type,
-            version=args.version,
-            content=content, status=args.status,
-        )
-        skill_id = store.insert_skill(skill)
-        print(f"Skill created: id={skill_id} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
-    elif args.skill_action == "list":
-        for s in store.list_skills():
-            print(f"  [{s.id}] {s.domain}/{s.task_type} v{s.version} ({s.status})")
-    elif args.skill_action in ("deprecate", "activate"):
-        if store.get_skill(args.id) is None:
-            print(f"Skill {args.id} not found.", file=sys.stderr)
-            sys.exit(1)
-        action = store.deprecate_skill if args.skill_action == "deprecate" else store.activate_skill
-        action(args.id)
-        verb = "deprecated" if args.skill_action == "deprecate" else "activated"
-        print(f"Skill {args.id} {verb}.")
-    else:
-        print("Use: skill add|list|deprecate|activate", file=sys.stderr)
+    with _get_store(args.db) as store:
+        if args.skill_action == "add":
+            content = args.content
+            if args.file:
+                with open(args.file) as f:
+                    content = f.read()
+            if not content:
+                print("Provide --content or --file", file=sys.stderr)
+                sys.exit(1)
+            skill = Skill(
+                domain=args.domain, task_type=args.task_type,
+                version=args.version,
+                content=content, status=args.status,
+            )
+            skill_id = store.insert_skill(skill)
+            print(f"Skill created: id={skill_id} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
+        elif args.skill_action == "list":
+            for s in store.list_skills():
+                print(f"  [{s.id}] {s.domain}/{s.task_type} v{s.version} ({s.status})")
+        elif args.skill_action in ("deprecate", "activate"):
+            if store.get_skill(args.id) is None:
+                print(f"Skill {args.id} not found.", file=sys.stderr)
+                sys.exit(1)
+            action = store.deprecate_skill if args.skill_action == "deprecate" else store.activate_skill
+            action(args.id)
+            verb = "deprecated" if args.skill_action == "deprecate" else "activated"
+            print(f"Skill {args.id} {verb}.")
+        else:
+            print("Use: skill add|list|deprecate|activate", file=sys.stderr)
 
 
 def _handle_source(args) -> None:
     from freud_schema.tables import Source
 
-    store = _get_store(args.db)
-    if args.source_action == "add":
-        source = Source(content_path=args.path, media_type=args.media_type)
-        source_id = store.insert_source(source)
-        print(f"Source registered: id={source_id} path={args.path}")
-    elif args.source_action == "list":
-        for s in store.list_sources():
-            print(f"  [{s.id}] {s.content_path} ({s.media_type}) [{s.status}]")
-    else:
-        print("Use: source add|list", file=sys.stderr)
+    with _get_store(args.db) as store:
+        if args.source_action == "add":
+            source = Source(content_path=args.path, media_type=args.media_type)
+            source_id = store.insert_source(source)
+            print(f"Source registered: id={source_id} path={args.path}")
+        elif args.source_action == "list":
+            for s in store.list_sources():
+                print(f"  [{s.id}] {s.content_path} ({s.media_type}) [{s.status}]")
+        else:
+            print("Use: source add|list", file=sys.stderr)
 
 
 def _handle_rule(args) -> None:
     from freud_schema.tables import Rule
 
-    store = _get_store(args.db)
-    if args.rule_action == "add":
-        rule = Rule(
-            scope=args.scope, domain=args.domain,
-            priority=args.priority, content=args.content,
-        )
-        rule_id = store.insert_rule(rule)
-        print(f"Rule created: id={rule_id} scope={args.scope}")
-    elif args.rule_action == "list":
-        for r in store.list_rules():
-            domain = f" domain={r.domain}" if r.domain else ""
-            print(f"  [{r.id}] [{r.scope}{domain}] p={r.priority}: {r.content[:60]}")
-    else:
-        print("Use: rule add|list", file=sys.stderr)
+    with _get_store(args.db) as store:
+        if args.rule_action == "add":
+            rule = Rule(
+                scope=args.scope, domain=args.domain,
+                priority=args.priority, content=args.content,
+            )
+            rule_id = store.insert_rule(rule)
+            print(f"Rule created: id={rule_id} scope={args.scope}")
+        elif args.rule_action == "list":
+            for r in store.list_rules():
+                domain = f" domain={r.domain}" if r.domain else ""
+                print(f"  [{r.id}] [{r.scope}{domain}] p={r.priority}: {r.content[:60]}")
+        else:
+            print("Use: rule add|list", file=sys.stderr)
 
 
 def _handle_feedback(args) -> None:
     from freud_schema.tables import Feedback
 
-    store = _get_store(args.db)
-    if args.feedback_action == "list":
-        if args.aggregate and args.skill_id:
-            agg = store.aggregate_feedback(args.skill_id)
-            if not agg:
-                print("No feedback for this skill.")
+    with _get_store(args.db) as store:
+        if args.feedback_action == "list":
+            if args.aggregate and args.skill_id:
+                agg = store.aggregate_feedback(args.skill_id)
+                if not agg:
+                    print("No feedback for this skill.")
+                else:
+                    print(f"Feedback for skill {args.skill_id}:")
+                    for correction_type, count in agg:
+                        print(f"  {correction_type:20s} {count:>4}x")
             else:
-                print(f"Feedback for skill {args.skill_id}:")
-                for correction_type, count in agg:
-                    print(f"  {correction_type:20s} {count:>4}x")
+                fb_list = store.list_feedback(skill_id=args.skill_id)
+                if not fb_list:
+                    print("No feedback found.")
+                else:
+                    for fb in fb_list:
+                        print(f"  [{fb.id}] skill={fb.skill_id} type={fb.correction_type} by={fb.created_by or 'anon'}")
+        elif args.feedback_action == "add":
+            ext = store.get_extraction(args.extraction_id)
+            if ext is None:
+                print(f"Extraction {args.extraction_id} not found.", file=sys.stderr)
+                sys.exit(1)
+            try:
+                correction = orjson.loads(args.correction)
+            except Exception:
+                print("--correction must be valid JSON", file=sys.stderr)
+                sys.exit(1)
+            fb = Feedback(
+                extraction_id=args.extraction_id,
+                session_id=ext.session_id,
+                skill_id=ext.skill_id,
+                correction=correction,
+                correction_type=args.type,
+                notes=args.notes,
+                created_by=args.by,
+            )
+            fb_id = store.insert_feedback(fb)
+            print(f"Feedback created: id={fb_id} extraction={args.extraction_id} type={args.type}")
         else:
-            fb_list = store.list_feedback(skill_id=args.skill_id)
-            if not fb_list:
-                print("No feedback found.")
-            else:
-                for fb in fb_list:
-                    print(f"  [{fb.id}] skill={fb.skill_id} type={fb.correction_type} by={fb.created_by or 'anon'}")
-    elif args.feedback_action == "add":
-        ext = store.get_extraction(args.extraction_id)
-        if ext is None:
-            print(f"Extraction {args.extraction_id} not found.", file=sys.stderr)
-            sys.exit(1)
-        try:
-            correction = orjson.loads(args.correction)
-        except Exception:
-            print("--correction must be valid JSON", file=sys.stderr)
-            sys.exit(1)
-        fb = Feedback(
-            extraction_id=args.extraction_id,
-            session_id=ext.session_id,
-            skill_id=ext.skill_id,
-            correction=correction,
-            correction_type=args.type,
-            notes=args.notes,
-            created_by=args.by,
-        )
-        fb_id = store.insert_feedback(fb)
-        print(f"Feedback created: id={fb_id} extraction={args.extraction_id} type={args.type}")
-    else:
-        print("Use: feedback list|add", file=sys.stderr)
-
-
-def _handle_run(args) -> None:
-    """Single-shot execution: assemble context + call provider once per source.
-
-    This is a test utility that verifies the data layer works end-to-end.
-    It is NOT orchestration -- orchestration is the harness's job.
-    """
-    from freud_schema.orchestrator import get_provider, run_single
-    from freud_schema.tables import SourceStatus
-
-    store = _get_store(args.db)
-
-    # Resolve skill
-    skill = store.get_active_skill(args.domain, args.task_type)
-    if skill is None:
-        print(f"No active skill for {args.domain}/{args.task_type}", file=sys.stderr)
-        print("Add one with: freud-schema skill add --domain ... --task-type ... --content ... --status active",
-              file=sys.stderr)
-        sys.exit(1)
-    assert skill.id is not None
-
-    # Resolve source IDs
-    source_ids = args.source_id  # None means "all active"
-    if source_ids is None:
-        sources = store.list_sources(status=SourceStatus.ACTIVE)
-        source_ids = [s.id for s in sources if s.id is not None]
-    if not source_ids:
-        print("No sources to process.", file=sys.stderr)
-        print("Register sources with: freud-schema source add --path ... --media-type ...",
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Get provider
-    try:
-        provider = get_provider(
-            args.model,
-            model_name=args.model_name,
-            base_url=args.endpoint,
-            max_iterations=args.max_iterations,
-            sub_model=args.sub_model,
-        )
-    except (ValueError, ImportError) as e:
-        print(str(e), file=sys.stderr)
-        sys.exit(1)
-
-    model_display = args.model_name or args.model
-    print(f"Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={skill.id})")
-    print(f"Model: {model_display}")
-    if args.preset:
-        print(f"Preset: {args.preset}")
-    print()
-
-    # Single-shot: one call per source
-    extractions = []
-    for sid in source_ids:
-        ext = run_single(
-            store,
-            skill_id=skill.id,
-            source_id=sid,
-            provider=provider,
-            domain=args.domain,
-            task_params=args.task,
-            model_name=model_display,
-            preset=args.preset,
-        )
-        if ext is not None:
-            extractions.append(ext)
-
-    if not extractions:
-        print("No extractions produced.")
-        return
-
-    source_map = store.get_sources_by_ids([e.source_id for e in extractions])
-
-    for i, ext in enumerate(extractions, 1):
-        source = source_map.get(ext.source_id)
-        path = source.content_path if source else f"source-{ext.source_id}"
-        print(f"[{i}/{len(extractions)}] {path}")
-        print(f"  Extraction: id={ext.id} ({ext.validation_status})")
-        _print_json(ext.output.get("raw", ""))
-        print()
-
-    print(f"Done: {len(extractions)} extraction(s) created.")
-    print("Review: freud-schema extraction list")
-    print("Validate: freud-schema extraction validate <id>")
+            print("Use: feedback list|add", file=sys.stderr)
 
 
 def _handle_extraction(args) -> None:
-    store = _get_store(args.db)
-    if args.extraction_action == "list":
-        exts = store.list_extractions(
-            skill_id=args.skill_id,
-            validation_status=args.status,
-            limit=args.limit,
-        )
-        if not exts:
-            print("No extractions found.")
+    with _get_store(args.db) as store:
+        if args.extraction_action == "list":
+            exts = store.list_extractions(
+                skill_id=args.skill_id,
+                validation_status=args.status,
+                limit=args.limit,
+            )
+            if not exts:
+                print("No extractions found.")
+            else:
+                source_map = store.get_sources_by_ids([e.source_id for e in exts])
+                for e in exts:
+                    source = source_map.get(e.source_id)
+                    path = source.content_path if source else "?"
+                    print(f"  [{e.id}] skill={e.skill_id} source={path} "
+                          f"status={e.validation_status} confidence={e.confidence}")
+        elif args.extraction_action == "show":
+            ext = store.get_extraction(args.id)
+            if ext is None:
+                print(f"Extraction {args.id} not found.", file=sys.stderr)
+                sys.exit(1)
+            source = store.get_source(ext.source_id)
+            skill = store.get_skill(ext.skill_id)
+            print(f"  Extraction: {ext.id}")
+            print(f"  Source: {source.content_path if source else '?'} (id={ext.source_id})")
+            if skill:
+                print(f"  Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={ext.skill_id})")
+            else:
+                print(f"  Skill: id={ext.skill_id}")
+            print(f"  Session: {ext.session_id}")
+            print(f"  Status: {ext.validation_status}")
+            if ext.confidence is not None:
+                print(f"  Confidence: {ext.confidence}")
+            if ext.validated_by:
+                print(f"  Validated by: {ext.validated_by} at {ext.validated_at}")
+            print(f"  Created: {ext.created_at}")
+            print(f"\n  Output:")
+            _print_json(ext.output, indent="    ")
+        elif args.extraction_action == "validate":
+            store.update_validation(args.id, status=ValidationStatus.VALIDATED, validated_by=args.by)
+            print(f"Extraction {args.id} marked as validated.")
+        elif args.extraction_action == "reject":
+            store.update_validation(args.id, status=ValidationStatus.REJECTED, validated_by=args.by)
+            print(f"Extraction {args.id} marked as rejected.")
         else:
-            source_map = store.get_sources_by_ids([e.source_id for e in exts])
-            for e in exts:
-                source = source_map.get(e.source_id)
-                path = source.content_path if source else "?"
-                print(f"  [{e.id}] skill={e.skill_id} source={path} "
-                      f"status={e.validation_status} confidence={e.confidence}")
-    elif args.extraction_action == "show":
-        ext = store.get_extraction(args.id)
-        if ext is None:
-            print(f"Extraction {args.id} not found.", file=sys.stderr)
-            sys.exit(1)
-        source = store.get_source(ext.source_id)
-        skill = store.get_skill(ext.skill_id)
-        print(f"  Extraction: {ext.id}")
-        print(f"  Source: {source.content_path if source else '?'} (id={ext.source_id})")
-        if skill:
-            print(f"  Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={ext.skill_id})")
-        else:
-            print(f"  Skill: id={ext.skill_id}")
-        print(f"  Session: {ext.session_id}")
-        print(f"  Status: {ext.validation_status}")
-        if ext.confidence is not None:
-            print(f"  Confidence: {ext.confidence}")
-        if ext.validated_by:
-            print(f"  Validated by: {ext.validated_by} at {ext.validated_at}")
-        print(f"  Created: {ext.created_at}")
-        print(f"\n  Output:")
-        _print_json(ext.output, indent="    ")
-    elif args.extraction_action == "validate":
-        store.update_validation(args.id, status=ValidationStatus.VALIDATED, validated_by=args.by)
-        print(f"Extraction {args.id} marked as validated.")
-    elif args.extraction_action == "reject":
-        store.update_validation(args.id, status=ValidationStatus.REJECTED, validated_by=args.by)
-        print(f"Extraction {args.id} marked as rejected.")
-    else:
-        print("Use: extraction list|show|validate|reject", file=sys.stderr)
+            print("Use: extraction list|show|validate|reject", file=sys.stderr)
 
 
 def _handle_session(args) -> None:
-    store = _get_store(args.db)
-    if args.session_action == "list":
-        sessions = store.list_sessions(status=args.status, limit=args.limit)
-        if not sessions:
-            print("No sessions found.")
+    with _get_store(args.db) as store:
+        if args.session_action == "list":
+            sessions = store.list_sessions(status=args.status, limit=args.limit)
+            if not sessions:
+                print("No sessions found.")
+            else:
+                for s in sessions:
+                    parent = f" parent={s.parent_session_id}" if s.parent_session_id else ""
+                    skill_info = f" skill={s.skill_id}" if s.skill_id else ""
+                    print(f"  [{s.id}] {s.agent_role} {s.task_type} [{s.status}]{parent}{skill_info} model={s.model_used}")
+        elif args.session_action == "show":
+            session = store.get_session(args.id)
+            if session is None:
+                print(f"Session {args.id} not found.", file=sys.stderr)
+                sys.exit(1)
+            print(f"  Session: {session.id}")
+            print(f"  Task: {session.task_description}")
+            print(f"  Type: {session.task_type}")
+            print(f"  Role: {session.agent_role}")
+            print(f"  Status: {session.status}")
+            print(f"  Model: {session.model_used}")
+            if session.skill_id:
+                print(f"  Skill: {session.skill_id}")
+            if session.parent_session_id:
+                print(f"  Parent: {session.parent_session_id}")
+            print(f"  Created: {session.created_at}")
+            if session.completed_at:
+                print(f"  Completed: {session.completed_at}")
+            if session.context_loaded:
+                print(f"\n  Context loaded:")
+                _print_json(session.context_loaded, indent="    ")
+            if session.token_usage:
+                print(f"\n  Token usage:")
+                _print_json(session.token_usage, indent="    ")
+            if session.result:
+                print(f"\n  Result:")
+                _print_json(session.result, indent="    ")
         else:
-            for s in sessions:
-                parent = f" parent={s.parent_session_id}" if s.parent_session_id else ""
-                skill_info = f" skill={s.skill_id}" if s.skill_id else ""
-                print(f"  [{s.id}] {s.agent_role} {s.task_type} [{s.status}]{parent}{skill_info} model={s.model_used}")
-    elif args.session_action == "show":
-        session = store.get_session(args.id)
-        if session is None:
-            print(f"Session {args.id} not found.", file=sys.stderr)
-            sys.exit(1)
-        print(f"  Session: {session.id}")
-        print(f"  Task: {session.task_description}")
-        print(f"  Type: {session.task_type}")
-        print(f"  Role: {session.agent_role}")
-        print(f"  Status: {session.status}")
-        print(f"  Model: {session.model_used}")
-        if session.skill_id:
-            print(f"  Skill: {session.skill_id}")
-        if session.parent_session_id:
-            print(f"  Parent: {session.parent_session_id}")
-        print(f"  Created: {session.created_at}")
-        if session.completed_at:
-            print(f"  Completed: {session.completed_at}")
-        if session.context_loaded:
-            print(f"\n  Context loaded:")
-            _print_json(session.context_loaded, indent="    ")
-        if session.token_usage:
-            print(f"\n  Token usage:")
-            _print_json(session.token_usage, indent="    ")
-        if session.result:
-            print(f"\n  Result:")
-            _print_json(session.result, indent="    ")
-    else:
-        print("Use: session list|show", file=sys.stderr)
+            print("Use: session list|show", file=sys.stderr)
 
 
 if __name__ == "__main__":
