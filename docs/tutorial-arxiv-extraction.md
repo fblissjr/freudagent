@@ -157,14 +157,12 @@ need to know: which source produced it, which skill processed it, which model
 ran it, how many tokens it used. If sources were just CLI arguments, that
 chain breaks.
 
-**Why the harness doesn't read the file:** This is an intentional gap (see
-`internal/BACKLOG.md` under "Source content ingestion"). `run_single()`
-passes source metadata (path, MIME type) to the model, but doesn't
-read the file contents. With Claude Code or Agent SDK as the actual runtime,
-the harness assembles context and the runtime handles file reading. For the
-echo provider (next step), this doesn't matter -- you're verifying the
-pipeline, not the extraction. (The RLM provider does load file content --
-see the [RLM tutorial](tutorial-rlm-provider.md).)
+**Why the harness reads the file, not the data layer:** The data layer tracks
+source metadata (path, MIME type) but doesn't read file contents. The harness
+(Claude Code, Agent SDK) reads files directly. Claude Code uses the Read tool;
+Agent SDK uses whatever file access the runtime provides. The RLM provider is
+an exception -- it loads source content into the REPL namespace (see the
+[RLM tutorial](tutorial-rlm-provider.md)).
 
 Verify:
 
@@ -207,10 +205,12 @@ Look for:
 - Is the skill content there, in full?
 - Is the source reference in the user message?
 
-## 6. Inspect what happened
+## 6. Inspect results after extraction
+
+After the harness produces extractions (step 6b below), inspect them:
 
 ```bash
-# See the extraction record
+# See extraction records
 uv run freud-schema extraction list
 
 # See the full output

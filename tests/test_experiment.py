@@ -544,16 +544,16 @@ def test_cli_skill_deprecate_activate(tmp_path):
     main(["--db", db, "skill", "deprecate", "1"])
     from freud_schema.db import connect
     from freud_schema.store import ExperimentStore
-    store = ExperimentStore(connect(db))
-    skill = store.get_skill(1)
-    assert skill is not None
-    assert skill.status == SkillStatus.DEPRECATED
+    with ExperimentStore(connect(db)) as store:
+        skill = store.get_skill(1)
+        assert skill is not None
+        assert skill.status == SkillStatus.DEPRECATED
     # activate it back
     main(["--db", db, "skill", "activate", "1"])
-    store = ExperimentStore(connect(db))
-    skill = store.get_skill(1)
-    assert skill is not None
-    assert skill.status == SkillStatus.ACTIVE
+    with ExperimentStore(connect(db)) as store:
+        skill = store.get_skill(1)
+        assert skill is not None
+        assert skill.status == SkillStatus.ACTIVE
 
 
 def test_cli_session_show(tmp_path, capsys):

@@ -133,7 +133,6 @@ def assemble_runner_context(
     return system_prompt, user_message
 
 
-
 # ---------------------------------------------------------------------------
 # Built-in provider implementations
 # ---------------------------------------------------------------------------

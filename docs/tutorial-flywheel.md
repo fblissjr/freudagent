@@ -101,7 +101,7 @@ These changes map directly to the feedback: `wrong_value` on authors -> spelling
 
 ## 4. Deprecate v1
 
-Now that v2 is active, deprecate v1 so it won't be selected by `run`:
+Now that v2 is active, deprecate v1 so it won't be selected by `get_active_skill()`:
 
 ```bash
 uv run freud-schema skill deprecate 1
@@ -115,16 +115,32 @@ uv run freud-schema skill list
 
 You should see v1 as `deprecated` and v2 as `active`.
 
-## 5. Re-run
+## 5. Re-extract
 
-Run the same source through the new skill:
+Run the same source through the new skill via the harness. In Claude Code, the
+harness handles extraction natively. Programmatically:
 
-```bash
-uv run freud-schema run --domain arxiv --task-type extraction --model echo
+```python
+from freud_schema.orchestrator import get_provider, assemble_runner_context
+from freud_schema.db import connect
+from freud_schema.store import ExperimentStore
+
+store = ExperimentStore(connect("data/freudagent.duckdb"))
+skill = store.get_active_skill("arxiv", "extraction")  # picks up v2 automatically
+sources = store.list_sources()
+
+system_prompt, user_message = assemble_runner_context(
+    store, skill_id=skill.id, source_ids=[s.id for s in sources], domain="arxiv",
+)
+
+provider = get_provider("echo")  # or "anthropic", "local", "rlm", etc.
+result = provider.complete(system_prompt, user_message)
+print(result.content)
+store.close()
 ```
 
-The `run` command automatically picks up the latest active skill (v2), so no
-additional flags are needed.
+`get_active_skill()` automatically picks up the latest active skill (v2), so no
+additional routing is needed.
 
 ## 6. Compare extractions
 
@@ -185,8 +201,9 @@ draft v2 from feedback patterns) is deferred -- see `internal/BACKLOG.md`.
 
 ## What to try next
 
-- **Add more feedback on v2.** Run against a real model, review the output, add
-  corrections. Does v2 actually produce fewer errors? The database answers this.
+- **Add more feedback on v2.** Extract via the harness with a real model, review
+  the output, add corrections. Does v2 actually produce fewer errors? The database
+  answers this.
 
 - **Aggregate across versions.** Use the DuckDB MCP tools to compare feedback
   counts between skill versions:
@@ -198,8 +215,9 @@ draft v2 from feedback patterns) is deferred -- see `internal/BACKLOG.md`.
   GROUP BY e.skill_id, s.version
   ```
 
-- **Try different presets.** Run v2 with `--preset careful-executor` vs no preset.
-  Does the censor-gate archetype reduce false positives?
+- **Try different presets.** Use `assemble_runner_context(..., preset="careful-executor")`
+  vs no preset. Does the censor-gate archetype reduce false positives?
 
-- **Compare providers.** Run the same v2 skill against Claude and a local model.
-  Which produces more corrections? The sessions table tracks this automatically.
+- **Compare providers.** Extract with the same v2 skill using `get_provider("anthropic")`
+  vs `get_provider("local")`. Which produces more corrections? The sessions table
+  tracks this automatically.

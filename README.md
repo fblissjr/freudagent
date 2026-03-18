@@ -241,7 +241,7 @@ uv run pytest tests/ -v
 
 Core dependencies: pydantic >= 2.0, duckdb >= 0.9, orjson >= 3.9.
 
-Optional dependencies (for testing context assembly against real models):
+Optional dependencies (for provider integrations):
 ```bash
 uv sync --extra anthropic   # Claude API
 uv sync --extra local       # OpenAI-compatible endpoints (httpx)
