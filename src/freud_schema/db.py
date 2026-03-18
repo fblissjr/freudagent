@@ -182,7 +182,16 @@ def get_ddl() -> str:
 def connect(db_path: str | Path | None = None) -> duckdb.DuckDBPyConnection:
     """Open a DuckDB connection. Use :memory: for tests."""
     path = str(db_path) if db_path else str(_DEFAULT_DB)
-    return duckdb.connect(path)
+    try:
+        return duckdb.connect(path)
+    except duckdb.IOException as e:
+        if "lock" in str(e).lower():
+            raise duckdb.IOException(
+                "Database is locked by another process (likely the DuckDB MCP server).\n"
+                "Use MCP tools (execute_query) for database access during this session,\n"
+                "or stop the MCP server to use the CLI."
+            ) from None
+        raise
 
 
 def init_schema(con: duckdb.DuckDBPyConnection) -> None:

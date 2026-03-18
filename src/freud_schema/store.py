@@ -48,6 +48,15 @@ class ExperimentStore:
         self.con = con
         init_schema(con)
 
+    def close(self) -> None:
+        self.con.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
     # -------------------------------------------------------------------
     # Generic row conversion
     # -------------------------------------------------------------------

@@ -9,11 +9,29 @@ Query the FreudAgent experiment harness database using the `duckdb` MCP server t
 
 ## When to use
 
+**Inside Claude Code (this session):** Always use `mcp__duckdb__execute_query` for
+all database reads AND writes. Never shell out to `freud-schema` CLI for DB
+operations -- DuckDB is single-process, and the MCP server already holds the
+connection. CLI commands will fail with a lock error.
+
+**Outside Claude Code (scripts, CI, terminal):** Use the `freud-schema` CLI.
+
+Use this skill for:
 - Inspecting experiment data (skills, sources, sessions, extractions, feedback, rules)
 - Ad-hoc analysis of orchestrator runs
 - Checking schema state or table contents
 - Debugging extraction output or session status
 - Verifying data integrity after code changes
+- **All INSERT/UPDATE/DELETE operations** during Claude Code sessions
+
+## How to use
+
+The primary interface is `mcp__duckdb__execute_query`. Pass any valid DuckDB SQL:
+
+```
+mcp__duckdb__execute_query(sql="SELECT * FROM skills WHERE status = 'active'")
+mcp__duckdb__execute_query(sql="INSERT INTO rules (scope, content, priority) VALUES ('global', 'Rule text', 10)")
+```
 
 ## MCP tools available
 
@@ -21,9 +39,9 @@ The `duckdb` MCP server (mcp-server-motherduck) exposes these tools:
 
 | Tool | Use for |
 |------|---------|
-| `execute_query` | Run any DuckDB SQL. Pass `sql` parameter. |
-| `list_tables` | Show all tables in the database. |
-| `list_columns` | Show columns of a specific table. Pass `table` parameter. |
+| `mcp__duckdb__execute_query` | Run any DuckDB SQL (SELECT, INSERT, UPDATE, DELETE, DDL). Pass `sql` parameter. |
+| `mcp__duckdb__list_tables` | Show all tables in the database. |
+| `mcp__duckdb__list_columns` | Show columns of a specific table. Pass `table` parameter. |
 
 ## Schema (7 tables)
 
@@ -102,5 +120,6 @@ feedback.skill_id         -> skills.id
 
 - JSON columns (metadata, context_loaded, token_usage, result, output, correction) are queryable with DuckDB's JSON functions: `output->>'$.raw'`, `json_extract(metadata, '$.key')`
 - The MCP server connects to `data/freudagent.duckdb` with read-write access
-- For a fresh schema with CHECK + FK constraints, run `freud-schema db reset` first
-- To get the DDL as standalone SQL: `freud-schema db ddl`
+- DuckDB allows only one process to connect to a database file at a time. The MCP server holds this connection during Claude Code sessions. Use MCP tools, not CLI commands, for all DB access.
+- To get the DDL as standalone SQL: `freud-schema db ddl` (this is the one CLI DB command that does NOT open a connection)
+- If the DuckDB MCP server is available, always prefer `execute_query` over CLI commands to avoid lock conflicts

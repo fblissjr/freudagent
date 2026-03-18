@@ -9,7 +9,5 @@ from freud_schema.store import ExperimentStore
 @pytest.fixture
 def store():
     """In-memory DuckDB store for each test."""
-    con = connect(":memory:")
-    s = ExperimentStore(con)
-    yield s
-    con.close()
+    with ExperimentStore(connect(":memory:")) as s:
+        yield s
