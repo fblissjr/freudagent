@@ -1,6 +1,6 @@
 ---
 name: db-query
-description: Query the experiment harness DuckDB via the duckdb MCP server. Use when inspecting skills, sources, sessions, extractions, feedback, or rules data.
+description: Query the experiment harness DuckDB via the duckdb MCP server. Use when inspecting skills, sources, sessions, traces, extractions, feedback, or rules data.
 ---
 
 # db-query
@@ -17,7 +17,7 @@ connection. CLI commands will fail with a lock error.
 **Outside Claude Code (scripts, CI, terminal):** Use the `freud-schema` CLI.
 
 Use this skill for:
-- Inspecting experiment data (skills, sources, sessions, extractions, feedback, rules)
+- Inspecting experiment data (skills, sources, sessions, traces, extractions, feedback, rules)
 - Ad-hoc analysis of orchestrator runs
 - Checking schema state or table contents
 - Debugging extraction output or session status
@@ -29,8 +29,8 @@ Use this skill for:
 The primary interface is `mcp__duckdb__execute_query`. Pass any valid DuckDB SQL:
 
 ```
-mcp__duckdb__execute_query(sql="SELECT * FROM skills WHERE status = 'active'")
-mcp__duckdb__execute_query(sql="INSERT INTO rules (scope, content, priority) VALUES ('global', 'Rule text', 10)")
+mcp__duckdb__execute_query(sql="SELECT * FROM dim_skill WHERE status = 'active'")
+mcp__duckdb__execute_query(sql="INSERT INTO dim_rule (scope, content, priority) VALUES ('global', 'Rule text', 10)")
 ```
 
 ## MCP tools available
@@ -43,83 +43,113 @@ The `duckdb` MCP server (mcp-server-motherduck) exposes these tools:
 | `mcp__duckdb__list_tables` | Show all tables in the database. |
 | `mcp__duckdb__list_columns` | Show columns of a specific table. Pass `table` parameter. |
 
-## Schema (7 tables)
+## Schema: Dimensional Model (Kimball-style)
+
+### Dimension tables (reference data)
 
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
-| `skills` | Declarative instructions | domain, task_type, version, status, content |
-| `sources` | Raw artifacts to process | content_path, media_type, status |
-| `sessions` | Logged agent executions | task_type, agent_role, status, model_used, parent_session_id |
-| `extractions` | Structured output from runs | source_id, skill_id, session_id, output, validation_status |
-| `feedback` | Human corrections | extraction_id, correction_type, correction |
-| `rules` | Constraints (global or per-domain) | scope, domain, priority, content, status |
-| `meta_schema_version` | Schema version tracking | version, description |
+| `dim_skill` | Declarative instructions | domain, task_type, version, status, origin, content |
+| `dim_source` | Raw artifacts to process | content_path, media_type, status |
+| `dim_rule` | Constraints (global or per-domain) | scope, domain, priority, content, status |
+| `dim_sampling_config` | Prior run sampling settings | domain, task_type, strategy, max_samples |
+
+### Fact tables (event data with denormalized attributes)
+
+| Table | Purpose | Key columns |
+|-------|---------|-------------|
+| `fact_session` | Logged agent executions | task_type, agent_role, status, skill_id, skill_domain, skill_task_type |
+| `fact_trace` | Reasoning trace tree nodes | session_id, trace_type, depth, title, skill_id, skill_domain |
+| `fact_extraction` | Structured output from runs | source_id, source_path, skill_id, skill_domain, validation_status |
+| `fact_feedback` | Human corrections on extractions | extraction_id, correction_type, skill_id, skill_domain, source_id |
+| `fact_trace_feedback` | Human feedback on traces | trace_id, feedback_type, trace_type, trace_title, skill_id |
+
+### Analytical views (replace complex store queries)
+
+| View | Purpose |
+|------|---------|
+| `v_feedback_by_skill` | Correction counts by skill + correction_type |
+| `v_feedback_fields` | Field names mentioned in corrections by skill |
+| `v_recurring_traces` | Traces that recur across sessions for a skill |
+| `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
+| `v_skill_feedback_patterns` | Skills with feedback above threshold |
+| `v_session_feedback_count` | Feedback count per session (for HIGH_FEEDBACK sampling) |
+
+### Operational
+
+| Table | Purpose |
+|-------|---------|
+| `meta_schema_version` | Schema version tracking (version, description) |
 
 ## Enum values (enforced by CHECK constraints)
 
 | Column | Valid values |
 |--------|-------------|
-| skills.status | draft, active, deprecated |
-| sources.status | active, archived |
-| sessions.status | running, completed, failed |
-| sessions.agent_role | orchestrator, subagent |
-| extractions.validation_status | pending, validated, rejected |
-| feedback.correction_type | field_mapping, wrong_value, missing_field, false_positive |
-| rules.scope | global, domain-specific |
-| rules.status | active, inactive |
+| dim_skill.status | draft, active, deprecated |
+| dim_skill.origin | human_authored, data_derived |
+| dim_source.status | active, archived |
+| fact_session.status | running, completed, failed |
+| fact_session.agent_role | orchestrator, subagent |
+| fact_trace.trace_type | decision_point, path_taken, path_discarded, insight, dead_end, subagent_spawn, tool_call, conclusion |
+| fact_extraction.validation_status | pending, validated, rejected |
+| fact_trace_feedback.feedback_type | path_correction, positive_signal, dead_end_confirmation, reasoning_error |
+| fact_feedback.correction_type | field_mapping, wrong_value, missing_field, false_positive |
+| dim_rule.scope | global, domain-specific |
+| dim_rule.status | active, inactive |
+| dim_sampling_config.strategy | recent, random, stratified_outcome, stratified_feedback, high_feedback |
 
 ## Common queries
 
-**Recent sessions with status:**
+**Recent sessions with denormalized skill info:**
 ```sql
-SELECT id, agent_role, task_type, status, model_used, created_at
-FROM sessions ORDER BY created_at DESC LIMIT 20
+SELECT id, agent_role, task_type, status, skill_domain, skill_task_type, model_used, created_at
+FROM fact_session ORDER BY created_at DESC LIMIT 20
 ```
 
 **Active skills:**
 ```sql
-SELECT id, domain, task_type, version, status
-FROM skills WHERE status = 'active'
+SELECT id, domain, task_type, version, status, origin
+FROM dim_skill WHERE status = 'active'
 ```
 
-**Extractions needing review:**
+**Trace tree for a session:**
 ```sql
-SELECT e.id, e.validation_status, e.confidence, s.content_path
-FROM extractions e JOIN sources s ON e.source_id = s.id
-WHERE e.validation_status = 'pending'
+SELECT id, depth, sequence_order, trace_type, title, reasoning, skill_domain
+FROM fact_trace WHERE session_id = ?
+ORDER BY depth, sequence_order
 ```
 
-**Feedback flywheel signal:**
+**Extractions with denormalized source info (no join needed):**
 ```sql
-SELECT correction_type, COUNT(*) as cnt
-FROM feedback GROUP BY correction_type ORDER BY cnt DESC
+SELECT id, validation_status, confidence, source_path, skill_domain, skill_task_type
+FROM fact_extraction
+WHERE validation_status = 'pending'
 ```
 
-**Failed sessions:**
+**Feedback flywheel signal (via view):**
 ```sql
-SELECT id, task_description, result, created_at
-FROM sessions WHERE status = 'failed'
+SELECT * FROM v_feedback_by_skill WHERE skill_id = ?
 ```
 
-## FK relationships
-
-```
-skills.parent_skill_id    -> skills.id
-sources.superseded_by     -> sources.id
-sessions.parent_session_id -> sessions.id
-sessions.skill_id         -> skills.id
-extractions.source_id     -> sources.id
-extractions.skill_id      -> skills.id
-extractions.session_id    -> sessions.id
-feedback.extraction_id    -> extractions.id
-feedback.session_id       -> sessions.id
-feedback.skill_id         -> skills.id
+**Recurring dead ends (via view, no join needed):**
+```sql
+SELECT * FROM v_recurring_traces
+WHERE skill_id = ? AND trace_type = 'dead_end' AND occurrence_count >= 2
+ORDER BY occurrence_count DESC
 ```
 
-## Notes
+**Skills needing attention (via view):**
+```sql
+SELECT DISTINCT skill_id, skill_domain, skill_task_type, total_feedback
+FROM v_skill_feedback_patterns WHERE total_feedback >= 3
+```
 
-- JSON columns (metadata, context_loaded, token_usage, result, output, correction) are queryable with DuckDB's JSON functions: `output->>'$.raw'`, `json_extract(metadata, '$.key')`
+## Design notes
+
+- No FK constraints (DuckDB can't CASCADE anyway). Existence validation done in the store layer.
+- Fact tables carry denormalized dimension attributes (skill_domain, source_path, etc.) populated at insert time. This eliminates fact-to-fact joins.
+- Views replace N+1 query patterns and complex Python aggregation code.
+- JSON columns (metadata, context_loaded, token_usage, result, output, correction, alternatives, outcome, activation_conditions, sampled_session_ids) are queryable with DuckDB's JSON functions: `output->>'$.raw'`, `json_extract(metadata, '$.key')`
+- UNIQUE constraint on dim_skill `(domain, task_type, version)` prevents duplicate skill versions
 - The MCP server connects to `data/freudagent.duckdb` with read-write access
-- DuckDB allows only one process to connect to a database file at a time. The MCP server holds this connection during Claude Code sessions. Use MCP tools, not CLI commands, for all DB access.
 - To get the DDL as standalone SQL: `freud-schema db ddl` (this is the one CLI DB command that does NOT open a connection)
-- If the DuckDB MCP server is available, always prefer `execute_query` over CLI commands to avoid lock conflicts

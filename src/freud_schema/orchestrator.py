@@ -87,14 +87,23 @@ def assemble_runner_context(
     domain: str | None = None,
     task_params: str = "",
     preset: str | None = None,
+    prior_runs: list[dict] | None = None,
+    include_feedback_summary: bool = False,
 ) -> tuple[str, str]:
     """Build system prompt and user message for a subagent run.
 
     Returns (system_prompt, user_message) following the progressive
-    disclosure hierarchy: [preset archetypes ->] rules -> skill -> source -> task.
+    disclosure hierarchy: [preset archetypes ->] rules -> skill ->
+    [prior runs ->] [feedback summary ->] source -> task.
 
     When preset is provided, the archetype-composed system prompt is
     prepended to the system prompt, connecting identity to execution.
+
+    When prior_runs is provided (list of get_session_with_context dicts),
+    a formatted summary of prior runs is included in the system prompt.
+
+    When include_feedback_summary is True, aggregate feedback patterns
+    for the skill are included in the system prompt.
     """
     # Layer 0: Archetype identity (optional)
     archetype_block = ""
@@ -114,6 +123,18 @@ def assemble_runner_context(
     if skill:
         skill_block = f"# Skill: {skill.domain} / {skill.task_type} (v{skill.version})\n\n{skill.content}\n\n"
 
+    # Layer 2.5: Prior runs (institutional memory)
+    prior_runs_block = ""
+    if prior_runs:
+        prior_runs_block = _format_prior_runs(prior_runs)
+
+    # Layer 2.6: Feedback summary (flywheel signal)
+    feedback_summary_block = ""
+    if include_feedback_summary and skill:
+        agg = store.aggregate_feedback(skill_id, include_examples=True, max_examples=3)
+        if agg:
+            feedback_summary_block = _format_feedback_summary(agg)
+
     # Layer 3: Source references (bulk fetch)
     source_block = ""
     if source_ids:
@@ -127,10 +148,90 @@ def assemble_runner_context(
         if source_block:
             source_block = f"# Sources\n\n{source_block}\n"
 
-    system_prompt = (archetype_block + rules_block + skill_block).strip()
+    system_prompt = (
+        archetype_block + rules_block + skill_block
+        + prior_runs_block + feedback_summary_block
+    ).strip()
     user_message = (source_block + task_params).strip()
 
     return system_prompt, user_message
+
+
+from freud_schema.tables import TraceType as _TraceType
+
+_SIGNAL_TRACE_TYPES = frozenset({
+    _TraceType.DECISION_POINT, _TraceType.DEAD_END, _TraceType.INSIGHT,
+    _TraceType.CONCLUSION, _TraceType.SUBAGENT_SPAWN,
+})
+
+
+def _format_prior_runs(prior_runs: list[dict]) -> str:
+    """Format prior run context dicts into a system prompt block.
+
+    Only includes signal-bearing trace types (decisions, dead ends, insights,
+    conclusions, subagent spawns). Skips tool_call, path_taken, path_discarded
+    to avoid blowing up context with mechanical detail.
+    """
+    lines = ["# Prior Runs (learn from these)\n"]
+    for ctx in prior_runs:
+        session = ctx["session"]
+        lines.append(f"## Run #{session.id} ({session.status}, {session.created_at})")
+        lines.append(f"Task: {session.task_description}\n")
+
+        traces = ctx.get("traces", [])
+        if traces:
+            signal_traces = [t for t in traces if t.trace_type in _SIGNAL_TRACE_TYPES]
+            skipped = len(traces) - len(signal_traces)
+            if signal_traces:
+                lines.append(f"Key traces ({len(signal_traces)} of {len(traces)}):")
+                for t in signal_traces:
+                    indent = "  " * t.depth
+                    lines.append(f"- {indent}[{t.trace_type}] {t.title}")
+                    if t.reasoning:
+                        lines.append(f"  {indent}  -> {t.reasoning}")
+            elif skipped:
+                lines.append(f"({len(traces)} mechanical traces, no decisions/insights)")
+            lines.append("")
+
+        extractions = ctx.get("extractions", [])
+        if extractions:
+            for ext in extractions:
+                fields = len(ext.output) if isinstance(ext.output, dict) else 0
+                lines.append(f"Extraction outcome: {fields} fields, {ext.validation_status}")
+            lines.append("")
+
+        feedback_list = ctx.get("feedback", [])
+        if feedback_list:
+            lines.append("Feedback:")
+            for fb in feedback_list:
+                note = fb.notes or ""
+                lines.append(f"- [{fb.correction_type}] {note}")
+            lines.append("")
+
+        trace_fb = ctx.get("trace_feedback", [])
+        if trace_fb:
+            lines.append("Trace feedback:")
+            for tf in trace_fb:
+                lines.append(f"- [{tf.feedback_type}] {tf.content}")
+            lines.append("")
+
+    return "\n".join(lines) + "\n"
+
+
+def _format_feedback_summary(agg: list[dict]) -> str:
+    """Format aggregate feedback into a system prompt block."""
+    lines = ["# Feedback Patterns for This Skill\n"]
+    for entry in agg:
+        ct = entry["correction_type"]
+        count = entry["count"]
+        fields = ", ".join(entry["fields"]) if entry["fields"] else "N/A"
+        lines.append(f"- {ct}: {count} corrections (fields: {fields})")
+        for ex in entry.get("examples", []):
+            ex_str = orjson.dumps(ex).decode()
+            if len(ex_str) > 200:
+                ex_str = ex_str[:200] + "..."
+            lines.append(f"  Example: {ex_str}")
+    return "\n".join(lines) + "\n\n"
 
 
 # ---------------------------------------------------------------------------

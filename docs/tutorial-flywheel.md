@@ -208,16 +208,15 @@ draft v2 from feedback patterns) is deferred -- see `internal/BACKLOG.md`.
 - **Aggregate across versions.** Use the DuckDB MCP tools to compare feedback
   counts between skill versions:
   ```sql
-  SELECT e.skill_id, s.version, COUNT(f.id) as corrections
-  FROM feedback f
-  JOIN extractions e ON f.extraction_id = e.id
-  JOIN skills s ON e.skill_id = s.id
-  GROUP BY e.skill_id, s.version
+  SELECT f.skill_id, s.version, COUNT(f.id) as corrections
+  FROM fact_feedback f
+  JOIN dim_skill s ON f.skill_id = s.id
+  GROUP BY f.skill_id, s.version
   ```
 
 - **Try different presets.** Use `assemble_runner_context(..., preset="careful-executor")`
   vs no preset. Does the censor-gate archetype reduce false positives?
 
 - **Compare providers.** Extract with the same v2 skill using `get_provider("anthropic")`
-  vs `get_provider("local")`. Which produces more corrections? The sessions table
-  tracks this automatically.
+  vs `get_provider("local")`. Which produces more corrections? The `fact_session`
+  table tracks this automatically.

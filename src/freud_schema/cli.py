@@ -26,8 +26,12 @@ from freud_schema.models import FreudEntry
 from freud_schema.tables import (
     CorrectionType,
     RuleScope,
+    SamplingStrategy,
     SessionStatus,
+    SkillOrigin,
     SkillStatus,
+    TraceFeedbackType,
+    TraceType,
     ValidationStatus,
 )
 
@@ -132,6 +136,9 @@ def main(argv: list[str] | None = None) -> None:
     p_skill_deprecate.add_argument("id", type=int)
     p_skill_activate = p_skill_sub.add_parser("activate", help="Activate a skill")
     p_skill_activate.add_argument("id", type=int)
+    p_skill_patterns = p_skill_sub.add_parser("patterns", help="Show feedback patterns")
+    p_skill_patterns.add_argument("--domain", default=None)
+    p_skill_patterns.add_argument("--min-count", type=int, default=3)
 
     p_source = sub.add_parser("source", help="Manage sources")
     p_source_sub = p_source.add_subparsers(dest="source_action")
@@ -186,6 +193,42 @@ def main(argv: list[str] | None = None) -> None:
     p_sess_list.add_argument("--limit", type=int, default=20)
     p_sess_show = p_sess_sub.add_parser("show", help="Show session details")
     p_sess_show.add_argument("id", type=int)
+
+    # --- Trace commands ---
+    p_trace = sub.add_parser("trace", help="View execution traces")
+    p_trace_sub = p_trace.add_subparsers(dest="trace_action")
+    p_trace_list = p_trace_sub.add_parser("list", help="List traces for a session")
+    p_trace_list.add_argument("--session-id", type=int, required=True)
+    p_trace_list.add_argument("--type", default=None, choices=[e.value for e in TraceType])
+    p_trace_show = p_trace_sub.add_parser("show", help="Show trace details")
+    p_trace_show.add_argument("id", type=int)
+    p_trace_patterns = p_trace_sub.add_parser("patterns", help="Find recurring traces")
+    p_trace_patterns.add_argument("--skill-id", type=int, required=True)
+    p_trace_patterns.add_argument("--type", required=True, choices=[e.value for e in TraceType])
+    p_trace_patterns.add_argument("--min-count", type=int, default=2)
+
+    # --- Trace feedback commands ---
+    p_tfb = sub.add_parser("trace-feedback", help="Manage trace feedback")
+    p_tfb_sub = p_tfb.add_subparsers(dest="trace_feedback_action")
+    p_tfb_add = p_tfb_sub.add_parser("add", help="Add feedback on a trace")
+    p_tfb_add.add_argument("--trace-id", type=int, required=True)
+    p_tfb_add.add_argument("--type", required=True, choices=[e.value for e in TraceFeedbackType])
+    p_tfb_add.add_argument("--content", required=True)
+    p_tfb_add.add_argument("--correction", default=None, help="JSON correction data")
+    p_tfb_add.add_argument("--by", default=None)
+    p_tfb_list = p_tfb_sub.add_parser("list", help="List trace feedback")
+    p_tfb_list.add_argument("--session-id", type=int, required=True)
+    p_tfb_list.add_argument("--type", default=None, choices=[e.value for e in TraceFeedbackType])
+
+    # --- Sampling config commands ---
+    p_sc = sub.add_parser("sampling-config", help="Manage sampling configs")
+    p_sc_sub = p_sc.add_subparsers(dest="sampling_config_action")
+    p_sc_add = p_sc_sub.add_parser("add", help="Add a sampling config")
+    p_sc_add.add_argument("--strategy", required=True, choices=[e.value for e in SamplingStrategy])
+    p_sc_add.add_argument("--domain", default=None)
+    p_sc_add.add_argument("--task-type", default=None)
+    p_sc_add.add_argument("--max-samples", type=int, default=3)
+    p_sc_sub.add_parser("list", help="List all sampling configs")
 
     args = parser.parse_args(argv)
     if not args.command:
@@ -298,6 +341,15 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "session":
         _handle_session(args)
 
+    elif args.command == "trace":
+        _handle_trace(args)
+
+    elif args.command == "trace-feedback":
+        _handle_trace_feedback(args)
+
+    elif args.command == "sampling-config":
+        _handle_sampling_config(args)
+
 
 # ---------------------------------------------------------------------------
 # Experiment harness command handlers
@@ -329,7 +381,9 @@ def _handle_db(args) -> None:
             init_schema(con)
             version = get_schema_version(con)
             print(f"  Schema version: {version}")
-            for table in ("skills", "sources", "extractions", "sessions", "feedback", "rules"):
+            for table in ("dim_skill", "dim_source", "dim_rule", "dim_sampling_config",
+                          "fact_session", "fact_trace", "fact_extraction",
+                          "fact_feedback", "fact_trace_feedback"):
                 row = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
                 count = row[0] if row else 0
                 print(f"  {table:15s} {count:>6} rows")
@@ -356,7 +410,21 @@ def _handle_skill(args) -> None:
             print(f"Skill created: id={skill_id} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
         elif args.skill_action == "list":
             for s in store.list_skills():
-                print(f"  [{s.id}] {s.domain}/{s.task_type} v{s.version} ({s.status})")
+                origin_tag = f" [{s.origin}]" if s.origin != "human_authored" else ""
+                parent_tag = f" parent={s.parent_skill_id}" if s.parent_skill_id else ""
+                print(f"  [{s.id}] {s.domain}/{s.task_type} v{s.version} ({s.status}){origin_tag}{parent_tag}")
+        elif args.skill_action == "patterns":
+            results = store.get_skills_with_feedback_patterns(
+                domain=args.domain, min_feedback_count=args.min_count,
+            )
+            if not results:
+                print("No skills with feedback patterns above threshold.")
+            else:
+                for r in results:
+                    skill = r["skill"]
+                    print(f"  [{skill.id}] {skill.domain}/{skill.task_type} v{skill.version} -- {r['total_feedback']} total feedback")
+                    for ct, cnt in r["patterns"]:
+                        print(f"    {ct:20s} {cnt:>4}x")
         elif args.skill_action in ("deprecate", "activate"):
             if store.get_skill(args.id) is None:
                 print(f"Skill {args.id} not found.", file=sys.stderr)
@@ -414,8 +482,10 @@ def _handle_feedback(args) -> None:
                     print("No feedback for this skill.")
                 else:
                     print(f"Feedback for skill {args.skill_id}:")
-                    for correction_type, count in agg:
-                        print(f"  {correction_type:20s} {count:>4}x")
+                    for entry in agg:
+                        fields = ", ".join(entry["fields"]) if entry["fields"] else ""
+                        fields_str = f" (fields: {fields})" if fields else ""
+                        print(f"  {entry['correction_type']:20s} {entry['count']:>4}x{fields_str}")
             else:
                 fb_list = store.list_feedback(skill_id=args.skill_id)
                 if not fb_list:
@@ -459,10 +529,8 @@ def _handle_extraction(args) -> None:
             if not exts:
                 print("No extractions found.")
             else:
-                source_map = store.get_sources_by_ids([e.source_id for e in exts])
                 for e in exts:
-                    source = source_map.get(e.source_id)
-                    path = source.content_path if source else "?"
+                    path = e.source_path or "?"
                     print(f"  [{e.id}] skill={e.skill_id} source={path} "
                           f"status={e.validation_status} confidence={e.confidence}")
         elif args.extraction_action == "show":
@@ -470,12 +538,10 @@ def _handle_extraction(args) -> None:
             if ext is None:
                 print(f"Extraction {args.id} not found.", file=sys.stderr)
                 sys.exit(1)
-            source = store.get_source(ext.source_id)
-            skill = store.get_skill(ext.skill_id)
             print(f"  Extraction: {ext.id}")
-            print(f"  Source: {source.content_path if source else '?'} (id={ext.source_id})")
-            if skill:
-                print(f"  Skill: {skill.domain}/{skill.task_type} v{skill.version} (id={ext.skill_id})")
+            print(f"  Source: {ext.source_path or '?'} (id={ext.source_id})")
+            if ext.skill_domain:
+                print(f"  Skill: {ext.skill_domain}/{ext.skill_task_type} v{ext.skill_version} (id={ext.skill_id})")
             else:
                 print(f"  Skill: id={ext.skill_id}")
             print(f"  Session: {ext.session_id}")
@@ -537,6 +603,140 @@ def _handle_session(args) -> None:
                 _print_json(session.result, indent="    ")
         else:
             print("Use: session list|show", file=sys.stderr)
+
+
+def _handle_trace(args) -> None:
+    from freud_schema.tables import Trace, TraceType
+
+    with _get_store(args.db) as store:
+        if args.trace_action == "list":
+            traces = store.get_session_traces(args.session_id)
+            if args.type:
+                traces = [t for t in traces if t.trace_type == args.type]
+            if not traces:
+                print("No traces found.")
+            else:
+                for t in traces:
+                    indent = "  " * t.depth
+                    duration = f" ({t.duration_ms}ms)" if t.duration_ms else ""
+                    print(f"  {indent}[{t.id}] [{t.trace_type}] {t.title}{duration}")
+        elif args.trace_action == "show":
+            trace = store.get_trace(args.id)
+            if trace is None:
+                print(f"Trace {args.id} not found.", file=sys.stderr)
+                sys.exit(1)
+            print(f"  Trace: {trace.id}")
+            print(f"  Session: {trace.session_id}")
+            print(f"  Type: {trace.trace_type}")
+            print(f"  Title: {trace.title}")
+            print(f"  Depth: {trace.depth}, Order: {trace.sequence_order}")
+            if trace.parent_trace_id:
+                print(f"  Parent: {trace.parent_trace_id}")
+            if trace.content:
+                print(f"  Content: {trace.content}")
+            if trace.reasoning:
+                print(f"  Reasoning: {trace.reasoning}")
+            if trace.alternatives:
+                print(f"\n  Alternatives:")
+                _print_json(trace.alternatives, indent="    ")
+            if trace.outcome:
+                print(f"\n  Outcome:")
+                _print_json(trace.outcome, indent="    ")
+            if trace.child_session_id:
+                print(f"  Child session: {trace.child_session_id}")
+            if trace.duration_ms:
+                print(f"  Duration: {trace.duration_ms}ms")
+            children = store.get_trace_children(trace.id)
+            if children:
+                print(f"\n  Children ({len(children)}):")
+                for c in children:
+                    print(f"    [{c.id}] [{c.trace_type}] {c.title}")
+            tf_data = store.get_trace_with_feedback(trace.id)
+            if tf_data and tf_data["feedback"]:
+                print(f"\n  Feedback ({len(tf_data['feedback'])}):")
+                for fb in tf_data["feedback"]:
+                    print(f"    [{fb.feedback_type}] {fb.content}")
+        elif args.trace_action == "patterns":
+            patterns = store.get_recurring_traces(
+                args.skill_id,
+                TraceType(args.type),
+                min_occurrences=args.min_count,
+            )
+            if not patterns:
+                print("No recurring patterns found.")
+            else:
+                for p in patterns:
+                    print(f"  [{p['count']}x] {p['title']}")
+                    print(f"    Sessions: {p['session_ids']}")
+                    print(f"    Example trace: {p['example_trace_id']}")
+        else:
+            print("Use: trace list|show|patterns", file=sys.stderr)
+
+
+def _handle_trace_feedback(args) -> None:
+    from freud_schema.tables import TraceFeedback, TraceFeedbackType
+
+    with _get_store(args.db) as store:
+        if args.trace_feedback_action == "add":
+            trace = store.get_trace(args.trace_id)
+            if trace is None:
+                print(f"Trace {args.trace_id} not found.", file=sys.stderr)
+                sys.exit(1)
+            correction = None
+            if args.correction:
+                try:
+                    correction = orjson.loads(args.correction)
+                except Exception:
+                    print("--correction must be valid JSON", file=sys.stderr)
+                    sys.exit(1)
+            tf = TraceFeedback(
+                trace_id=args.trace_id,
+                session_id=trace.session_id,
+                feedback_type=args.type,
+                content=args.content,
+                correction=correction,
+                created_by=args.by,
+            )
+            tf_id = store.insert_trace_feedback(tf)
+            print(f"Trace feedback created: id={tf_id} trace={args.trace_id} type={args.type}")
+        elif args.trace_feedback_action == "list":
+            fb_list = store.list_trace_feedback(
+                session_id=args.session_id,
+                feedback_type=TraceFeedbackType(args.type) if args.type else None,
+            )
+            if not fb_list:
+                print("No trace feedback found.")
+            else:
+                for fb in fb_list:
+                    print(f"  [{fb.id}] trace={fb.trace_id} [{fb.feedback_type}] {fb.content[:60]} by={fb.created_by or 'anon'}")
+        else:
+            print("Use: trace-feedback add|list", file=sys.stderr)
+
+
+def _handle_sampling_config(args) -> None:
+    from freud_schema.tables import SamplingConfig
+
+    with _get_store(args.db) as store:
+        if args.sampling_config_action == "add":
+            config = SamplingConfig(
+                strategy=args.strategy,
+                domain=args.domain,
+                task_type=args.task_type,
+                max_samples=args.max_samples,
+            )
+            config_id = store.insert_sampling_config(config)
+            print(f"Sampling config created: id={config_id} strategy={args.strategy}")
+        elif args.sampling_config_action == "list":
+            configs = store.list_sampling_configs()
+            if not configs:
+                print("No sampling configs found.")
+            else:
+                for c in configs:
+                    domain = c.domain or "*"
+                    task = c.task_type or "*"
+                    print(f"  [{c.id}] {domain}/{task} strategy={c.strategy} max={c.max_samples} [{c.status}]")
+        else:
+            print("Use: sampling-config add|list", file=sys.stderr)
 
 
 if __name__ == "__main__":

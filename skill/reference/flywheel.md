@@ -16,9 +16,9 @@ correction is a training signal.
 
 What exists today in the schema:
 
-1. **Extract**: The harness (Claude Code, Agent SDK) produces extractions stored in the `extractions` table
+1. **Extract**: The harness (Claude Code, Agent SDK) produces extractions stored in the `fact_extraction` table
 2. **Review**: `freud-schema extraction show N` displays output for human review
-3. **Correct**: `freud-schema feedback add` records typed corrections in the `feedback` table
+3. **Correct**: `freud-schema feedback add` records typed corrections in the `fact_feedback` table
 4. **Aggregate**: `freud-schema feedback list --aggregate` shows correction patterns per skill
 
 What does NOT exist yet:

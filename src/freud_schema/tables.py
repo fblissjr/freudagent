@@ -1,9 +1,13 @@
-"""Pydantic models for the 6-table experiment harness schema.
+"""Pydantic models for the dimensional experiment harness schema.
 
-These mirror the DuckDB tables in db.py and provide type-safe interfaces
-for the store operations. Enum classes are the single source of truth
-for valid values -- db.py imports them for CHECK constraints, cli.py
-imports them for argparse choices.
+Models mirror the DuckDB tables in db.py: dimension tables (dim_skill,
+dim_source, dim_rule, dim_sampling_config) and fact tables (fact_session,
+fact_trace, fact_extraction, fact_feedback, fact_trace_feedback).
+
+Fact models include denormalized dimension attributes populated at
+insert time by the store layer. Enum classes are the single source
+of truth for valid values -- db.py imports them for CHECK constraints,
+cli.py imports them for argparse choices.
 """
 
 from __future__ import annotations
@@ -64,8 +68,39 @@ class RuleStatus(str, Enum):
     INACTIVE = "inactive"
 
 
+class TraceType(str, Enum):
+    DECISION_POINT = "decision_point"
+    PATH_TAKEN = "path_taken"
+    PATH_DISCARDED = "path_discarded"
+    INSIGHT = "insight"
+    DEAD_END = "dead_end"
+    SUBAGENT_SPAWN = "subagent_spawn"
+    TOOL_CALL = "tool_call"
+    CONCLUSION = "conclusion"
+
+
+class TraceFeedbackType(str, Enum):
+    PATH_CORRECTION = "path_correction"
+    POSITIVE_SIGNAL = "positive_signal"
+    DEAD_END_CONFIRMATION = "dead_end_confirmation"
+    REASONING_ERROR = "reasoning_error"
+
+
+class SamplingStrategy(str, Enum):
+    RECENT = "recent"
+    RANDOM = "random"
+    STRATIFIED_OUTCOME = "stratified_outcome"
+    STRATIFIED_FEEDBACK = "stratified_feedback"
+    HIGH_FEEDBACK = "high_feedback"
+
+
+class SkillOrigin(str, Enum):
+    HUMAN_AUTHORED = "human_authored"
+    DATA_DERIVED = "data_derived"
+
+
 # ---------------------------------------------------------------------------
-# Pydantic models
+# Dimension models (reference data)
 # ---------------------------------------------------------------------------
 
 
@@ -80,6 +115,11 @@ class Skill(BaseModel):
     metadata: dict | None = None
     parent_skill_id: int | None = None
     status: SkillStatus = SkillStatus.DRAFT
+    origin: SkillOrigin = SkillOrigin.HUMAN_AUTHORED
+    activation_conditions: dict | None = Field(
+        default=None,
+        description="JSON conditions for dynamic loading",
+    )
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -98,19 +138,36 @@ class Source(BaseModel):
     updated_at: datetime | None = None
 
 
-class Extraction(BaseModel):
-    """Structured output from processing a source with a skill."""
+class Rule(BaseModel):
+    """A constraint applied to all agents (global) or a specific domain."""
 
     id: int | None = None
-    source_id: int
-    skill_id: int
-    session_id: int
-    output: dict = Field(description="The structured data produced")
-    confidence: float | None = None
-    validation_status: ValidationStatus = ValidationStatus.PENDING
-    validated_by: str | None = None
-    validated_at: datetime | None = None
+    scope: RuleScope = RuleScope.GLOBAL
+    domain: str | None = None
+    priority: int = 0
+    content: str = Field(description="The rule text, markdown")
+    status: RuleStatus = RuleStatus.ACTIVE
     created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class SamplingConfig(BaseModel):
+    """Configuration for prior run sampling in context assembly."""
+
+    id: int | None = None
+    domain: str | None = None
+    task_type: str | None = None
+    strategy: SamplingStrategy
+    parameters: dict = Field(default_factory=dict)
+    max_samples: int = 3
+    status: RuleStatus = RuleStatus.ACTIVE
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+# ---------------------------------------------------------------------------
+# Fact models (event data with denormalized dimension attributes)
+# ---------------------------------------------------------------------------
 
 
 class Session(BaseModel):
@@ -127,8 +184,38 @@ class Session(BaseModel):
     token_usage: dict | None = None
     status: SessionStatus = SessionStatus.RUNNING
     result: dict | None = None
+    sampled_session_ids: list[int] | None = Field(
+        default=None,
+        description="Prior session IDs injected as context for this run",
+    )
+    # Denormalized from dim_skill
+    skill_domain: str | None = None
+    skill_task_type: str | None = None
+    skill_version: int | None = None
     created_at: datetime | None = None
     completed_at: datetime | None = None
+
+
+class Extraction(BaseModel):
+    """Structured output from processing a source with a skill."""
+
+    id: int | None = None
+    source_id: int
+    skill_id: int
+    session_id: int
+    output: dict = Field(description="The structured data produced")
+    confidence: float | None = None
+    validation_status: ValidationStatus = ValidationStatus.PENDING
+    validated_by: str | None = None
+    validated_at: datetime | None = None
+    # Denormalized from dim_source
+    source_path: str | None = None
+    source_media_type: str | None = None
+    # Denormalized from dim_skill
+    skill_domain: str | None = None
+    skill_task_type: str | None = None
+    skill_version: int | None = None
+    created_at: datetime | None = None
 
 
 class Feedback(BaseModel):
@@ -142,19 +229,59 @@ class Feedback(BaseModel):
     correction_type: CorrectionType
     notes: str | None = None
     created_by: str | None = None
+    # Denormalized from dim_skill
+    skill_domain: str | None = None
+    skill_task_type: str | None = None
+    skill_version: int | None = None
+    # Denormalized from dim_source (via extraction)
+    source_id: int | None = None
+    source_path: str | None = None
     created_at: datetime | None = None
 
 
-class Rule(BaseModel):
-    """A constraint applied to all agents (global) or a specific domain."""
+class Trace(BaseModel):
+    """A single node in a session's reasoning trace tree."""
 
     id: int | None = None
-    scope: RuleScope = RuleScope.GLOBAL
-    domain: str | None = None
-    priority: int = 0
-    content: str = Field(description="The rule text, markdown")
-    status: RuleStatus = RuleStatus.ACTIVE
+    session_id: int
+    parent_trace_id: int | None = None
+    trace_type: TraceType
+    depth: int = 0
+    sequence_order: int = 0
+    title: str = Field(description="One-line summary, queryable and groupable")
+    content: str | None = Field(default=None, description="Full detail of what happened")
+    reasoning: str | None = Field(default=None, description="Why this decision/path/outcome")
+    alternatives: dict | None = Field(default=None, description="What else was considered")
+    outcome: dict | None = Field(default=None, description="Structured result of this node")
+    child_session_id: int | None = Field(
+        default=None, description="For subagent_spawn: spawned session",
+    )
+    duration_ms: int | None = None
+    # Denormalized from fact_session / dim_skill
+    skill_id: int | None = None
+    skill_domain: str | None = None
+    skill_task_type: str | None = None
     created_at: datetime | None = None
-    updated_at: datetime | None = None
 
 
+class TraceFeedback(BaseModel):
+    """Human feedback on a specific trace node -- the trace-level flywheel signal."""
+
+    id: int | None = None
+    trace_id: int
+    session_id: int
+    feedback_type: TraceFeedbackType
+    content: str = Field(description="Human's feedback text")
+    correction: dict | None = Field(
+        default=None,
+        description="Structured correction, nullable for positive_signal",
+    )
+    created_by: str | None = None
+    # Denormalized from fact_trace
+    trace_type: str | None = None
+    trace_title: str | None = None
+    # Denormalized from fact_session / dim_skill
+    skill_id: int | None = None
+    skill_domain: str | None = None
+    skill_task_type: str | None = None
+    created_at: datetime | None = None

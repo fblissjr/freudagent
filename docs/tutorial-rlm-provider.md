@@ -254,7 +254,7 @@ SELECT
     s.context_loaded->>'$.preset' AS preset,
     s.result->>'$.rlm.iterations' AS iterations,
     s.result->>'$.rlm.sub_queries' AS sub_queries
-FROM sessions s
+FROM fact_session s
 WHERE s.result->>'$.rlm' IS NOT NULL
 ORDER BY s.created_at DESC;
 ```

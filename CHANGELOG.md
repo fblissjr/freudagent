@@ -1,5 +1,97 @@
 # Changelog
 
+## 0.16.0
+
+### Changed
+
+- **Dimensional model redesign** (Kimball-style): all tables renamed to `dim_*` (reference
+  data) and `fact_*` (event data). Fact tables carry denormalized dimension attributes
+  at insert time, eliminating all fact-to-fact joins.
+- **6 analytical views** replace complex Python aggregation: `v_feedback_by_skill`,
+  `v_feedback_fields`, `v_recurring_traces`, `v_recurring_trace_feedback`,
+  `v_skill_feedback_patterns`, `v_session_feedback_count`. N+1 query patterns eliminated.
+- `aggregate_feedback`, `get_recurring_traces`, `get_recurring_trace_feedback`,
+  `get_skills_with_feedback_patterns` rewritten as view-backed single queries
+- `sample_prior_sessions` HIGH_FEEDBACK strategy uses `v_session_feedback_count` view
+  instead of correlated subquery
+- Schema version 2 -> 3 (dimensional model)
+
+### Added
+
+- Insert-time denormalization: `insert_session` populates `skill_domain/skill_task_type/skill_version`,
+  `insert_trace` populates skill attrs from session, `insert_extraction` populates source
+  and skill attrs, `insert_feedback` populates skill and source attrs,
+  `insert_trace_feedback` populates trace and skill attrs
+- Session skill attribute caching in store for bulk trace inserts
+- **Store-level existence validation** (`_require` helper): all fact insert methods validate
+  required references exist before insert (replaces FK enforcement). Raises `ValueError`
+  with clear message for orphaned references.
+- **Prior run trace filtering**: `_format_prior_runs` now only includes signal-bearing traces
+  (decision_point, dead_end, insight, conclusion, subagent_spawn). Skips tool_call,
+  path_taken, path_discarded to avoid blowing up context with mechanical detail.
+  Shows summary count ("3 of 50" format).
+
+### Removed
+
+- **FreudAgent MCP server** (`mcp_server.py`, `freud-mcp` entry point, `fastmcp` dependency):
+  70% of tools were 1:1 SQL mappings the duckdb MCP already handles; views solve the rest.
+  Access data via duckdb MCP + views (Claude Code) or CLI (terminal).
+- All 15 FK REFERENCES clauses (DuckDB can't enforce CASCADE anyway; existence
+  validation done in store layer)
+- PRIMARY KEY on dimension and fact tables (sequences still guarantee unique IDs)
+
+## 0.15.0
+
+### Added
+
+- **Run traces** (`traces` table): hierarchical reasoning trace nodes attached to
+  sessions. 8 trace types: decision_point, path_taken, path_discarded, insight,
+  dead_end, subagent_spawn, tool_call, conclusion. Tree structure via parent_trace_id.
+- **Trace feedback** (`trace_feedback` table): human feedback on specific trace nodes.
+  4 feedback types: path_correction, positive_signal, dead_end_confirmation, reasoning_error.
+- **Sampling configs** (`sampling_configs` table): per-domain/task-type prior run
+  sampling configuration. 5 strategies: recent, random, stratified_outcome,
+  stratified_feedback, high_feedback.
+- **Prior run injection**: `assemble_runner_context()` accepts `prior_runs` and
+  `include_feedback_summary` parameters. Prior runs formatted as interpretable
+  system prompt blocks with traces, feedback, and outcomes.
+- **Skill evolution**: `origin` field (human_authored/data_derived) and
+  `activation_conditions` JSON on skills. `insert_derived_skill()` tracks provenance.
+  Pattern detection: `get_skills_with_feedback_patterns()`, `get_recurring_traces()`,
+  `get_recurring_trace_feedback()`.
+- **FreudAgent MCP server** (`freud-mcp`): typed MCP tools wrapping ExperimentStore.
+  30+ tools for sessions, traces, extractions, feedback, sampling, pattern detection,
+  and raw SQL escape hatch. Replaces generic DuckDB MCP server.
+- **PostToolUse hook** (`scripts/trace-hook.sh`): automatic tool_call trace capture
+  to JSONL buffer. `bulk_import_traces` MCP tool loads buffer into DB at session end.
+- **Trace capture reference** (`skill/reference/trace-capture.md`): instructions for
+  Claude on self-reporting reasoning traces during extraction runs.
+- **Schema hardening**: UNIQUE constraint on skills `(domain, task_type, version)`,
+  16 indexes across all tables, enhanced `aggregate_feedback` with field-level detail
+  and optional examples.
+- **Temporal queries**: `list_sessions` and `list_extractions` accept `created_after`
+  and `created_before` date range filters. `list_sessions` adds `skill_id` filter.
+- **Rich retrieval**: `get_extraction_with_feedback()`, `get_session_with_context()`,
+  `get_sessions_with_context()` for joined data access.
+- **Store methods**: `sample_prior_sessions()` (5 strategies), `get_active_sub_skills()`,
+  `insert_derived_skill()`, `delete_session_traces()`, 10 trace/trace-feedback CRUD methods.
+- **CLI commands**: `trace list|show|patterns`, `trace-feedback add|list`,
+  `sampling-config add|list`, `skill patterns`. `skill list` shows origin column.
+  `db status` shows all 10 tables.
+- 45 new tests covering all new tables, constraints, store methods, context assembly,
+  and CLI commands.
+
+### Changed
+
+- Schema version 1 -> 2 (10 tables, up from 7)
+- `aggregate_feedback` returns `list[dict]` with correction_type, count, fields, examples
+  (was `list[tuple[str, int]]`)
+- `Session` model adds `sampled_session_ids: list[int] | None`
+- `Skill` model adds `origin: SkillOrigin` and `activation_conditions: dict | None`
+- `list_skills` accepts `origin` and `parent_skill_id` filters
+- `_json()` helper widened to accept `dict | list | None`
+- pyproject.toml: version 0.15.0, `freud-mcp` script entry point, `mcp` optional extra
+
 ## 0.14.0
 
 ### Removed

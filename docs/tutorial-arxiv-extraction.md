@@ -48,8 +48,8 @@ uv run freud-schema db init
 declarative data-driven orchestration produce measurably better results than
 code-driven workflow approaches?" To test that, you need structured records of
 what was attempted, what was produced, and what humans corrected. Files can't
-do that. The 7-table schema (skills, sources, extractions, sessions, feedback,
-rules, meta_schema_version) isn't plumbing -- it's the experiment itself.
+do that. The dimensional schema (4 dim tables, 5 fact tables, 6 analytical
+views) isn't plumbing -- it's the experiment itself.
 
 **Why `init` is separate from `run`:** You set up the database once, then run
 many experiments against it. The schema is idempotent (`CREATE TABLE IF NOT
@@ -220,11 +220,11 @@ uv run freud-schema extraction show 1
 uv run freud-schema session list
 ```
 
-**Why sessions exist:** Every extraction creates a session record. Sessions
-track status (running/completed/failed), which skill was used, what context
-was loaded, token usage, and the model that actually responded. This is how
-you answer "what happened?" after the fact, and how you compare providers
-(did the local model use fewer tokens? did it fail more often?).
+**Why sessions exist:** Every extraction creates a `fact_session` record.
+Sessions track status (running/completed/failed), which skill was used, what
+context was loaded, token usage, and the model that actually responded. This
+is how you answer "what happened?" after the fact, and how you compare
+providers (did the local model use fewer tokens? did it fail more often?).
 
 ## 6b. How the harness does extraction
 
@@ -263,7 +263,7 @@ are available as Python APIs for the harness to call.
 
 In Claude Code, extraction is native: read the source, call the model, store results
 via MCP tools. The same skill, rules, and source produce the same context regardless
-of which harness orchestrates. The `sessions` table records token counts and model
+of which harness orchestrates. The `fact_session` table records token counts and model
 names, so provider comparisons accumulate automatically.
 
 ## 8. Review and validate

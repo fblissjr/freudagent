@@ -42,9 +42,9 @@ The DuckDB schema maps directly to progressive disclosure levels:
 
 | Level | Schema Element | When Loaded |
 |-------|---------------|-------------|
-| L1 | `rules` | Always -- global and domain constraints |
-| L2 | `skills` | On routing -- matched by domain + task_type |
-| L3 | `sources`, `extractions`, `feedback` | On demand -- per execution |
+| L1 | `dim_rule` | Always -- global and domain constraints |
+| L2 | `dim_skill` | On routing -- matched by domain + task_type |
+| L3 | `dim_source`, `fact_extraction`, `fact_feedback` | On demand -- per execution |
 
 Rules are L1 because they're constraints that apply regardless of task. Skills are L2
 because they're selected by a routing decision (which domain, which task type). Sources,

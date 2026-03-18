@@ -12,9 +12,9 @@ The harness is the moat. Behavior comes from data (skills, rules, archetypes), n
 ```
 src/freud_schema/
   cli.py             - CLI interface (freud-schema)
-  db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL
-  tables.py          - Pydantic models + 8 enum classes (single source of truth)
-  store.py           - CRUD operations (ExperimentStore)
+  db.py              - DuckDB schema: 4 dim + 5 fact tables, 6 views, CHECK constraints, indexes
+  tables.py          - Pydantic models + 12 enum classes (single source of truth)
+  store.py           - CRUD operations with insert-time denormalization (ExperimentStore)
   orchestrator.py    - Context assembly, provider protocol, provider implementations
   harness.py         - Archetype composition into system prompts
   archetypes.py      - 9 archetypes in a 3x3 grid
@@ -31,7 +31,9 @@ tests/
   test_rlm.py        - RLM provider tests
 skill/
   skill.md           - L2: CLI reference, routing table to L3 references
-  reference/         - L3: schema, archetypes, hierarchy, flywheel, retrieval thesis, etc.
+  reference/         - L3: schema, archetypes, hierarchy, flywheel, retrieval thesis, trace-capture, etc.
+scripts/
+  trace-hook.sh      - PostToolUse hook for automatic tool_call trace capture
 docs/
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
   tutorial-rlm-provider.md     - RLM provider tutorial
@@ -92,7 +94,11 @@ Schema docs: `.claude/skills/db-query.md`
 - Models: Pydantic v2 (`model_validate`, `model_dump`), `Field(default_factory=list)` for lists
 - JSON: **orjson** (not json)
 - Enums: construct with members (`SkillStatus.ACTIVE`), never bare strings
-- 8 enum classes in `tables.py` are the single source of truth; CHECK/FK constraints generated from them
+- 12 enum classes in `tables.py` are the single source of truth; CHECK constraints generated from them
+- No FK constraints (DuckDB can't CASCADE anyway) -- existence validated in store layer
+- Fact tables carry denormalized dimension attributes populated at insert time
+- 6 analytical views replace complex aggregation queries (no N+1 patterns)
+- Prior run context uses `_SIGNAL_TRACE_TYPES` to filter traces -- only decision_point, dead_end, insight, conclusion, subagent_spawn appear in system prompts. Don't add tool_call/path_taken/path_discarded.
 - Providers: dynamic imports inside `__init__`, raise `ImportError` with install hint
 - `get_provider()` is the only provider factory
 
@@ -100,6 +106,9 @@ Schema docs: `.claude/skills/db-query.md`
 - All DB access through `ExperimentStore` methods -- never `store.con.execute` directly
 - Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
 - All SQL uses parameterized enum values (no hardcoded string literals)
+- Denormalization: use `_resolve_skill_attrs()` for skill lookups on fact inserts. Don't `_require()` + `get_skill()` separately -- the denormalization fetch validates existence as a side effect
+- Existence validation: only use `_require()` when no denormalization fetch covers that reference (e.g., session_id on extractions has no denormalization)
+- New views must be added to `reset_schema()` drop list (before tables) and to `_ALL_DDL`
 - After `store.insert_*()`, use `model.model_copy(update={"id": new_id})` instead of re-fetching
 - No migration path -- breaking changes use `reset_schema()` (experiment repo, no legacy data)
 - New tables must be added to `reset_schema()` drop list (order matters: dependents first)

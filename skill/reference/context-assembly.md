@@ -25,7 +25,7 @@ iterative) before any task-specific content.
 
 ### Layer 1: Rules
 
-Global and domain-specific constraints, loaded from the `rules` table. Priority-ordered.
+Global and domain-specific constraints, loaded from `dim_rule`. Priority-ordered.
 These are always small (one-liners) and always present.
 
 Example: "Output valid JSON", "Use ISO dates for insurance domain"
@@ -34,7 +34,7 @@ Example: "Output valid JSON", "Use ISO dates for insurance domain"
 
 ### Layer 2: Skill
 
-The actual instructions for the domain/task_type, loaded from the `skills` table.
+The actual instructions for the domain/task_type, loaded from `dim_skill`.
 This is the medium-sized context that tells the agent what to do.
 
 Example: "Extract policy number, effective date, and named insureds from insurance documents."
