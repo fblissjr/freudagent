@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.1
+
+### Fixed
+
+- **README.md**: Experiment Harness section updated from stale 7-table description to
+  dimensional model (4 dim + 5 fact tables, 6 views). Project Structure updated with
+  current file descriptions, added missing directories (scripts/, a2ui/, internal/).
+- **skill/reference/schema.md**: Column-level fixes -- dim_sampling_config domain/task_type
+  now nullable, dim_skill adds parent_skill_id/activation_conditions, fact_trace adds
+  parent_trace_id/content, fact_trace_feedback renames notes->content and adds
+  correction/skill_task_type, fact_feedback adds skill_version/source_path.
+- **a2ui/prompt_addendum.md**: Removed stale FK language, added denormalized fields to
+  Extraction and Session entities, added Trace and TraceFeedback data shapes.
+
 ## 0.16.0
 
 ### Changed

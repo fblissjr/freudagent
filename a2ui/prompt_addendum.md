@@ -1,17 +1,24 @@
 # FreudAgent Data Shapes
 
 When generating A2UI surfaces for FreudAgent, your data model will contain these entity types.
+All tables use a dimensional model (dim_/fact_ naming). Fact tables carry denormalized
+dimension attributes -- no joins needed for display.
 
 ## Extraction
 
-An extraction is a structured output from an agent run.
+An extraction is a structured output from an agent run (from `fact_extraction`).
 
 | Field | Type | Notes |
 |-------|------|-------|
 | id | integer | Primary key |
-| source_id | integer | FK to sources table |
-| skill_id | integer | FK to skills table |
-| session_id | integer | FK to sessions table |
+| source_id | integer | Which source was processed (ref dim_source) |
+| skill_id | integer | Which skill was used (ref dim_skill) |
+| session_id | integer | Which execution produced this (ref fact_session) |
+| source_path | string or null | Denormalized from dim_source |
+| source_media_type | string or null | Denormalized from dim_source |
+| skill_domain | string or null | Denormalized from dim_skill |
+| skill_task_type | string or null | Denormalized from dim_skill |
+| skill_version | integer or null | Denormalized from dim_skill |
 | confidence | float or null | 0.0-1.0, null if unknown |
 | validation_status | string | "pending", "validated", or "rejected" |
 | validated_by | string or null | Who validated |
@@ -24,24 +31,75 @@ An extraction is a structured output from an agent run.
 
 ## Session
 
-A session is a logged agent execution.
+A session is a logged agent execution (from `fact_session`).
 
 | Field | Type | Notes |
 |-------|------|-------|
 | id | integer | Primary key |
 | task_description | string | What the agent was asked to do |
 | task_type | string | Domain category |
-| parent_session_id | integer or null | FK for orchestrator/subagent hierarchy |
+| parent_session_id | integer or null | Tree structure (orchestrator/subagent hierarchy) |
 | agent_role | string | "orchestrator" or "subagent" |
+| skill_id | integer or null | Which skill was used (ref dim_skill) |
+| skill_domain | string or null | Denormalized from dim_skill |
+| skill_task_type | string or null | Denormalized from dim_skill |
+| skill_version | integer or null | Denormalized from dim_skill |
+| context_loaded | object or null | What data was assembled |
 | model_used | string | Model name (e.g., "claude-sonnet-4-6", "echo") |
 | status | string | "running", "completed", or "failed" |
+| result | object or null | Output + metadata |
 | token_usage | object | {"input_tokens": N, "output_tokens": N} |
+| sampled_session_ids | array or null | IDs used for pattern sampling |
 | created_at | string or null | ISO datetime |
 | completed_at | string or null | ISO datetime |
 
+## Trace
+
+A reasoning trace node within a session (from `fact_trace`).
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | integer | Primary key |
+| session_id | integer | Parent session |
+| parent_trace_id | integer or null | Tree structure (null for top-level) |
+| trace_type | string | decision_point, path_taken, path_discarded, insight, dead_end, subagent_spawn, tool_call, conclusion |
+| depth | integer | Tree depth (0 = top-level) |
+| sequence_order | integer | Order within depth |
+| title | string | Short description |
+| content | string or null | Extended description or body text |
+| reasoning | string or null | Explanation (when non-obvious) |
+| alternatives | object or null | Options considered |
+| outcome | object or null | Result of this trace node |
+| duration_ms | integer or null | Elapsed time |
+| child_session_id | integer or null | Subagent session spawned |
+| skill_id | integer or null | Denormalized from session |
+| skill_domain | string or null | Denormalized from session |
+| skill_task_type | string or null | Denormalized from session |
+| created_at | string or null | ISO datetime |
+
+## TraceFeedback
+
+Human feedback on a specific trace node (from `fact_trace_feedback`).
+
+| Field | Type | Notes |
+|-------|------|-------|
+| id | integer | Primary key |
+| trace_id | integer | Which trace node |
+| session_id | integer | Which session |
+| feedback_type | string | path_correction, positive_signal, dead_end_confirmation, reasoning_error |
+| content | string | Explanation |
+| correction | object or null | Optional structured correction |
+| created_by | string or null | Reviewer identifier |
+| trace_type | string or null | Denormalized from fact_trace |
+| trace_title | string or null | Denormalized from fact_trace |
+| skill_id | integer or null | Denormalized from fact_trace |
+| skill_domain | string or null | Denormalized from fact_trace |
+| skill_task_type | string or null | Denormalized from fact_trace |
+| created_at | string or null | ISO datetime |
+
 ## Skill
 
-A skill is a declarative instruction set loaded at runtime.
+A skill is a declarative instruction set loaded at runtime (from `dim_skill`).
 
 | Field | Type | Notes |
 |-------|------|-------|

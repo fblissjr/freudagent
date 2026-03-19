@@ -28,8 +28,10 @@ Declarative instructions loaded at runtime. One active version per domain/task_t
 | version | INTEGER DEFAULT 1 | Incremented on skill evolution |
 | content | VARCHAR NOT NULL | Markdown instructions |
 | metadata | JSON | Optional structured config |
-| origin | VARCHAR | human_authored, data_derived |
+| parent_skill_id | INTEGER | Links derived skills to their parent |
 | status | VARCHAR | draft, active, deprecated |
+| origin | VARCHAR | human_authored, data_derived |
+| activation_conditions | JSON | Optional conditions for derived skills |
 
 UNIQUE constraint on `(domain, task_type, version)`.
 
@@ -63,8 +65,8 @@ Prior run sampling settings for pattern detection.
 | Column | Type | Notes |
 |--------|------|-------|
 | id | INTEGER PK | Auto-increment |
-| domain | VARCHAR NOT NULL | Skill domain |
-| task_type | VARCHAR NOT NULL | Skill task type |
+| domain | VARCHAR | Skill domain (NULL for global configs) |
+| task_type | VARCHAR | Skill task type (NULL for global configs) |
 | strategy | VARCHAR | recent, random, stratified_outcome, stratified_feedback, high_feedback |
 | max_samples | INTEGER | Sample count limit |
 
@@ -101,7 +103,9 @@ Reasoning trace tree nodes within a session.
 | trace_type | VARCHAR | decision_point, path_taken, path_discarded, insight, dead_end, subagent_spawn, tool_call, conclusion |
 | depth | INTEGER DEFAULT 0 | Tree depth (0 = top-level) |
 | sequence_order | INTEGER DEFAULT 0 | Order within depth |
+| parent_trace_id | INTEGER | Tree structure (NULL for top-level) |
 | title | VARCHAR NOT NULL | Short description |
+| content | VARCHAR | Extended description or body text |
 | reasoning | VARCHAR | Explanation (when non-obvious) |
 | alternatives | JSON | Options considered |
 | outcome | JSON | Result of this trace node |
@@ -142,6 +146,8 @@ Human corrections on extractions -- the flywheel signal.
 | source_id | INTEGER | Denormalized from fact_extraction at insert |
 | skill_domain | VARCHAR | Denormalized from dim_skill at insert |
 | skill_task_type | VARCHAR | Denormalized from dim_skill at insert |
+| skill_version | INTEGER | Denormalized from dim_skill at insert |
+| source_path | VARCHAR | Denormalized from fact_extraction at insert |
 | correction | JSON NOT NULL | {field: {before, after}} |
 | correction_type | VARCHAR | field_mapping, wrong_value, missing_field, false_positive |
 | notes | VARCHAR | Human explanation |
@@ -156,12 +162,14 @@ Human feedback on trace nodes.
 | trace_id | INTEGER NOT NULL | Which trace node |
 | session_id | INTEGER | Which session |
 | feedback_type | VARCHAR | path_correction, positive_signal, dead_end_confirmation, reasoning_error |
-| notes | VARCHAR | Explanation |
+| content | VARCHAR NOT NULL | Explanation |
+| correction | JSON | Optional structured correction |
 | created_by | VARCHAR | Reviewer identifier |
 | trace_type | VARCHAR | Denormalized from fact_trace at insert |
 | trace_title | VARCHAR | Denormalized from fact_trace at insert |
 | skill_id | INTEGER | Denormalized from fact_trace at insert |
 | skill_domain | VARCHAR | Denormalized from fact_trace at insert |
+| skill_task_type | VARCHAR | Denormalized from fact_trace at insert |
 
 ## Analytical Views
 

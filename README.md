@@ -173,23 +173,38 @@ and lifecycle between agents.
 
 ## Experiment Harness
 
-A 7-table DuckDB schema implementing declarative agent orchestration: behavior
-comes from data (skills, rules, sources), not code. The schema IS the architecture.
-The CLI exposes data operations (CRUD, review, feedback). Extraction is the
-harness's job (Claude Code, Agent SDK).
+A Kimball-style dimensional model in DuckDB: 4 dimension tables, 5 fact tables,
+6 analytical views. Behavior comes from data (skills, rules, sources), not code.
+Fact tables carry denormalized dimension attributes at insert time, eliminating
+joins. No FK constraints (store-layer validation instead). The CLI exposes data
+operations (CRUD, review, feedback). Extraction is the harness's job (Claude Code,
+Agent SDK).
 
 Context assembly implements progressive disclosure:
 **rules -> skill -> source -> task**.
 
 | Table | Purpose |
 |-------|---------|
+| **Dimensions** | |
+| `dim_skill` | Declarative instructions loaded at runtime (domain + task_type + version) |
+| `dim_source` | Raw artifacts to process (file paths, MIME types, metadata) |
+| `dim_rule` | Constraints applied globally or per-domain (priority-ordered) |
+| `dim_sampling_config` | Prior run sampling settings for pattern detection |
+| **Facts** | |
+| `fact_session` | Logged agent executions (with denormalized skill attrs, token tracking) |
+| `fact_trace` | Reasoning trace tree nodes within a session |
+| `fact_extraction` | Structured output from agent runs (with denormalized source/skill attrs) |
+| `fact_feedback` | Human corrections on extractions (the flywheel signal) |
+| `fact_trace_feedback` | Human feedback on specific trace nodes |
+| **Views** | |
+| `v_feedback_by_skill` | Correction counts by skill + correction_type |
+| `v_feedback_fields` | Field names mentioned in corrections by skill |
+| `v_recurring_traces` | Traces that recur across sessions for a skill |
+| `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
+| `v_skill_feedback_patterns` | Skills with feedback above threshold |
+| `v_session_feedback_count` | Feedback count per session (for sampling) |
+| **Operational** | |
 | `meta_schema_version` | Tracks schema version |
-| `skills` | Declarative instructions loaded at runtime (domain + task_type + version) |
-| `sources` | Raw artifacts to process (file paths, MIME types, metadata) |
-| `extractions` | Structured output from agent runs (with validation status) |
-| `sessions` | Logged agent executions (token tracking) |
-| `feedback` | Human corrections on extractions (the flywheel signal) |
-| `rules` | Constraints applied globally or per-domain (priority-ordered) |
 
 ## Project Structure
 
@@ -200,10 +215,10 @@ src/freud_schema/
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
-  db.py              - DuckDB schema (7 tables), CHECK/FK constraints, DDL generation
-  tables.py          - Pydantic models + enum classes (single source of truth for valid values)
-  store.py           - CRUD operations with generic dict-based row conversion
-  orchestrator.py    - Context assembly, provider protocol, test utility
+  db.py              - DuckDB schema: 4 dim + 5 fact tables, 6 views, CHECK constraints, indexes
+  tables.py          - Pydantic models + 12 enum classes (single source of truth for valid values)
+  store.py           - CRUD operations with insert-time denormalization (ExperimentStore)
+  orchestrator.py    - Context assembly, provider protocol, provider implementations
   rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
@@ -220,7 +235,7 @@ docs/
 skill/
   skill.md              - L2: routing document (CLI reference, workflow)
   reference/
-    schema.md           - L3: DuckDB schema, enums, FK relationships
+    schema.md           - L3: Dimensional model, denormalization, views
     archetypes.md       - L3: 3x3 grid, presets, prompt composition
     context-assembly.md - L3: Progressive disclosure layers
     hierarchy.md        - L3: Tree architecture, harness mapping
@@ -228,6 +243,11 @@ skill/
     archetype_patterns.md - L3: Detailed patterns with examples
     translation_matrix.md - L3: German-English term mapping
     retrieval-thesis.md   - L3: Progressive disclosure rationale
+    trace-capture.md      - L3: Self-reporting reasoning traces
+scripts/
+  trace-hook.sh       - PostToolUse hook for automatic trace capture
+a2ui/                 - MCP server + Lit client for A2UI visual surfaces
+internal/             - Analysis docs, backlog, session logs (gitignored)
 .claude/
   skills/db-query.md  - Claude Code skill: DuckDB schema reference and common queries
 ```
