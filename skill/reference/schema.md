@@ -1,8 +1,8 @@
 # DuckDB Schema Reference
 
-Last updated: 2026-03-18
+Last updated: 2026-03-19
 
-Full schema for the FreudAgent experiment harness (v0.16.0 dimensional model).
+Full schema for the FreudAgent experiment harness (v0.16.1 dimensional model).
 Use the `duckdb` MCP tools for ad-hoc queries. See `.claude/skills/db-query.md`
 for common query patterns and enum values.
 
@@ -46,6 +46,7 @@ Raw artifacts to process (file paths, MIME types).
 | metadata | JSON | Optional domain metadata |
 | source_hash | VARCHAR | Content fingerprint for dedup |
 | status | VARCHAR | active, archived |
+| superseded_by | INTEGER | Points to replacement source (versioning) |
 
 ### dim_rule
 Constraints applied globally or per-domain, priority-ordered.
@@ -68,7 +69,9 @@ Prior run sampling settings for pattern detection.
 | domain | VARCHAR | Skill domain (NULL for global configs) |
 | task_type | VARCHAR | Skill task type (NULL for global configs) |
 | strategy | VARCHAR | recent, random, stratified_outcome, stratified_feedback, high_feedback |
+| parameters | JSON | Strategy-specific config (NOT NULL, defaults to {}) |
 | max_samples | INTEGER | Sample count limit |
+| status | VARCHAR | active, inactive |
 
 ## Fact Tables (event data with denormalized attributes)
 
@@ -100,10 +103,10 @@ Reasoning trace tree nodes within a session.
 |--------|------|-------|
 | id | INTEGER PK | Auto-increment |
 | session_id | INTEGER NOT NULL | Parent session (no FK constraint) |
+| parent_trace_id | INTEGER | Tree structure (NULL for top-level) |
 | trace_type | VARCHAR | decision_point, path_taken, path_discarded, insight, dead_end, subagent_spawn, tool_call, conclusion |
 | depth | INTEGER DEFAULT 0 | Tree depth (0 = top-level) |
 | sequence_order | INTEGER DEFAULT 0 | Order within depth |
-| parent_trace_id | INTEGER | Tree structure (NULL for top-level) |
 | title | VARCHAR NOT NULL | Short description |
 | content | VARCHAR | Extended description or body text |
 | reasoning | VARCHAR | Explanation (when non-obvious) |
@@ -132,6 +135,7 @@ Structured output from processing a source with a skill.
 | output | JSON NOT NULL | The structured data produced |
 | confidence | DOUBLE | Optional model confidence |
 | validation_status | VARCHAR | pending, validated, rejected |
+| validated_at | TIMESTAMP | When validation occurred |
 | validated_by | VARCHAR | Human reviewer identifier |
 
 ### fact_feedback
@@ -198,6 +202,7 @@ Human feedback on trace nodes.
 | dim_rule.scope | global, domain-specific |
 | dim_rule.status | active, inactive |
 | dim_sampling_config.strategy | recent, random, stratified_outcome, stratified_feedback, high_feedback |
+| dim_sampling_config.status | active, inactive |
 
 ## Operational
 

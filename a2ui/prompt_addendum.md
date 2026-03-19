@@ -106,7 +106,7 @@ A skill is a declarative instruction set loaded at runtime (from `dim_skill`).
 | id | integer | Primary key |
 | domain | string | Domain name (e.g., "arxiv") |
 | task_type | string | Task category (e.g., "extraction") |
-| version | string | Skill version |
+| version | integer | Skill version |
 | status | string | "draft", "active", or "deprecated" |
 | content_preview | string or null | First 200 chars of skill content |
 
