@@ -128,10 +128,17 @@ Schema docs: `.claude/skills/db-query.md`
 - Version must stay in sync across `pyproject.toml`, `skill/skill.md` frontmatter, and `CHANGELOG.md`
 - No phantom dependencies -- only add to `pyproject.toml` what the code actually imports
 
+### Documentation (skill/reference/)
+- schema.md omits `NOT NULL`/`DEFAULT`/`created_at`/`updated_at` boilerplate for readability -- this is intentional
+- schema.md column order is logical grouping, not DDL order -- don't "fix" it to match db.py
+- schema.md Common Queries use string literals (example SQL for MCP users) -- the "no hardcoded strings" convention applies to store.py, not doc examples
+- schema.md Enum Values table must list every column with a CHECK constraint
+- prompt_addendum.md (a2ui/) is LLM context for A2UI surface generation -- keep types/columns in sync with schema.md
+
 ## Internal Docs
 
 All in `internal/` (gitignored). Read before proposing new work.
 
-- `BACKLOG.md` -- known gaps, deferred work. Check here before suggesting features.
+- `BACKLOG.md` -- known gaps, deferred work. Check here before suggesting features. Mark items DONE with version when resolved.
 - `log/` -- session logs
 - `flywheel_decomposition.json` -- 12-atom decomposition mapping to Agent SDK primitives
