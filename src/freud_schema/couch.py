@@ -32,11 +32,13 @@ from freud_schema.tables import (
     FindingScope,
     FindingType,
     RecordSource,
-    SessionStatus,
 )
 
 # Thresholds are deliberately conservative: a finding should be worth a
-# human's review time. Tune per domain via new registry rows, not code.
+# human's review time. They are module constants today, passed as
+# parameters into the store's view queries (the views carry no tunable
+# thresholds). Per-domain tuning via dim_finding_type parameters is a
+# planned extension, not a current capability.
 RETRY_MIN_ATTEMPTS = 3
 ERROR_CLUSTER_MIN_USES = 20
 ERROR_CLUSTER_MIN_PCT = 15.0
@@ -89,17 +91,7 @@ def _insert(store, etl_run_id, finding_type, project_key, summary,
 
 def _detect_retry_loops(store, etl_run_id) -> int:
     """One finding per (project, tool): N identical-input loops, worst case."""
-    rows = store._fetchall(
-        """SELECT project_key, tool_name,
-                  COUNT(*) as loops,
-                  MAX(attempts) as max_attempts,
-                  SUM(attempts) as total_attempts,
-                  LIST(DISTINCT session_key) as session_keys
-           FROM v_retry_loops
-           WHERE attempts >= ?
-           GROUP BY project_key, tool_name""",
-        [RETRY_MIN_ATTEMPTS],
-    )
+    rows = store.query_retry_loops(RETRY_MIN_ATTEMPTS)
     for r in rows:
         _insert(store, etl_run_id, "retry_loop", r["project_key"],
                 f"{r['tool_name']}: {r['loops']} identical-input call loop(s) "
@@ -110,12 +102,8 @@ def _detect_retry_loops(store, etl_run_id) -> int:
 
 
 def _detect_error_clusters(store, etl_run_id) -> int:
-    rows = store._fetchall(
-        """SELECT project_key, tool_name, uses, errors, error_pct, error_session_keys
-           FROM v_tool_error_clusters
-           WHERE uses >= ? AND error_pct >= ?""",
-        [ERROR_CLUSTER_MIN_USES, ERROR_CLUSTER_MIN_PCT],
-    )
+    rows = store.query_tool_error_clusters(
+        ERROR_CLUSTER_MIN_USES, ERROR_CLUSTER_MIN_PCT)
     for r in rows:
         _insert(store, etl_run_id, "tool_error_cluster", r["project_key"],
                 f"{r['tool_name']}: {r['errors']}/{r['uses']} calls failed "
@@ -125,12 +113,7 @@ def _detect_error_clusters(store, etl_run_id) -> int:
 
 
 def _detect_interruptions(store, etl_run_id) -> int:
-    rows = store._fetchall(
-        """SELECT project_key, interruptions, session_count, session_keys
-           FROM v_interruption_hotspots
-           WHERE interruptions >= ?""",
-        [INTERRUPTION_MIN],
-    )
+    rows = store.query_interruption_hotspots(INTERRUPTION_MIN)
     for r in rows:
         _insert(store, etl_run_id, "interruption_hotspot", r["project_key"],
                 f"{r['interruptions']} mid-turn interruptions across "
@@ -140,12 +123,7 @@ def _detect_interruptions(store, etl_run_id) -> int:
 
 
 def _detect_permission_friction(store, etl_run_id) -> int:
-    rows = store._fetchall(
-        """SELECT project_key, tool_name, denials, session_count, session_keys
-           FROM v_permission_friction
-           WHERE denials >= ?""",
-        [PERMISSION_MIN_DENIALS],
-    )
+    rows = store.query_permission_friction(PERMISSION_MIN_DENIALS)
     for r in rows:
         _insert(store, etl_run_id, "permission_friction", r["project_key"],
                 f"{r['tool_name']}: {r['denials']} permission denials across "
@@ -166,18 +144,8 @@ def run_couch(store: ExperimentStore) -> dict:
     """Run every SQL detector and record findings. Returns
     {etl_run_id, findings}. Registry seeding is included (idempotent)."""
     seed_finding_types(store)
-    etl_run_id = store.start_load_run(
-        "couch_sql", record_source=RecordSource.DERIVED)
-    total = 0
-    try:
+    with store.load_run("couch_sql", record_source=RecordSource.DERIVED) as stats:
         with store.transaction():
             for detector in _DETECTORS:
-                total += detector(store, etl_run_id)
-    except Exception as e:
-        store.complete_load_run(
-            etl_run_id, status=SessionStatus.FAILED,
-            error=f"{type(e).__name__}: {e}")
-        raise
-    store.complete_load_run(
-        etl_run_id, status=SessionStatus.COMPLETED, rows_written=total)
-    return {"etl_run_id": etl_run_id, "findings": total}
+                stats.rows_written += detector(store, stats.etl_run_id)
+    return {"etl_run_id": stats.etl_run_id, "findings": stats.rows_written}

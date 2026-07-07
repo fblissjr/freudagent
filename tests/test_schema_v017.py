@@ -48,6 +48,17 @@ class TestTableInventory:
     def test_all_tables_exist(self, con):
         assert DIMS | REGISTRIES | FACTS | META <= _tables(con)
 
+    def test_inventory_matches_canonical_list(self, con):
+        # db.ALL_TABLES / ALL_VIEWS are the single source of truth other
+        # consumers (reset_schema, the CLI's db status) iterate -- keep
+        # both honest against what the DDL actually creates.
+        from freud_schema.db import ALL_TABLES, ALL_VIEWS
+        assert set(ALL_TABLES) == DIMS | REGISTRIES | FACTS | META
+        assert set(ALL_TABLES) == _tables(con)
+        views = {r[0] for r in con.execute(
+            "SELECT view_name FROM duckdb_views() WHERE NOT internal").fetchall()}
+        assert set(ALL_VIEWS) == views
+
     def test_no_sequences(self, con):
         seqs = con.execute("SELECT * FROM duckdb_sequences()").fetchall()
         assert seqs == []

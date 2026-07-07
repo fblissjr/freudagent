@@ -9,11 +9,9 @@ What's new versus the CRUD tests in test_experiment.py:
 - meta_load_log run lifecycle.
 """
 
-import duckdb
 import pytest
 
 from freud_schema.keys import dimension_key
-from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     FacetType,
     Finding,
@@ -33,12 +31,6 @@ from freud_schema.tables import (
     TargetDimension,
     ToolUse,
 )
-
-
-@pytest.fixture
-def store():
-    with ExperimentStore(duckdb.connect(":memory:")) as s:
-        yield s
 
 
 def _skill(**over) -> Skill:
@@ -252,14 +244,14 @@ class TestProposalsAndLoadLog:
 class TestPrefixResolution:
     def test_resolve_key_prefix(self, store):
         key = store.insert_skill(_skill())
-        assert store.resolve_key("dim_skill", "skill_key", key[:8]) == key
+        assert store.resolve_key("dim_skill", key[:8]) == key
 
     def test_resolve_key_ambiguous_raises(self, store):
         store.insert_skill(_skill())
         store.insert_skill(_skill(task_type="translation"))
         with pytest.raises(ValueError, match="[Aa]mbiguous"):
-            store.resolve_key("dim_skill", "skill_key", "")
+            store.resolve_key("dim_skill", "")
 
     def test_resolve_key_missing_raises(self, store):
         with pytest.raises(ValueError, match="[Nn]o .*match"):
-            store.resolve_key("dim_skill", "skill_key", "ffffffff")
+            store.resolve_key("dim_skill", "ffffffff")

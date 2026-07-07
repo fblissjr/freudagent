@@ -5,11 +5,9 @@ below-threshold neighbor that must NOT fire -- false-positive guards
 are the point of typed findings.
 """
 
-import duckdb
 import pytest
 
 from freud_schema.couch import SQL_FINDING_TYPES, run_couch, seed_finding_types
-from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     Message,
     MessageRole,
@@ -18,12 +16,6 @@ from freud_schema.tables import (
     Session,
     ToolUse,
 )
-
-
-@pytest.fixture
-def store():
-    with ExperimentStore(duckdb.connect(":memory:")) as s:
-        yield s
 
 
 @pytest.fixture

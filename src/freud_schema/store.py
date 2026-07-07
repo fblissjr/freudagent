@@ -29,6 +29,7 @@ DuckDB's cursor.description (type_code == "JSON").
 from __future__ import annotations
 
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
@@ -84,6 +85,18 @@ def _from_json(val: str | None) -> dict | list | None:
     if val is None:
         return None
     return orjson.loads(val)
+
+
+@dataclass
+class LoadRunStats:
+    """Mutable counters a load_run scope yields to its caller. A small
+    object rather than a dict so counter typos raise AttributeError
+    instead of silently logging zeros to meta_load_log."""
+
+    etl_run_id: str
+    rows_read: int = 0
+    rows_written: int = 0
+    rows_skipped: int = 0
 
 
 # Table -> key column mapping. Doubles as the identifier allowlist for
@@ -196,18 +209,23 @@ class ExperimentStore:
         if not self._key_exists(table, key):
             raise ValueError(f"{label} {key} not found")
 
-    def resolve_key(self, table: str, key_col: str, prefix: str) -> str:
+    def resolve_key(self, table: str, prefix: str) -> str:
         """Resolve a key prefix to a full key, git-short-hash style.
 
         Raises ValueError if the prefix matches nothing or more than one
-        key. table/key_col are validated against the schema's own
-        table->key mapping, never interpolated from caller strings.
+        key. The key column is derived from the schema's own table->key
+        mapping, never interpolated from caller strings.
         """
-        if _KEY_COLUMNS.get(table) != key_col:
-            raise ValueError(f"Unknown table/key combination: {table}.{key_col}")
+        key_col = _KEY_COLUMNS.get(table)
+        if key_col is None:
+            raise ValueError(f"Unknown table: {table}")
+        # Escape LIKE metacharacters: a prefix containing % or _ must match
+        # literally, not as a wildcard (keys are hex, but input is user-typed).
+        escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         rows = self.con.execute(
-            f"SELECT DISTINCT {key_col} FROM {table} WHERE {key_col} LIKE ? LIMIT 2",
-            [prefix + "%"],
+            f"SELECT DISTINCT {key_col} FROM {table} "
+            f"WHERE {key_col} LIKE ? ESCAPE '\\' LIMIT 2",
+            [escaped + "%"],
         ).fetchall()
         if not rows:
             raise ValueError(f"No {table} match for key prefix '{prefix}'")
@@ -224,6 +242,17 @@ class ExperimentStore:
         return self._fetchone(
             f"SELECT * FROM {table} WHERE {key_col} = ? AND is_current", [key],
         )
+
+    def _scd2_unchanged_or_close(self, table: str, key: str, new_hash: str) -> bool:
+        """Shared SCD-2 insert guard: True if a current row exists with the
+        same content hash (caller should no-op); otherwise closes any
+        current row and returns False (caller inserts the new version)."""
+        current = self._current_row(table, key)
+        if current is not None:
+            if current["hash_diff"] == new_hash:
+                return True
+            self._close_current(table, key)
+        return False
 
     def _close_current(self, table: str, key: str) -> None:
         key_col = _KEY_COLUMNS[table]
@@ -274,6 +303,26 @@ class ExperimentStore:
     # Skills (dim_skill, SCD-2)
     # -------------------------------------------------------------------
 
+    def _write_skill_row(self, key: str, skill: Skill) -> None:
+        """The one place a dim_skill row (and its hash recipe) is written.
+        Both version bumps (insert_skill) and status evolutions delegate
+        here so the column list and hash fields cannot drift apart."""
+        self.con.execute(
+            """INSERT INTO dim_skill (skill_key, domain, task_type, version, content,
+               metadata, parent_skill_key, status, origin, activation_conditions,
+               hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, skill.domain, skill.task_type, skill.version, skill.content,
+             _json(skill.metadata), skill.parent_skill_key, skill.status,
+             skill.origin, _json(skill.activation_conditions),
+             hash_diff(content=skill.content, status=skill.status.value,
+                       version=skill.version, origin=skill.origin.value,
+                       metadata=_json(skill.metadata),
+                       parent_skill_key=skill.parent_skill_key,
+                       activation_conditions=_json(skill.activation_conditions)),
+             skill.record_source],
+        )
+
     def insert_skill(self, skill: Skill) -> str:
         """Insert a new skill version. Entity key: (domain, task_type).
 
@@ -291,21 +340,7 @@ class ExperimentStore:
             )
         if current is not None:
             self._close_current("dim_skill", key)
-        self.con.execute(
-            """INSERT INTO dim_skill (skill_key, domain, task_type, version, content,
-               metadata, parent_skill_key, status, origin, activation_conditions,
-               hash_diff, record_source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, skill.domain, skill.task_type, skill.version, skill.content,
-             _json(skill.metadata), skill.parent_skill_key, skill.status,
-             skill.origin, _json(skill.activation_conditions),
-             hash_diff(content=skill.content, status=skill.status.value,
-                       version=skill.version, origin=skill.origin.value,
-                       metadata=_json(skill.metadata),
-                       parent_skill_key=skill.parent_skill_key,
-                       activation_conditions=_json(skill.activation_conditions)),
-             skill.record_source],
-        )
+        self._write_skill_row(key, skill)
         return key
 
     def get_skill(self, skill_key: str, version: int | None = None) -> Skill | None:
@@ -362,22 +397,7 @@ class ExperimentStore:
         if current["status"] == status.value:
             return  # already there; no history noise
         self._close_current("dim_skill", skill_key)
-        self.con.execute(
-            """INSERT INTO dim_skill (skill_key, domain, task_type, version, content,
-               metadata, parent_skill_key, status, origin, activation_conditions,
-               hash_diff, record_source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [skill_key, current["domain"], current["task_type"], current["version"],
-             current["content"], _json(current["metadata"]),
-             current["parent_skill_key"], status, current["origin"],
-             _json(current["activation_conditions"]),
-             hash_diff(content=current["content"], status=status.value,
-                       version=current["version"], origin=current["origin"],
-                       metadata=_json(current["metadata"]),
-                       parent_skill_key=current["parent_skill_key"],
-                       activation_conditions=_json(current["activation_conditions"])),
-             current["record_source"]],
-        )
+        self._write_skill_row(skill_key, Skill(**{**current, "status": status}))
 
     def activate_skill(self, skill_key: str) -> None:
         self._evolve_skill_status(skill_key, SkillStatus.ACTIVE)
@@ -431,11 +451,8 @@ class ExperimentStore:
             metadata=_json(source.metadata), source_hash=source.source_hash,
             status=source.status.value, superseded_by_key=source.superseded_by_key,
         )
-        current = self._current_row("dim_source", key)
-        if current is not None:
-            if current["hash_diff"] == new_hash:
-                return key
-            self._close_current("dim_source", key)
+        if self._scd2_unchanged_or_close("dim_source", key, new_hash):
+            return key
         self.con.execute(
             """INSERT INTO dim_source (source_key, content_path, media_type, metadata,
                source_hash, status, superseded_by_key, hash_diff, record_source)
@@ -485,11 +502,8 @@ class ExperimentStore:
             name=rule.name, scope=rule.scope.value, domain=rule.domain,
             priority=rule.priority, content=rule.content, status=rule.status.value,
         )
-        current = self._current_row("dim_rule", key)
-        if current is not None:
-            if current["hash_diff"] == new_hash:
-                return key
-            self._close_current("dim_rule", key)
+        if self._scd2_unchanged_or_close("dim_rule", key, new_hash):
+            return key
         self.con.execute(
             """INSERT INTO dim_rule (rule_key, name, scope, domain, priority,
                content, status, hash_diff, record_source)
@@ -535,11 +549,8 @@ class ExperimentStore:
             strategy=config.strategy.value, parameters=_json(config.parameters),
             max_samples=config.max_samples, status=config.status.value,
         )
-        current = self._current_row("dim_sampling_config", key)
-        if current is not None:
-            if current["hash_diff"] == new_hash:
-                return key
-            self._close_current("dim_sampling_config", key)
+        if self._scd2_unchanged_or_close("dim_sampling_config", key, new_hash):
+            return key
         self.con.execute(
             """INSERT INTO dim_sampling_config (config_key, domain, task_type,
                strategy, parameters, max_samples, status, hash_diff, record_source)
@@ -661,6 +672,13 @@ class ExperimentStore:
     # Sessions (fact_session, accumulating snapshot)
     # -------------------------------------------------------------------
 
+    @staticmethod
+    def session_key_for(record_source: RecordSource, native_session_id: str) -> str:
+        """The session-key recipe, named. Consumers that must reference a
+        session they did not insert (e.g. ingest linking subagents to
+        parents) use this instead of re-deriving the formula."""
+        return dimension_key(record_source.value, native_session_id)
+
     def insert_session(self, session: Session) -> str:
         """Insert a session. Key: (record_source, native_session_id).
 
@@ -669,7 +687,7 @@ class ExperimentStore:
         resolves to the same key and skips the insert.
         """
         native_id = session.native_session_id or uuid4().hex
-        key = dimension_key(session.record_source.value, native_id)
+        key = self.session_key_for(session.record_source, native_id)
         if self._key_exists("fact_session", key):
             return key
         # Denormalize skill attributes (validates existence as side effect)
@@ -1164,39 +1182,115 @@ class ExperimentStore:
 
     def insert_message(self, msg: Message) -> str:
         """Insert a transcript message. Key: (session_key, entry_uuid) --
-        deterministic; re-ingestion skips existing rows."""
-        key = dimension_key(msg.session_key, msg.entry_uuid or uuid4().hex)
-        if self._key_exists("fact_message", key):
-            return key
-        self.con.execute(
-            """INSERT INTO fact_message (message_key, session_key, project_key, role,
-               entry_uuid, parent_uuid, sequence_num, occurred_at, content_text,
-               has_thinking, stop_reason, input_tokens, output_tokens, is_meta,
-               is_sidechain, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, msg.session_key, msg.project_key, msg.role, msg.entry_uuid,
-             msg.parent_uuid, msg.sequence_num, msg.occurred_at, msg.content_text,
-             msg.has_thinking, msg.stop_reason, msg.input_tokens, msg.output_tokens,
-             msg.is_meta, msg.is_sidechain, msg.record_source, msg.etl_run_id],
-        )
-        return key
+        deterministic; re-ingestion skips existing rows.
+
+        Delegates to insert_messages: one write path per table, so the
+        column list cannot drift between single and batch inserts."""
+        if msg.entry_uuid is None:
+            msg = msg.model_copy(update={"entry_uuid": uuid4().hex})
+        self.insert_messages([msg])
+        return self.message_key_for(msg.session_key, msg.entry_uuid)
 
     def insert_tool_use(self, tu: ToolUse) -> str:
         """Insert a tool use. Key: (session_key, tool_use_id) --
-        deterministic; re-ingestion skips existing rows."""
-        key = dimension_key(tu.session_key, tu.tool_use_id or uuid4().hex)
-        if self._key_exists("fact_tool_use", key):
-            return key
-        self.con.execute(
-            """INSERT INTO fact_tool_use (tool_use_key, session_key, project_key,
-               message_key, tool_use_id, tool_name, tool_input, is_error,
-               result_text, sequence_num, occurred_at, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, tu.session_key, tu.project_key, tu.message_key, tu.tool_use_id,
-             tu.tool_name, _json(tu.tool_input), tu.is_error, tu.result_text,
-             tu.sequence_num, tu.occurred_at, tu.record_source, tu.etl_run_id],
-        )
-        return key
+        deterministic; re-ingestion skips existing rows. Delegates to
+        insert_tool_uses (one write path per table)."""
+        if tu.tool_use_id is None:
+            tu = tu.model_copy(update={"tool_use_id": uuid4().hex})
+        self.insert_tool_uses([tu])
+        return dimension_key(tu.session_key, tu.tool_use_id)
+
+    def _existing_keys(self, table: str, session_key: str) -> set[str]:
+        key_col = _KEY_COLUMNS[table]
+        return {d[key_col] for d in self._fetchall(
+            f"SELECT {key_col} FROM {table} WHERE session_key = ?",
+            [session_key],
+        )}
+
+    @staticmethod
+    def message_key_for(session_key: str, entry_uuid: str) -> str:
+        """The message-key recipe, named -- the sibling of session_key_for."""
+        return dimension_key(session_key, entry_uuid)
+
+    @staticmethod
+    def _require_single_session(rows, label: str) -> str:
+        """Batch inserts dedupe against ONE session's existing keys; a
+        mixed-session batch would silently duplicate rows from the others."""
+        session_keys = {r.session_key for r in rows}
+        if len(session_keys) != 1:
+            raise ValueError(f"{label} batch must contain a single session_key, "
+                             f"got {len(session_keys)}")
+        return session_keys.pop()
+
+    def insert_messages(self, msgs: list[Message]) -> dict[str, str]:
+        """Bulk insert for one session's messages: one existing-key fetch,
+        then inserts for the misses only -- the batched existence check is
+        what makes unchanged re-ingest cheap (per-row round trips are the
+        ingestion hot path's dominant cost).
+
+        Skips keys already present (same semantics as insert_message);
+        raises on mixed-session batches. Returns {entry_uuid: message_key}
+        for every input row, so callers can reference message keys without
+        re-deriving the recipe.
+        """
+        if not msgs:
+            return {}
+        session_key = self._require_single_session(msgs, "insert_messages")
+        existing = self._existing_keys("fact_message", session_key)
+        key_map: dict[str, str] = {}
+        params = []
+        for m in msgs:
+            key = self.message_key_for(m.session_key, m.entry_uuid or uuid4().hex)
+            if m.entry_uuid:
+                key_map[m.entry_uuid] = key
+            if key in existing:
+                continue
+            existing.add(key)  # dedupe within the batch too
+            params.append([
+                key, m.session_key, m.project_key, m.role, m.entry_uuid,
+                m.parent_uuid, m.sequence_num, m.occurred_at, m.content_text,
+                m.has_thinking, m.stop_reason, m.input_tokens, m.output_tokens,
+                m.is_meta, m.is_sidechain, m.record_source, m.etl_run_id,
+            ])
+        if params:
+            self.con.executemany(
+                """INSERT INTO fact_message (message_key, session_key, project_key,
+                   role, entry_uuid, parent_uuid, sequence_num, occurred_at,
+                   content_text, has_thinking, stop_reason, input_tokens,
+                   output_tokens, is_meta, is_sidechain, record_source, etl_run_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                params,
+            )
+        return key_map
+
+    def insert_tool_uses(self, tus: list[ToolUse]) -> int:
+        """Bulk insert for one session's tool uses; see insert_messages.
+        Returns the number of rows actually written."""
+        if not tus:
+            return 0
+        session_key = self._require_single_session(tus, "insert_tool_uses")
+        existing = self._existing_keys("fact_tool_use", session_key)
+        params = []
+        for tu in tus:
+            key = dimension_key(tu.session_key, tu.tool_use_id or uuid4().hex)
+            if key in existing:
+                continue
+            existing.add(key)
+            params.append([
+                key, tu.session_key, tu.project_key, tu.message_key,
+                tu.tool_use_id, tu.tool_name, _json(tu.tool_input), tu.is_error,
+                tu.result_text, tu.sequence_num, tu.occurred_at,
+                tu.record_source, tu.etl_run_id,
+            ])
+        if params:
+            self.con.executemany(
+                """INSERT INTO fact_tool_use (tool_use_key, session_key, project_key,
+                   message_key, tool_use_id, tool_name, tool_input, is_error,
+                   result_text, sequence_num, occurred_at, record_source, etl_run_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                params,
+            )
+        return len(params)
 
     # -------------------------------------------------------------------
     # Session facets (fact_session_facets)
@@ -1314,6 +1408,17 @@ class ExperimentStore:
     def get_proposal(self, proposal_key: str) -> Proposal | None:
         d = self._fetchone(
             "SELECT * FROM fact_proposal WHERE proposal_key = ?", [proposal_key])
+        return Proposal(**d) if d else None
+
+    def get_approving_proposal(self, resulting_dimension_key: str) -> Proposal | None:
+        """Latest approved proposal that produced a dimension entity --
+        the provenance lookup the compiler stamps into artifacts."""
+        d = self._fetchone(
+            """SELECT * FROM fact_proposal
+               WHERE resulting_dimension_key = ? AND status = ?
+               ORDER BY reviewed_at DESC LIMIT 1""",
+            [resulting_dimension_key, ProposalStatus.APPROVED],
+        )
         return Proposal(**d) if d else None
 
     def list_proposals(
@@ -1472,6 +1577,81 @@ class ExperimentStore:
         d = self._fetchone(
             "SELECT * FROM meta_load_log WHERE etl_run_id = ?", [etl_run_id])
         return LoadRun(**d) if d else None
+
+    @contextmanager
+    def load_run(
+        self,
+        operation: str,
+        *,
+        record_source: RecordSource = RecordSource.NATIVE,
+    ):
+        """Load-run lifecycle scope shared by every analysis/ingest
+        operation: opens a meta_load_log row, yields a LoadRunStats the
+        caller mutates, and closes the row completed -- or failed with the
+        error -- on exit. Counters accumulated before a failure are
+        recorded either way: per-file transactions mean earlier writes are
+        durable, and the ledger must not understate them."""
+        etl_run_id = self.start_load_run(operation, record_source=record_source)
+        stats = LoadRunStats(etl_run_id=etl_run_id)
+        try:
+            yield stats
+        except Exception as e:
+            self.complete_load_run(
+                etl_run_id, status=SessionStatus.FAILED,
+                rows_read=stats.rows_read, rows_written=stats.rows_written,
+                rows_skipped=stats.rows_skipped,
+                error=f"{type(e).__name__}: {e}")
+            raise
+        self.complete_load_run(
+            etl_run_id, status=SessionStatus.COMPLETED,
+            rows_read=stats.rows_read, rows_written=stats.rows_written,
+            rows_skipped=stats.rows_skipped)
+
+    # -------------------------------------------------------------------
+    # Couch view queries (the store owns all SQL; couch.py owns thresholds)
+    # -------------------------------------------------------------------
+
+    def query_retry_loops(self, min_attempts: int) -> list[dict]:
+        """Per (project, tool): identical-input call loops at or above the
+        threshold, aggregated from v_retry_loops."""
+        return self._fetchall(
+            """SELECT project_key, tool_name,
+                      COUNT(*) as loops,
+                      MAX(attempts) as max_attempts,
+                      SUM(attempts) as total_attempts,
+                      LIST(DISTINCT session_key) as session_keys
+               FROM v_retry_loops
+               WHERE attempts >= ?
+               GROUP BY project_key, tool_name""",
+            [min_attempts],
+        )
+
+    def query_tool_error_clusters(
+        self, min_uses: int, min_error_pct: float,
+    ) -> list[dict]:
+        return self._fetchall(
+            """SELECT project_key, tool_name, uses, errors, error_pct,
+                      error_session_keys
+               FROM v_tool_error_clusters
+               WHERE uses >= ? AND error_pct >= ?""",
+            [min_uses, min_error_pct],
+        )
+
+    def query_interruption_hotspots(self, min_interruptions: int) -> list[dict]:
+        return self._fetchall(
+            """SELECT project_key, interruptions, session_count, session_keys
+               FROM v_interruption_hotspots
+               WHERE interruptions >= ?""",
+            [min_interruptions],
+        )
+
+    def query_permission_friction(self, min_denials: int) -> list[dict]:
+        return self._fetchall(
+            """SELECT project_key, tool_name, denials, session_count, session_keys
+               FROM v_permission_friction
+               WHERE denials >= ?""",
+            [min_denials],
+        )
 
     # -------------------------------------------------------------------
     # Prior Run Sampling

@@ -25,7 +25,6 @@ from datetime import datetime
 from pathlib import Path
 
 from freud_schema.discovery import SessionFile, default_projects_root, discover_sessions
-from freud_schema.keys import dimension_key
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     AgentRole,
@@ -179,14 +178,9 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
                 etl_run_id=etl_run_id,
             ))
 
-    # Subagent transcripts carry the PARENT's sessionId internally
-    # (verified 100% on disk 2026-07-07), so identity must come from the
-    # path: <parent-uuid>/agent-<id>. Using the internal field would
-    # collapse every subagent session into its parent.
-    if sf.is_subagent:
-        native_session_id = f"{sf.parent_native_session_id}/agent-{sf.agent_id}"
-    else:
-        native_session_id = session_id or sf.path.stem
+    # Subagent identity comes from the path (SessionFile.path_identity),
+    # never the internal sessionId, which is the parent's.
+    native_session_id = sf.path_identity or session_id or sf.path.stem
     project_path = cwd or sf.project_dir
     project_key = store.ensure_project(Project(
         project_path=project_path,
@@ -198,8 +192,8 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
     if sf.is_subagent:
         task_description = meta.get("description") or first_user_text
         task_type = meta.get("agentType")
-        parent_session_key = dimension_key(
-            RecordSource.TRANSCRIPT_INGEST.value, sf.parent_native_session_id)
+        parent_session_key = ExperimentStore.session_key_for(
+            RecordSource.TRANSCRIPT_INGEST, sf.parent_native_session_id)
     else:
         task_description = first_user_text
         task_type = None
@@ -223,16 +217,22 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
     store.update_session_progress(
         session_key, completed_at=last_ts, model_used=last_model)
 
+    # Bulk inserts: one existing-key fetch per table, then inserts for the
+    # misses only -- the batched existence check is what makes unchanged
+    # re-ingest cheap. insert_messages returns the entry_uuid ->
+    # message_key map so the key recipe stays in the store.
     for msg in messages:
-        store.insert_message(msg.model_copy(update={
-            "session_key": session_key, "project_key": project_key}))
+        msg.session_key = session_key
+        msg.project_key = project_key
+    message_keys = store.insert_messages(messages)
 
+    tool_use_rows = []
     for tu in tool_uses:
         result = tool_results.get(tu["tool_use_id"], {})
-        store.insert_tool_use(ToolUse(
+        tool_use_rows.append(ToolUse(
             session_key=session_key,
             project_key=project_key,
-            message_key=dimension_key(session_key, tu["entry_uuid"]),
+            message_key=message_keys.get(tu["entry_uuid"]),
             tool_use_id=tu["tool_use_id"],
             tool_name=tu["tool_name"],
             tool_input=tu["tool_input"],
@@ -242,6 +242,7 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
             occurred_at=tu["occurred_at"],
             etl_run_id=etl_run_id,
         ))
+    store.insert_tool_uses(tool_use_rows)
 
     attempted = 1 + len(messages) + len(tool_uses)
     return entries_read, attempted
@@ -265,33 +266,24 @@ def ingest_transcripts(
     # it keeps parent_session_key references resolvable mid-run).
     files.sort(key=lambda f: f.is_subagent)
 
-    etl_run_id = store.start_load_run(
-        "ingest_transcripts", record_source=RecordSource.TRANSCRIPT_INGEST)
-    before = {t: store.count_rows(t) for t in _COUNTED_TABLES}
-    rows_read = 0
-    attempted = 0
-    try:
+    with store.load_run("ingest_transcripts",
+                        record_source=RecordSource.TRANSCRIPT_INGEST) as stats:
+        before = {t: store.count_rows(t) for t in _COUNTED_TABLES}
+        attempted = 0
         for sf in files:
             with store.transaction():
-                file_read, file_attempted = _ingest_file(store, sf, etl_run_id)
-            rows_read += file_read
+                file_read, file_attempted = _ingest_file(
+                    store, sf, stats.etl_run_id)
+            stats.rows_read += file_read
             attempted += file_attempted
-    except Exception as e:
-        store.complete_load_run(
-            etl_run_id, status=SessionStatus.FAILED, rows_read=rows_read,
-            error=f"{type(e).__name__}: {e}")
-        raise
+        after = {t: store.count_rows(t) for t in _COUNTED_TABLES}
+        stats.rows_written = sum(after[t] - before[t] for t in _COUNTED_TABLES)
+        stats.rows_skipped = max(0, attempted - stats.rows_written)
 
-    after = {t: store.count_rows(t) for t in _COUNTED_TABLES}
-    written = sum(after[t] - before[t] for t in _COUNTED_TABLES)
-    skipped = max(0, attempted - written)
-    store.complete_load_run(
-        etl_run_id, status=SessionStatus.COMPLETED, rows_read=rows_read,
-        rows_written=written, rows_skipped=skipped)
     return {
-        "etl_run_id": etl_run_id,
         "sessions": len(files),
-        "rows_read": rows_read,
-        "rows_written": written,
-        "rows_skipped": skipped,
+        "etl_run_id": stats.etl_run_id,
+        "rows_read": stats.rows_read,
+        "rows_written": stats.rows_written,
+        "rows_skipped": stats.rows_skipped,
     }

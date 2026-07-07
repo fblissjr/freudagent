@@ -391,7 +391,7 @@ def _build_tables_ddl() -> list[str]:
 _TABLES_DDL: list[str] = _build_tables_ddl()
 
 _VIEWS: list[str] = [
-    """CREATE VIEW IF NOT EXISTS v_feedback_by_skill AS
+    """CREATE OR REPLACE VIEW v_feedback_by_skill AS
 SELECT
     skill_key, skill_domain, skill_task_type, skill_version,
     correction_type,
@@ -399,14 +399,14 @@ SELECT
     MAX(created_at) as last_seen
 FROM fact_feedback
 GROUP BY skill_key, skill_domain, skill_task_type, skill_version, correction_type""",
-    """CREATE VIEW IF NOT EXISTS v_feedback_fields AS
+    """CREATE OR REPLACE VIEW v_feedback_fields AS
 SELECT skill_key, correction_type, field_name, COUNT(*) as mention_count
 FROM (
     SELECT skill_key, correction_type, unnest(json_keys(correction)) as field_name
     FROM fact_feedback
 )
 GROUP BY skill_key, correction_type, field_name""",
-    """CREATE VIEW IF NOT EXISTS v_recurring_traces AS
+    """CREATE OR REPLACE VIEW v_recurring_traces AS
 SELECT
     skill_key, skill_domain, skill_task_type,
     trace_type, title,
@@ -417,7 +417,7 @@ SELECT
 FROM fact_trace
 WHERE skill_key IS NOT NULL
 GROUP BY skill_key, skill_domain, skill_task_type, trace_type, title""",
-    """CREATE VIEW IF NOT EXISTS v_recurring_trace_feedback AS
+    """CREATE OR REPLACE VIEW v_recurring_trace_feedback AS
 SELECT
     skill_key, skill_domain, skill_task_type,
     feedback_type, trace_title,
@@ -426,7 +426,7 @@ SELECT
 FROM fact_trace_feedback
 WHERE skill_key IS NOT NULL
 GROUP BY skill_key, skill_domain, skill_task_type, feedback_type, trace_title""",
-    """CREATE VIEW IF NOT EXISTS v_skill_feedback_patterns AS
+    """CREATE OR REPLACE VIEW v_skill_feedback_patterns AS
 SELECT
     skill_key, skill_domain, skill_task_type, skill_version,
     correction_type,
@@ -434,23 +434,26 @@ SELECT
     SUM(COUNT(*)) OVER (PARTITION BY skill_key) as total_feedback
 FROM fact_feedback
 GROUP BY skill_key, skill_domain, skill_task_type, skill_version, correction_type""",
-    """CREATE VIEW IF NOT EXISTS v_session_feedback_count AS
+    """CREATE OR REPLACE VIEW v_session_feedback_count AS
 SELECT
     session_key, skill_key,
     COUNT(*) as feedback_count
 FROM fact_feedback
 GROUP BY session_key, skill_key""",
     # --- Couch views: SQL-only finding detectors over the ingested grain ---
-    """CREATE VIEW IF NOT EXISTS v_retry_loops AS
+    # No thresholds in the DDL: couch.py's detectors own them, passed as
+    # parameters into the store's query_* methods. Views use CREATE OR
+    # REPLACE so definition changes reach existing databases (IF NOT
+    # EXISTS would silently pin the old definition forever).
+    """CREATE OR REPLACE VIEW v_retry_loops AS
 SELECT
     project_key, session_key, tool_name,
     tool_input::VARCHAR as tool_input_text,
     COUNT(*) as attempts,
     SUM(CASE WHEN is_error THEN 1 ELSE 0 END) as errors
 FROM fact_tool_use
-GROUP BY project_key, session_key, tool_name, tool_input::VARCHAR
-HAVING COUNT(*) >= 3""",
-    """CREATE VIEW IF NOT EXISTS v_tool_error_clusters AS
+GROUP BY project_key, session_key, tool_name, tool_input::VARCHAR""",
+    """CREATE OR REPLACE VIEW v_tool_error_clusters AS
 SELECT
     project_key, tool_name,
     COUNT(*) as uses,
@@ -459,7 +462,7 @@ SELECT
     LIST(DISTINCT session_key) FILTER (is_error) as error_session_keys
 FROM fact_tool_use
 GROUP BY project_key, tool_name""",
-    """CREATE VIEW IF NOT EXISTS v_interruption_hotspots AS
+    """CREATE OR REPLACE VIEW v_interruption_hotspots AS
 SELECT
     project_key,
     COUNT(*) as interruptions,
@@ -468,7 +471,7 @@ SELECT
 FROM fact_message
 WHERE role = 'user' AND content_text LIKE '[Request interrupted by user%'
 GROUP BY project_key""",
-    """CREATE VIEW IF NOT EXISTS v_permission_friction AS
+    """CREATE OR REPLACE VIEW v_permission_friction AS
 SELECT
     project_key, tool_name,
     COUNT(*) as denials,
@@ -546,6 +549,28 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
         "4 SQL finding views"),
 ]
 
+# Canonical table inventory, in dependency order (dependents first) so it
+# doubles as reset_schema's drop order. Single source of truth: the CLI's
+# `db status` and any other inventory consumer iterate this, never their
+# own hand-maintained copy.
+ALL_TABLES: tuple[str, ...] = (
+    "fact_proposal", "fact_finding", "fact_session_facets",
+    "fact_tool_use", "fact_message",
+    "fact_trace_feedback", "fact_feedback", "fact_trace",
+    "fact_extraction", "fact_session",
+    "dim_finding_type", "dim_facet_type", "dim_project",
+    "dim_source", "dim_skill", "dim_rule", "dim_sampling_config",
+    "meta_load_log", "meta_schema_version",
+)
+
+ALL_VIEWS: tuple[str, ...] = (
+    "v_feedback_by_skill", "v_feedback_fields",
+    "v_recurring_traces", "v_recurring_trace_feedback",
+    "v_skill_feedback_patterns", "v_session_feedback_count",
+    "v_retry_loops", "v_tool_error_clusters",
+    "v_interruption_hotspots", "v_permission_friction",
+)
+
 _ALL_DDL: list[str] = _TABLES_DDL + _VIEWS + _INDEXES
 
 
@@ -604,21 +629,8 @@ def get_schema_version(con: duckdb.DuckDBPyConnection) -> int:
 
 def reset_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Drop and recreate all tables. Destructive -- for tests and resets."""
-    # Drop views first
-    for view in ("v_feedback_by_skill", "v_feedback_fields",
-                 "v_recurring_traces", "v_recurring_trace_feedback",
-                 "v_skill_feedback_patterns", "v_session_feedback_count",
-                 "v_retry_loops", "v_tool_error_clusters",
-                 "v_interruption_hotspots", "v_permission_friction"):
+    for view in ALL_VIEWS:
         con.execute(f"DROP VIEW IF EXISTS {view}")
-    # Drop tables (dependents first)
-    for table in ("fact_proposal", "fact_finding", "fact_session_facets",
-                  "fact_tool_use", "fact_message",
-                  "fact_trace_feedback", "fact_feedback", "fact_trace",
-                  "fact_extraction", "fact_session",
-                  "dim_finding_type", "dim_facet_type", "dim_project",
-                  "dim_source", "dim_skill", "dim_rule",
-                  "dim_sampling_config",
-                  "meta_load_log", "meta_schema_version"):
+    for table in ALL_TABLES:  # dependency order: dependents first
         con.execute(f"DROP TABLE IF EXISTS {table}")
     init_schema(con)

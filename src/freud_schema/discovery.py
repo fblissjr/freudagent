@@ -38,6 +38,19 @@ class SessionFile:
     def is_subagent(self) -> bool:
         return self.parent_native_session_id is not None
 
+    @property
+    def path_identity(self) -> str | None:
+        """Path-derived native session identity for subagents, or None for
+        roots (whose identity comes from the file's own sessionId).
+
+        Subagent transcripts carry the PARENT's sessionId internally, so
+        their identity must be synthesized from the path -- and that
+        synthesis lives here, where the on-disk layout knowledge lives.
+        """
+        if not self.is_subagent:
+            return None
+        return f"{self.parent_native_session_id}/agent-{self.agent_id}"
+
 
 def default_projects_root() -> Path:
     """Claude Code's transcript root for the current user."""

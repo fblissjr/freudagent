@@ -17,13 +17,11 @@ import json
 import os
 from datetime import datetime
 
-import duckdb
 import pytest
 
 from freud_schema.discovery import discover_sessions
 from freud_schema.ingest import ingest_transcripts
 from freud_schema.keys import dimension_key
-from freud_schema.store import ExperimentStore
 from freud_schema.tables import AgentRole, RecordSource, SessionStatus
 
 UUID_A = "aaaaaaaa-1111-2222-3333-444444444444"
@@ -124,12 +122,6 @@ def projects_root(tmp_path):
     old = datetime(2026, 6, 1, 9, 0).timestamp()
     os.utime(beta / f"{UUID_B}.jsonl", (old, old))
     return root
-
-
-@pytest.fixture
-def store():
-    with ExperimentStore(duckdb.connect(":memory:")) as s:
-        yield s
 
 
 class TestDiscovery:

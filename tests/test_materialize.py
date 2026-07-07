@@ -13,18 +13,10 @@ The planted leak strings below are test fixtures for the gate itself.
 
 import getpass
 
-import duckdb
 import pytest
 
 from freud_schema.materialize import COMPILED_MARKER, compile_rules
-from freud_schema.store import ExperimentStore
 from freud_schema.tables import Proposal, Rule, RuleStatus, TargetDimension
-
-
-@pytest.fixture
-def store():
-    with ExperimentStore(duckdb.connect(":memory:")) as s:
-        yield s
 
 
 def _approve_rule(store, name="no-retry-loops",

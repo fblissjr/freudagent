@@ -41,16 +41,6 @@ def _find_leaks(text: str) -> list[str]:
     return leaks
 
 
-def _provenance(store: ExperimentStore, rule_key: str) -> dict | None:
-    """Latest approved proposal that produced this rule entity, if any."""
-    return store._fetchone(
-        """SELECT proposal_key, evidence_finding_keys FROM fact_proposal
-           WHERE resulting_dimension_key = ? AND status = 'approved'
-           ORDER BY reviewed_at DESC LIMIT 1""",
-        [rule_key],
-    )
-
-
 def _render(store: ExperimentStore, rule: Rule) -> str:
     lines = [
         f"{COMPILED_MARKER}: do not edit; change the dimension row and recompile -->",
@@ -60,12 +50,12 @@ def _render(store: ExperimentStore, rule: Rule) -> str:
         rule.content.rstrip(),
         "",
     ]
-    prov = _provenance(store, rule.rule_key)
+    prov = store.get_approving_proposal(rule.rule_key)
     if prov:
-        evidence = prov["evidence_finding_keys"] or []
-        finding_refs = ", ".join(k[:8] for k in evidence) or "none recorded"
+        finding_refs = ", ".join(
+            k[:8] for k in (prov.evidence_finding_keys or [])) or "none recorded"
         lines.append(
-            f"<!-- provenance: proposal {prov['proposal_key'][:8]}; "
+            f"<!-- provenance: proposal {prov.proposal_key[:8]}; "
             f"findings {finding_refs} -->")
         lines.append("")
     return "\n".join(lines)

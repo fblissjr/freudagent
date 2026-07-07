@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.21.0
+
+Quality pass over the Phase 0-3 code: a 4-angle cleanup review plus an 8-angle
+correctness review, findings applied.
+
+### Changed
+
+- **Views use CREATE OR REPLACE** (was CREATE VIEW IF NOT EXISTS): view
+  definition changes now reach existing databases instead of being silently
+  pinned to the old definition forever.
+- **One write path per fact table**: `insert_message`/`insert_tool_use` are
+  thin delegators to the batch methods, so the column lists cannot drift
+  (same principle as `_write_skill_row`, which both skill write paths now
+  share). Batch inserts do one existing-key fetch per session and insert only
+  the misses -- unchanged re-ingest drops from ~2min to ~5s. Batches raise on
+  mixed-session input (the dedupe is per-session by design).
+- `v_retry_loops` carries no threshold in the DDL; couch detectors own
+  thresholds, parameterized through new store view-query methods
+  (`query_retry_loops` etc. -- couch/materialize no longer touch private
+  store helpers).
+- `resolve_key(table, prefix)` drops the derivable `key_col` argument and
+  escapes LIKE wildcards in prefixes; CLI resolution calls simplified
+  accordingly.
+- `load_run()` context manager owns the meta_load_log lifecycle for all
+  operations and yields typed `LoadRunStats` (counter typos raise instead of
+  silently logging zeros); failure rows now record counters accumulated
+  before the error (per-file transactions make earlier writes durable).
+- Canonical `ALL_TABLES`/`ALL_VIEWS` inventories in db.py drive
+  `reset_schema()` and `db status`; an inventory test keeps both honest.
+- SCD-2 insert guard shared across source/rule/sampling-config inserts;
+  named key recipes (`session_key_for`, `message_key_for`) replace formula
+  re-derivation in ingest.
+- Test fixtures deduplicated to conftest; stale duplicate schema tests
+  removed.
+
 ## 0.20.0
 
 Phase 3 of the meta-harness plan: evolve + materialize. The loop is closed --

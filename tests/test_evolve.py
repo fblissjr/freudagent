@@ -6,10 +6,8 @@ justified it. Rollback is the symmetric operation: flip is_current back,
 no destructive undo.
 """
 
-import duckdb
 import pytest
 
-from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     Proposal,
     ProposalStatus,
@@ -20,12 +18,6 @@ from freud_schema.tables import (
     SkillStatus,
     TargetDimension,
 )
-
-
-@pytest.fixture
-def store():
-    with ExperimentStore(duckdb.connect(":memory:")) as s:
-        yield s
 
 
 def _rule_proposal(**over) -> Proposal:

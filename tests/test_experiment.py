@@ -5,22 +5,17 @@ denormalization, view-backed aggregation queries, and the unchanged
 orchestrator/provider interfaces.
 """
 
-import pytest
-
-from freud_schema.db import reset_schema
 import duckdb
 import orjson
+import pytest
 
 from freud_schema.keys import dimension_key
 from freud_schema.orchestrator import (
-    CompletionResult,
     EchoProvider,
-    OpenAICompatProvider,
     assemble_runner_context,
     get_provider,
 )
 from freud_schema.tables import (
-    AgentRole,
     CorrectionType,
     Extraction,
     Feedback,
@@ -34,7 +29,6 @@ from freud_schema.tables import (
     SkillOrigin,
     SkillStatus,
     Source,
-    SourceStatus,
     Trace,
     TraceFeedback,
     TraceFeedbackType,
@@ -48,55 +42,6 @@ from freud_schema.tables import (
 # ---------------------------------------------------------------------------
 
 
-def test_schema_creates_all_tables(store):
-    tables = store.con.execute(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
-    ).fetchall()
-    table_names = {t[0] for t in tables}
-    assert "dim_skill" in table_names
-    assert "dim_source" in table_names
-    assert "dim_rule" in table_names
-    assert "dim_sampling_config" in table_names
-    assert "fact_session" in table_names
-    assert "fact_trace" in table_names
-    assert "fact_extraction" in table_names
-    assert "fact_feedback" in table_names
-    assert "fact_trace_feedback" in table_names
-    assert "meta_schema_version" in table_names
-
-
-def test_schema_creates_views(store):
-    """All 6 analytical views are created."""
-    views = store.con.execute(
-        "SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW'"
-    ).fetchall()
-    view_names = {v[0] for v in views}
-    assert "v_feedback_by_skill" in view_names
-    assert "v_feedback_fields" in view_names
-    assert "v_recurring_traces" in view_names
-    assert "v_recurring_trace_feedback" in view_names
-    assert "v_skill_feedback_patterns" in view_names
-    assert "v_session_feedback_count" in view_names
-
-
-def test_reset_schema(store):
-    store.insert_skill(Skill(domain="test", task_type="test", content="test"))
-    assert len(store.list_skills()) == 1
-    reset_schema(store.con)
-    assert len(store.list_skills()) == 0
-
-
-def test_schema_versioning(store):
-    """meta_schema_version exists after init and contains version 3."""
-    from freud_schema.db import get_schema_version
-    assert get_schema_version(store.con) >= 3
-    row = store.con.execute(
-        "SELECT version, description FROM meta_schema_version WHERE version = 3"
-    ).fetchone()
-    assert row is not None
-    assert "Dimensional model" in row[1]
-
-
 def test_init_schema_idempotent(store):
     """Running init_schema twice is safe and doesn't duplicate versions."""
     from freud_schema.db import get_schema_version, init_schema
@@ -107,13 +52,6 @@ def test_init_schema_idempotent(store):
         "SELECT COUNT(*) FROM meta_schema_version WHERE version = 1"
     ).fetchone()[0]
     assert count == 1
-
-
-def test_reset_recreates_schema_version(store):
-    """reset_schema drops and recreates meta_schema_version."""
-    from freud_schema.db import get_schema_version
-    reset_schema(store.con)
-    assert get_schema_version(store.con) >= 1
 
 
 def test_existence_validation_rejects_orphans(store):

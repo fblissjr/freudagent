@@ -439,21 +439,28 @@ def _get_store(db_path: str | None = None):
     return ExperimentStore(con)
 
 
-def _resolve_or_exit(store, table: str, key_col: str, prefix: str, label: str) -> str:
+def _resolve_or_exit(store, table: str, prefix: str) -> str:
     """Resolve a key or unique prefix, or print the error and exit(1).
 
     Every command that takes an entity reference now takes a key or unique
     key prefix (git-short-hash style) instead of an integer id.
     """
     try:
-        return store.resolve_key(table, key_col, prefix)
+        return store.resolve_key(table, prefix)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
 
 
 def _handle_db(args) -> None:
-    from freud_schema.db import connect, get_ddl, get_schema_version, init_schema, reset_schema
+    from freud_schema.db import (
+        ALL_TABLES,
+        connect,
+        get_ddl,
+        get_schema_version,
+        init_schema,
+        reset_schema,
+    )
 
     if args.action == "ddl":
         print(get_ddl())
@@ -470,12 +477,7 @@ def _handle_db(args) -> None:
             init_schema(con)
             version = get_schema_version(con)
             print(f"  Schema version: {version}")
-            for table in ("dim_skill", "dim_source", "dim_rule", "dim_sampling_config",
-                          "dim_project", "dim_facet_type", "dim_finding_type",
-                          "fact_session", "fact_trace", "fact_extraction",
-                          "fact_feedback", "fact_trace_feedback",
-                          "fact_message", "fact_tool_use", "fact_session_facets",
-                          "fact_finding", "fact_proposal", "meta_load_log"):
+            for table in sorted(ALL_TABLES):
                 row = con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
                 count = row[0] if row else 0
                 print(f"  {table:15s} {count:>6} rows")
@@ -518,7 +520,7 @@ def _handle_skill(args) -> None:
                     for ct, cnt in r["patterns"]:
                         print(f"    {ct:20s} {cnt:>4}x")
         elif args.skill_action in ("deprecate", "activate"):
-            skill_key = _resolve_or_exit(store, "dim_skill", "skill_key", args.key, "Skill")
+            skill_key = _resolve_or_exit(store, "dim_skill", args.key)
             action = store.deprecate_skill if args.skill_action == "deprecate" else store.activate_skill
             action(skill_key)
             verb = "deprecated" if args.skill_action == "deprecate" else "activated"
@@ -568,7 +570,7 @@ def _handle_feedback(args) -> None:
         if args.feedback_action == "list":
             skill_key = None
             if args.skill_key:
-                skill_key = _resolve_or_exit(store, "dim_skill", "skill_key", args.skill_key, "Skill")
+                skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key)
             if args.aggregate and skill_key:
                 agg = store.aggregate_feedback(skill_key)
                 if not agg:
@@ -587,9 +589,7 @@ def _handle_feedback(args) -> None:
                     for fb in fb_list:
                         print(f"  [{fb.feedback_key[:8]}] skill={fb.skill_key[:8]} type={fb.correction_type.value} by={fb.created_by or 'anon'}")
         elif args.feedback_action == "add":
-            extraction_key = _resolve_or_exit(
-                store, "fact_extraction", "extraction_key", args.extraction_key, "Extraction",
-            )
+            extraction_key = _resolve_or_exit(store, "fact_extraction", args.extraction_key)
             ext = store.get_extraction(extraction_key)
             try:
                 correction = orjson.loads(args.correction)
@@ -616,7 +616,7 @@ def _handle_extraction(args) -> None:
         if args.extraction_action == "list":
             skill_key = None
             if args.skill_key:
-                skill_key = _resolve_or_exit(store, "dim_skill", "skill_key", args.skill_key, "Skill")
+                skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key)
             exts = store.list_extractions(
                 skill_key=skill_key,
                 validation_status=ValidationStatus(args.status) if args.status else None,
@@ -631,9 +631,7 @@ def _handle_extraction(args) -> None:
                     print(f"  [{e.extraction_key[:8]}] skill={skill_tag} source={path} "
                           f"status={e.validation_status.value} confidence={e.confidence}")
         elif args.extraction_action == "show":
-            extraction_key = _resolve_or_exit(
-                store, "fact_extraction", "extraction_key", args.key, "Extraction",
-            )
+            extraction_key = _resolve_or_exit(store, "fact_extraction", args.key)
             ext = store.get_extraction(extraction_key)
             print(f"  Extraction: {ext.extraction_key}")
             print(f"  Source: {ext.source_path or '?'} (key={ext.source_key})")
@@ -650,18 +648,12 @@ def _handle_extraction(args) -> None:
             print(f"  Created: {ext.created_at}")
             print(f"\n  Output:")
             _print_json(ext.output, indent="    ")
-        elif args.extraction_action == "validate":
-            extraction_key = _resolve_or_exit(
-                store, "fact_extraction", "extraction_key", args.key, "Extraction",
-            )
-            store.update_validation(extraction_key, status=ValidationStatus.VALIDATED, validated_by=args.by)
-            print(f"Extraction {extraction_key[:8]} marked as validated.")
-        elif args.extraction_action == "reject":
-            extraction_key = _resolve_or_exit(
-                store, "fact_extraction", "extraction_key", args.key, "Extraction",
-            )
-            store.update_validation(extraction_key, status=ValidationStatus.REJECTED, validated_by=args.by)
-            print(f"Extraction {extraction_key[:8]} marked as rejected.")
+        elif args.extraction_action in ("validate", "reject"):
+            extraction_key = _resolve_or_exit(store, "fact_extraction", args.key)
+            status = (ValidationStatus.VALIDATED if args.extraction_action == "validate"
+                      else ValidationStatus.REJECTED)
+            store.update_validation(extraction_key, status=status, validated_by=args.by)
+            print(f"Extraction {extraction_key[:8]} marked as {status.value}.")
         else:
             print("Use: extraction list|show|validate|reject", file=sys.stderr)
 
@@ -681,7 +673,7 @@ def _handle_session(args) -> None:
                     skill_info = f" skill={s.skill_key[:8]}" if s.skill_key else ""
                     print(f"  [{s.session_key[:8]}] {s.agent_role.value} {s.task_type} [{s.status.value}]{parent}{skill_info} model={s.model_used}")
         elif args.session_action == "show":
-            session_key = _resolve_or_exit(store, "fact_session", "session_key", args.key, "Session")
+            session_key = _resolve_or_exit(store, "fact_session", args.key)
             session = store.get_session(session_key)
             print(f"  Session: {session.session_key}")
             print(f"  Task: {session.task_description}")
@@ -714,7 +706,7 @@ def _handle_trace(args) -> None:
 
     with _get_store(args.db) as store:
         if args.trace_action == "list":
-            session_key = _resolve_or_exit(store, "fact_session", "session_key", args.session_key, "Session")
+            session_key = _resolve_or_exit(store, "fact_session", args.session_key)
             traces = store.get_session_traces(session_key)
             if args.type:
                 traces = [t for t in traces if t.trace_type == args.type]
@@ -726,7 +718,7 @@ def _handle_trace(args) -> None:
                     duration = f" ({t.duration_ms}ms)" if t.duration_ms else ""
                     print(f"  {indent}[{t.trace_key[:8]}] [{t.trace_type.value}] {t.title}{duration}")
         elif args.trace_action == "show":
-            trace_key = _resolve_or_exit(store, "fact_trace", "trace_key", args.key, "Trace")
+            trace_key = _resolve_or_exit(store, "fact_trace", args.key)
             trace = store.get_trace(trace_key)
             print(f"  Trace: {trace.trace_key}")
             print(f"  Session: {trace.session_key}")
@@ -760,7 +752,7 @@ def _handle_trace(args) -> None:
                 for fb in tf_data["feedback"]:
                     print(f"    [{fb.feedback_type.value}] {fb.content}")
         elif args.trace_action == "patterns":
-            skill_key = _resolve_or_exit(store, "dim_skill", "skill_key", args.skill_key, "Skill")
+            skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key)
             patterns = store.get_recurring_traces(
                 skill_key,
                 TraceType(args.type),
@@ -782,7 +774,7 @@ def _handle_trace_feedback(args) -> None:
 
     with _get_store(args.db) as store:
         if args.trace_feedback_action == "add":
-            trace_key = _resolve_or_exit(store, "fact_trace", "trace_key", args.trace_key, "Trace")
+            trace_key = _resolve_or_exit(store, "fact_trace", args.trace_key)
             trace = store.get_trace(trace_key)
             correction = None
             if args.correction:
@@ -802,7 +794,7 @@ def _handle_trace_feedback(args) -> None:
             tf_key = store.insert_trace_feedback(tf)
             print(f"Trace feedback created: key={tf_key} trace={trace_key[:8]} type={args.type}")
         elif args.trace_feedback_action == "list":
-            session_key = _resolve_or_exit(store, "fact_session", "session_key", args.session_key, "Session")
+            session_key = _resolve_or_exit(store, "fact_session", args.session_key)
             fb_list = store.list_trace_feedback(
                 session_key=session_key,
                 feedback_type=TraceFeedbackType(args.type) if args.type else None,
@@ -872,8 +864,7 @@ def _handle_proposal(args) -> None:
                 print(f"  [{p.proposal_key[:8]}] [{p.status.value}] "
                       f"{p.target_dimension.value} {nk}: {p.proposed_content[:50]}")
         elif args.proposal_action == "show":
-            pkey = _resolve_or_exit(store, "fact_proposal", "proposal_key",
-                                    args.key, "Proposal")
+            pkey = _resolve_or_exit(store, "fact_proposal", args.key)
             p = store.get_proposal(pkey)
             print(f"  Proposal: {p.proposal_key}")
             print(f"  Status: {p.status.value}")
@@ -891,8 +882,7 @@ def _handle_proposal(args) -> None:
             for line in p.proposed_content.splitlines():
                 print(f"    {line}")
         elif args.proposal_action in ("approve", "reject"):
-            pkey = _resolve_or_exit(store, "fact_proposal", "proposal_key",
-                                    args.key, "Proposal")
+            pkey = _resolve_or_exit(store, "fact_proposal", args.key)
             try:
                 if args.proposal_action == "approve":
                     result_key = store.approve_proposal(pkey, reviewed_by=args.by)
