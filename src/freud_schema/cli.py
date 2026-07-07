@@ -241,6 +241,16 @@ def main(argv: list[str] | None = None) -> None:
         "--since", default=None,
         help="Only files modified on/after this date (YYYY-MM-DD)")
 
+    # --- Couch commands ---
+    p_couch = sub.add_parser(
+        "couch", help="Analysis passes over the warehouse (SQL finding detectors)")
+    p_couch_sub = p_couch.add_subparsers(dest="couch_action")
+    p_couch_sub.add_parser(
+        "run", help="Run all SQL detectors and record findings (no model calls)")
+    p_couch_list = p_couch_sub.add_parser("list", help="List recorded findings")
+    p_couch_list.add_argument("--type", default=None, help="Filter by finding_type")
+    p_couch_list.add_argument("--limit", type=int, default=30)
+
     # --- Sampling config commands ---
     p_sc = sub.add_parser("sampling-config", help="Manage sampling configs")
     p_sc_sub = p_sc.add_subparsers(dest="sampling_config_action")
@@ -370,6 +380,8 @@ def main(argv: list[str] | None = None) -> None:
 
     elif args.command == "ingest":
         _handle_ingest(args)
+    elif args.command == "couch":
+        _handle_couch(args)
     elif args.command == "sampling-config":
         _handle_sampling_config(args)
 
@@ -787,6 +799,28 @@ def _handle_ingest(args) -> None:
     print(f"  rows read:    {stats['rows_read']:>8}")
     print(f"  rows written: {stats['rows_written']:>8}")
     print(f"  rows skipped: {stats['rows_skipped']:>8}")
+
+
+def _handle_couch(args) -> None:
+    from freud_schema.couch import run_couch
+
+    with _get_store(args.db) as store:
+        if args.couch_action == "run":
+            stats = run_couch(store)
+            print(f"Couch run {stats['etl_run_id'][:8]}: "
+                  f"{stats['findings']} finding(s) recorded.")
+        elif args.couch_action == "list":
+            findings = store.list_findings(
+                finding_type=args.type, limit=args.limit)
+            if not findings:
+                print("No findings recorded.")
+            for f in findings:
+                proj = f" project={f.project_key[:8]}" if f.project_key else ""
+                print(f"  [{f.finding_key[:8]}] {f.finding_type}{proj} "
+                      f"n={f.occurrence_count}: {f.summary}")
+        else:
+            print("Use: couch run|list", file=sys.stderr)
+            sys.exit(1)
 
 
 def _handle_sampling_config(args) -> None:

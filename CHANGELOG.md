@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.19.0
+
+Phase 2 of the meta-harness plan: the couch. Analysis passes over the
+warehouse produce typed, evidence-linked findings.
+
+### Added
+
+- **SQL finding detectors** (`couch.py` + 4 views: `v_retry_loops`,
+  `v_tool_error_clusters`, `v_interruption_hotspots`, `v_permission_friction`).
+  `freud-schema couch run` seeds the finding-type registry (4 SQL-detected +
+  2 LLM-detected vocabularies) and records `fact_finding` rows with
+  evidence session keys and occurrence counts. No model calls. Findings are
+  append-only trend data keyed per run. Summaries are built from tool names,
+  counts, and rates only -- never tool inputs, message text, paths, or URLs
+  (scrubbed by construction, since findings feed the future compile step).
+- `freud-schema couch list [--type]` to review findings.
+- `/couch` skill (`.claude/skills/couch.md`): the LLM layer -- the harness
+  judges user-correction patterns in scoped subagents and records findings
+  via MCP, with non-negotiable privacy rules (describe the pattern, never
+  quote the transcript).
+- `project_key` conformed onto `fact_message` and `fact_tool_use` at ingest
+  (dimensional fix: per-project finding views would otherwise need a
+  fact-to-fact join through fact_session). Schema version 5.
+- Tests: `test_couch.py` -- one fixture per finding pattern, each with a
+  below-threshold neighbor asserting no false positives, plus a
+  no-content-in-summaries privacy test.
+
 ## 0.18.0
 
 Phase 1 of the meta-harness plan: sense. Claude Code's own session transcripts

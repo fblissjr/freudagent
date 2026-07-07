@@ -1168,14 +1168,14 @@ class ExperimentStore:
         if self._key_exists("fact_message", key):
             return key
         self.con.execute(
-            """INSERT INTO fact_message (message_key, session_key, role, entry_uuid,
-               parent_uuid, sequence_num, occurred_at, content_text, has_thinking,
-               stop_reason, input_tokens, output_tokens, is_meta, is_sidechain,
-               record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, msg.session_key, msg.role, msg.entry_uuid, msg.parent_uuid,
-             msg.sequence_num, msg.occurred_at, msg.content_text, msg.has_thinking,
-             msg.stop_reason, msg.input_tokens, msg.output_tokens,
+            """INSERT INTO fact_message (message_key, session_key, project_key, role,
+               entry_uuid, parent_uuid, sequence_num, occurred_at, content_text,
+               has_thinking, stop_reason, input_tokens, output_tokens, is_meta,
+               is_sidechain, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, msg.session_key, msg.project_key, msg.role, msg.entry_uuid,
+             msg.parent_uuid, msg.sequence_num, msg.occurred_at, msg.content_text,
+             msg.has_thinking, msg.stop_reason, msg.input_tokens, msg.output_tokens,
              msg.is_meta, msg.is_sidechain, msg.record_source, msg.etl_run_id],
         )
         return key
@@ -1187,12 +1187,12 @@ class ExperimentStore:
         if self._key_exists("fact_tool_use", key):
             return key
         self.con.execute(
-            """INSERT INTO fact_tool_use (tool_use_key, session_key, message_key,
-               tool_use_id, tool_name, tool_input, is_error, result_text,
-               sequence_num, occurred_at, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, tu.session_key, tu.message_key, tu.tool_use_id, tu.tool_name,
-             _json(tu.tool_input), tu.is_error, tu.result_text,
+            """INSERT INTO fact_tool_use (tool_use_key, session_key, project_key,
+               message_key, tool_use_id, tool_name, tool_input, is_error,
+               result_text, sequence_num, occurred_at, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, tu.session_key, tu.project_key, tu.message_key, tu.tool_use_id,
+             tu.tool_name, _json(tu.tool_input), tu.is_error, tu.result_text,
              tu.sequence_num, tu.occurred_at, tu.record_source, tu.etl_run_id],
         )
         return key

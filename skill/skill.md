@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.18.0
+version: 0.19.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -134,6 +134,18 @@ subagents link to their parents with agentType/description from `.meta.json`
 sidecars. This is a CLI-time operation -- it needs the database lock, so run it
 when the DuckDB MCP server is not connected, or ingest to a separate file and
 `ATTACH` it from the MCP session.
+
+### The Couch (analyze)
+
+```bash
+freud-schema couch run                  # SQL detectors -> fact_finding (no model calls)
+freud-schema couch list [--type retry_loop]
+```
+
+Detects retry loops, tool error clusters, interruption hotspots, and
+permission friction, with evidence session keys attached. The LLM layer
+(user-correction patterns) runs inside Claude Code -- see the `/couch`
+project skill.
 
 ## Corpus
 

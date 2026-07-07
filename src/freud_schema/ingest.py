@@ -224,12 +224,14 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
         session_key, completed_at=last_ts, model_used=last_model)
 
     for msg in messages:
-        store.insert_message(msg.model_copy(update={"session_key": session_key}))
+        store.insert_message(msg.model_copy(update={
+            "session_key": session_key, "project_key": project_key}))
 
     for tu in tool_uses:
         result = tool_results.get(tu["tool_use_id"], {})
         store.insert_tool_use(ToolUse(
             session_key=session_key,
+            project_key=project_key,
             message_key=dimension_key(session_key, tu["entry_uuid"]),
             tool_use_id=tu["tool_use_id"],
             tool_name=tu["tool_name"],

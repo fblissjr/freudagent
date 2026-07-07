@@ -381,6 +381,7 @@ class Message(BaseModel):
 
     message_key: str | None = None
     session_key: str
+    project_key: str | None = None
     role: MessageRole
     entry_uuid: str | None = None
     parent_uuid: str | None = None
@@ -409,6 +410,7 @@ class ToolUse(BaseModel):
 
     tool_use_key: str | None = None
     session_key: str
+    project_key: str | None = None
     message_key: str | None = None
     tool_use_id: str | None = None
     tool_name: str

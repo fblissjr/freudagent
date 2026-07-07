@@ -311,6 +311,7 @@ def _build_tables_ddl() -> list[str]:
         f"""CREATE TABLE IF NOT EXISTS fact_message (
     message_key VARCHAR NOT NULL,
     session_key VARCHAR NOT NULL,
+    project_key VARCHAR,
     role VARCHAR NOT NULL,
     entry_uuid VARCHAR,
     parent_uuid VARCHAR,
@@ -329,6 +330,7 @@ def _build_tables_ddl() -> list[str]:
         f"""CREATE TABLE IF NOT EXISTS fact_tool_use (
     tool_use_key VARCHAR NOT NULL,
     session_key VARCHAR NOT NULL,
+    project_key VARCHAR,
     message_key VARCHAR,
     tool_use_id VARCHAR,
     tool_name VARCHAR NOT NULL,
@@ -438,6 +440,47 @@ SELECT
     COUNT(*) as feedback_count
 FROM fact_feedback
 GROUP BY session_key, skill_key""",
+    # --- Couch views: SQL-only finding detectors over the ingested grain ---
+    """CREATE VIEW IF NOT EXISTS v_retry_loops AS
+SELECT
+    project_key, session_key, tool_name,
+    tool_input::VARCHAR as tool_input_text,
+    COUNT(*) as attempts,
+    SUM(CASE WHEN is_error THEN 1 ELSE 0 END) as errors
+FROM fact_tool_use
+GROUP BY project_key, session_key, tool_name, tool_input::VARCHAR
+HAVING COUNT(*) >= 3""",
+    """CREATE VIEW IF NOT EXISTS v_tool_error_clusters AS
+SELECT
+    project_key, tool_name,
+    COUNT(*) as uses,
+    SUM(CASE WHEN is_error THEN 1 ELSE 0 END) as errors,
+    ROUND(100.0 * SUM(CASE WHEN is_error THEN 1 ELSE 0 END) / COUNT(*), 1) as error_pct,
+    LIST(DISTINCT session_key) FILTER (is_error) as error_session_keys
+FROM fact_tool_use
+GROUP BY project_key, tool_name""",
+    """CREATE VIEW IF NOT EXISTS v_interruption_hotspots AS
+SELECT
+    project_key,
+    COUNT(*) as interruptions,
+    COUNT(DISTINCT session_key) as session_count,
+    LIST(DISTINCT session_key) as session_keys
+FROM fact_message
+WHERE role = 'user' AND content_text LIKE '[Request interrupted by user%'
+GROUP BY project_key""",
+    """CREATE VIEW IF NOT EXISTS v_permission_friction AS
+SELECT
+    project_key, tool_name,
+    COUNT(*) as denials,
+    COUNT(DISTINCT session_key) as session_count,
+    LIST(DISTINCT session_key) as session_keys
+FROM fact_tool_use
+WHERE is_error
+  AND (result_text ILIKE '%permission%'
+       OR result_text ILIKE '%denied%'
+       OR result_text ILIKE '%doesn''t want to proceed%'
+       OR result_text ILIKE '%user rejected%')
+GROUP BY project_key, tool_name""",
 ]
 
 _INDEXES: list[str] = [
@@ -479,6 +522,8 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_fact_message_key ON fact_message(message_key)",
     "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_session ON fact_tool_use(session_key, sequence_num)",
     "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_name ON fact_tool_use(tool_name)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_project ON fact_tool_use(project_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_message_project ON fact_message(project_key)",
     "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_key ON fact_tool_use(tool_use_key)",
     # fact_session_facets
     "CREATE INDEX IF NOT EXISTS idx_fact_session_facets_session ON fact_session_facets(session_key)",
@@ -497,6 +542,8 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (3, "Dimensional model: dim_/fact_ tables, denormalized facts, 6 views, no FKs"),
     (4, "v0.17 meta-harness: MD5 hash keys, SCD-2 dims, registries, "
         "fact_message/tool_use/facets/finding/proposal, meta_load_log"),
+    (5, "v0.19 couch: project_key conformed onto fact_message/fact_tool_use, "
+        "4 SQL finding views"),
 ]
 
 _ALL_DDL: list[str] = _TABLES_DDL + _VIEWS + _INDEXES
@@ -560,7 +607,9 @@ def reset_schema(con: duckdb.DuckDBPyConnection) -> None:
     # Drop views first
     for view in ("v_feedback_by_skill", "v_feedback_fields",
                  "v_recurring_traces", "v_recurring_trace_feedback",
-                 "v_skill_feedback_patterns", "v_session_feedback_count"):
+                 "v_skill_feedback_patterns", "v_session_feedback_count",
+                 "v_retry_loops", "v_tool_error_clusters",
+                 "v_interruption_hotspots", "v_permission_friction"):
         con.execute(f"DROP VIEW IF EXISTS {view}")
     # Drop tables (dependents first)
     for table in ("fact_proposal", "fact_finding", "fact_session_facets",
