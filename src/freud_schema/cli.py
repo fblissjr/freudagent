@@ -225,6 +225,22 @@ def main(argv: list[str] | None = None) -> None:
     p_tfb_list.add_argument("--session-key", required=True, help="Session key or unique prefix")
     p_tfb_list.add_argument("--type", default=None, choices=[e.value for e in TraceFeedbackType])
 
+    # --- Ingest commands ---
+    p_ingest = sub.add_parser("ingest", help="Ingest external data into the warehouse")
+    p_ingest_sub = p_ingest.add_subparsers(dest="ingest_action")
+    p_ingest_tr = p_ingest_sub.add_parser(
+        "transcripts",
+        help="Ingest Claude Code session transcripts (idempotent; re-runs skip existing rows)")
+    p_ingest_tr.add_argument(
+        "--root", default=None,
+        help="Projects root (default: Claude Code's projects directory)")
+    p_ingest_tr.add_argument(
+        "--project", default=None,
+        help="Substring filter on the encoded project directory name")
+    p_ingest_tr.add_argument(
+        "--since", default=None,
+        help="Only files modified on/after this date (YYYY-MM-DD)")
+
     # --- Sampling config commands ---
     p_sc = sub.add_parser("sampling-config", help="Manage sampling configs")
     p_sc_sub = p_sc.add_subparsers(dest="sampling_config_action")
@@ -352,6 +368,8 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "trace-feedback":
         _handle_trace_feedback(args)
 
+    elif args.command == "ingest":
+        _handle_ingest(args)
     elif args.command == "sampling-config":
         _handle_sampling_config(args)
 
@@ -743,6 +761,32 @@ def _handle_trace_feedback(args) -> None:
                     print(f"  [{fb.trace_feedback_key[:8]}] trace={fb.trace_key[:8]} [{fb.feedback_type.value}] {fb.content[:60]} by={fb.created_by or 'anon'}")
         else:
             print("Use: trace-feedback add|list", file=sys.stderr)
+
+
+def _handle_ingest(args) -> None:
+    from datetime import datetime
+
+    from freud_schema.ingest import ingest_transcripts
+
+    if args.ingest_action != "transcripts":
+        print("Use: ingest transcripts", file=sys.stderr)
+        sys.exit(1)
+    since = None
+    if args.since:
+        try:
+            since = datetime.fromisoformat(args.since)
+        except ValueError:
+            print(f"Invalid --since date: {args.since} (expected YYYY-MM-DD)",
+                  file=sys.stderr)
+            sys.exit(1)
+    with _get_store(args.db) as store:
+        stats = ingest_transcripts(
+            store, root=args.root, project=args.project, since=since)
+    print(f"Ingest run {stats['etl_run_id'][:8]} completed:")
+    print(f"  sessions:     {stats['sessions']:>8}")
+    print(f"  rows read:    {stats['rows_read']:>8}")
+    print(f"  rows written: {stats['rows_written']:>8}")
+    print(f"  rows skipped: {stats['rows_skipped']:>8}")
 
 
 def _handle_sampling_config(args) -> None:

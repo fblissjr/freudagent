@@ -28,6 +28,7 @@ DuckDB's cursor.description (type_code == "JSON").
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime
 from uuid import uuid4
 
@@ -123,6 +124,24 @@ class ExperimentStore:
 
     def __exit__(self, *exc):
         self.close()
+
+    @contextmanager
+    def transaction(self):
+        """Explicit transaction scope for bulk writes (e.g. one transcript
+        file per transaction during ingestion). Rolls back on exception."""
+        self.con.execute("BEGIN TRANSACTION")
+        try:
+            yield
+            self.con.execute("COMMIT")
+        except BaseException:
+            self.con.execute("ROLLBACK")
+            raise
+
+    def count_rows(self, table: str) -> int:
+        """Row count for a schema table (allowlisted, used for load stats)."""
+        if table not in _KEY_COLUMNS and table not in ("meta_load_log",):
+            raise ValueError(f"Unknown table: {table}")
+        return self.con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
 
     # -------------------------------------------------------------------
     # Generic row conversion
@@ -696,6 +715,32 @@ class ExperimentStore:
             """UPDATE fact_session SET status = ?, result = ?, token_usage = ?,
                completed_at = current_timestamp WHERE session_key = ?""",
             [status, _json(result), _json(token_usage), session_key],
+        )
+
+    def update_session_progress(
+        self,
+        session_key: str,
+        *,
+        completed_at: datetime | None = None,
+        model_used: str | None = None,
+    ) -> None:
+        """Accumulating-snapshot update from ingestion: a transcript's end
+        time and last-seen model advance as a resumed session grows.
+        Unlike complete_session, timestamps come from the transcript, not
+        the wall clock, and result/token_usage are left untouched."""
+        sets, params = [], []
+        if completed_at is not None:
+            sets.append("completed_at = ?")
+            params.append(completed_at)
+        if model_used is not None:
+            sets.append("model_used = ?")
+            params.append(model_used)
+        if not sets:
+            return
+        params.append(session_key)
+        self.con.execute(
+            f"UPDATE fact_session SET {', '.join(sets)} WHERE session_key = ?",
+            params,
         )
 
     def update_session_model(self, session_key: str, model_used: str) -> None:

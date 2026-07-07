@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.17.0
+version: 0.18.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -119,6 +119,21 @@ freud-schema skill activate <key-or-prefix>
 freud-schema session list [--status completed]
 freud-schema session show <key-or-prefix>
 ```
+
+### Transcript Ingestion (sense)
+
+```bash
+freud-schema ingest transcripts                        # everything under the Claude Code projects dir
+freud-schema ingest transcripts --project freudagent   # one project (substring match)
+freud-schema ingest transcripts --since 2026-07-01     # incremental by file mtime
+```
+
+Idempotent by key construction: re-running against unchanged files writes zero
+rows (verify via `meta_load_log`). Root sessions ingest as orchestrator, nested
+subagents link to their parents with agentType/description from `.meta.json`
+sidecars. This is a CLI-time operation -- it needs the database lock, so run it
+when the DuckDB MCP server is not connected, or ingest to a separate file and
+`ATTACH` it from the MCP session.
 
 ## Corpus
 

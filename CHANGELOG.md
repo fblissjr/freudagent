@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.18.0
+
+Phase 1 of the meta-harness plan: sense. Claude Code's own session transcripts
+become warehouse facts.
+
+### Added
+
+- **Transcript ingestion**: `freud-schema ingest transcripts [--root] [--project]
+  [--since]`. One fact_session per transcript (root sessions as orchestrator,
+  nested subagents linked via parent_session_key with agentType/description from
+  their .meta.json sidecars), one fact_message per user/assistant entry, one
+  fact_tool_use per tool_use block joined to its tool_result, dim_project from
+  the session's cwd. Idempotent by key construction: re-running against
+  unchanged files writes zero rows; a resumed session's grown file inserts only
+  its new entries. All runs logged in meta_load_log.
+- `discovery.py`: transcript discovery for the current nested layout
+  (`<project>/<parent-uuid>/subagents/agent-<id>.jsonl` + sidecars), built fresh
+  and verified against on-disk data.
+- **Vendored ccutils parsers** (`vendor/ccutils_parsers/`): the typed transcript
+  parser (12 discriminated entry types, Unknown* fallbacks, extra="allow") and
+  the history.jsonl parser, with upstream commit provenance headers.
+- Store: `transaction()` context manager (one transcript file per transaction),
+  `count_rows()`, `update_session_progress()` (accumulating-snapshot updates
+  with transcript-derived timestamps, not wall clock).
+- Tests: `test_ingest.py` -- includes Phase 1's falsifiable milestone (idempotent
+  re-ingest measured via meta_load_log counts) and incremental growth coverage.
+
 ## 0.17.0
 
 Phase 0 of the meta-harness plan (see internal plan doc): the schema realigned
