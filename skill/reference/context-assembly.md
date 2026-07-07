@@ -1,5 +1,7 @@
 # Context Assembly: Progressive Disclosure Layers
 
+Last updated: 2026-07-07
+
 How `assemble_runner_context()` implements progressive disclosure.
 
 ## The Function
@@ -9,9 +11,13 @@ a (system_prompt, user_message) tuple from the data layer, following a strict hi
 
 ```python
 def assemble_runner_context(
-    store, *, skill_id, source_ids, domain=None, task_params="", preset=None
+    store, *, skill_key, source_keys, domain=None, task_params="", preset=None
 ) -> tuple[str, str]:
 ```
+
+`skill_key` and `source_keys` are MD5 hash keys (`keys.dimension_key()`), not
+integers -- the v0.17.0 key migration renamed every id-shaped parameter and
+column in the schema.
 
 ## Layer Stack
 
@@ -44,7 +50,10 @@ Example: "Extract policy number, effective date, and named insureds from insuran
 ### Layer 3: Sources
 
 References to the raw artifacts to process, rendered as source tags:
-`<source id="1" type="application/pdf" path="/data/policy.pdf" />`
+`<source id="a1b2c3..." type="application/pdf" path="/data/policy.pdf" />`
+
+`id` is the source's MD5 hash key (`source_key`), not a sequence number --
+`parse_source_tags()` accepts any non-empty id string, not just digits.
 
 The RLM provider resolves these tags into actual file content. Other providers
 receive the metadata for the harness to handle content loading.

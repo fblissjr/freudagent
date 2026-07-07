@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.16.1
+version: 0.17.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,6 +37,8 @@ scope:
 
 # FreudAgent Data Layer
 
+Last updated: 2026-07-07
+
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness
 is running. The harness (Claude Code, Agent SDK, local inference) handles orchestration.
@@ -66,24 +68,33 @@ All commands use `freud-schema` (or `uv run freud-schema`). The `--db` flag is g
 > CLI commands that don't open a connection (corpus queries, archetype/preset commands,
 > `db ddl`) still work.
 
+Keys are MD5 hashes (`keys.dimension_key()`), not integers -- every command that
+takes an entity reference (skill, source, rule, extraction, feedback, session,
+trace) accepts a full key or a unique prefix, git-short-hash style, resolved via
+`store.resolve_key()`. An ambiguous or non-matching prefix exits with an error.
+
 ### Data Management
 
 ```bash
 freud-schema db init                          # Create tables
 freud-schema db status                        # Show row counts
-freud-schema rule add --content "..." --priority 10
+freud-schema db reset                         # Drop and recreate all tables (destructive)
+freud-schema rule add --name always-json --content "..." --priority 10
 freud-schema skill add --domain D --task-type T --content "..." --status active [--version N]
 freud-schema source add --path /data/doc.pdf --media-type application/pdf
 ```
+
+`rule add` requires `--name` -- it doubles as the rule's stable identity and the
+future compile target filename (`.claude/rules/<name>.md`).
 
 ### Review and Feedback
 
 ```bash
 freud-schema extraction list [--status pending]
-freud-schema extraction show N
-freud-schema extraction validate N
-freud-schema feedback add --extraction-id N --type wrong_value --correction '{...}'
-freud-schema feedback list --skill-id N --aggregate
+freud-schema extraction show <key-or-prefix>
+freud-schema extraction validate <key-or-prefix>
+freud-schema feedback add --extraction-key <key-or-prefix> --type wrong_value --correction '{...}'
+freud-schema feedback list --skill-key <key-or-prefix> --aggregate
 ```
 
 ### Archetypes and Prompts
@@ -98,15 +109,15 @@ freud-schema prompt --preset careful-executor
 ### Skill Lifecycle
 
 ```bash
-freud-schema skill deprecate <id>
-freud-schema skill activate <id>
+freud-schema skill deprecate <key-or-prefix>
+freud-schema skill activate <key-or-prefix>
 ```
 
 ### Session History
 
 ```bash
 freud-schema session list [--status completed]
-freud-schema session show <id>
+freud-schema session show <key-or-prefix>
 ```
 
 ## Corpus

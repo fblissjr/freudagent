@@ -6,6 +6,7 @@ __pycache__/
 
 # etc
 .claude/settings.local.json
+.claude/agent-memory/
 internal/
 *.duckdb
 *.duckdb.wal

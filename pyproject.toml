@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "freud-schema"
-version = "0.16.1"
+version = "0.17.0"
 description = "Experiment harness for data-driven agent orchestration, grounded in Freudian archetypes"
 requires-python = ">=3.10"
 dependencies = [
@@ -30,3 +30,10 @@ freud-schema = "freud_schema.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# Anchors pytest's rootdir to this repo. Without this, rootdir inference
+# walks up to the parent directory (which is itself a Python project) and
+# test collection tries to import that project's packages.
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"

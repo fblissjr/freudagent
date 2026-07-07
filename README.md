@@ -14,6 +14,8 @@ prompt composition. The harness handles orchestration. FreudAgent handles data.
 
 Mostly a joke repo. But the thesis is serious.
 
+Last updated: 2026-07-07
+
 ## Setup
 
 ```bash
@@ -68,12 +70,16 @@ uv run freud-schema prompt structural-triad free-association fixation \
 
 ### CLI -- Experiment Harness
 
+Entity references (skill, source, rule, extraction, feedback, session, trace)
+are MD5 hash keys, not integers. Every command that takes one accepts a full
+key or a unique prefix, git-short-hash style.
+
 ```bash
 # 1. Initialize
 uv run freud-schema db init
 
 # 2. Set up: rules, skills, sources
-uv run freud-schema rule add --content "Always output valid JSON" --scope global
+uv run freud-schema rule add --name always-valid-json --content "Always output valid JSON" --scope global
 uv run freud-schema skill add \
   --domain legal --task-type extraction \
   --content "Extract party names and dates from contracts" \
@@ -86,30 +92,30 @@ uv run freud-schema source add --path ./contracts/sample.pdf --media-type applic
 
 # 4. Review results
 uv run freud-schema extraction list
-uv run freud-schema extraction show 1
+uv run freud-schema extraction show <key-or-prefix>
 uv run freud-schema session list
 
 # 5. Validate or reject extractions
-uv run freud-schema extraction validate 1 --by "reviewer"
+uv run freud-schema extraction validate <key-or-prefix> --by "reviewer"
 
 # 6. Close the feedback loop
 uv run freud-schema feedback add \
-  --extraction-id 1 --type wrong_value \
+  --extraction-key <key-or-prefix> --type wrong_value \
   --correction '{"field": "party", "was": "X", "should_be": "Y"}' \
   --notes "Full legal name required" --by "reviewer"
 
 # 7. View the flywheel signal
-uv run freud-schema feedback list --skill-id 1 --aggregate
+uv run freud-schema feedback list --skill-key <key-or-prefix> --aggregate
 
 # 8. Refine: deprecate v1, add v2 with fixes, re-extract via harness
-uv run freud-schema skill deprecate 1
+uv run freud-schema skill deprecate <key-or-prefix>
 uv run freud-schema skill add \
   --domain legal --task-type extraction \
   --content "Improved extraction instructions..." \
   --status active --version 2
 
 # 9. Inspect session details
-uv run freud-schema session show 1
+uv run freud-schema session show <key-or-prefix>
 
 # Use a non-default database (--db is a global flag)
 uv run freud-schema --db /tmp/test.duckdb db init
@@ -118,7 +124,7 @@ uv run freud-schema --db /tmp/test.duckdb db init
 uv run freud-schema db ddl
 uv run freud-schema db ddl | duckdb :memory:
 
-# Nuclear option
+# Nuclear option: drop and recreate all tables (destructive)
 uv run freud-schema db reset
 ```
 
@@ -173,29 +179,41 @@ and lifecycle between agents.
 
 ## Experiment Harness
 
-A Kimball-style dimensional model in DuckDB: 4 dimension tables, 5 fact tables,
-6 analytical views. Behavior comes from data (skills, rules, sources), not code.
-Fact tables carry denormalized dimension attributes at insert time, eliminating
-joins. No FK constraints (store-layer validation instead). The CLI exposes data
-operations (CRUD, review, feedback). Extraction is the harness's job (Claude Code,
-Agent SDK).
+A Kimball-style dimensional model in DuckDB: 7 dimension tables (4 SCD Type 2 +
+3 append-only registries), 10 fact tables, 6 analytical views. Behavior comes
+from data (skills, rules, sources), not code. Keys are MD5 hash surrogates
+(`keys.dimension_key()`), not sequences -- deterministic, so transcript
+re-ingestion is idempotent. Fact tables carry denormalized dimension attributes
+at insert time, eliminating joins, plus a lineage envelope (`record_source`,
+`etl_run_id`). No FK constraints (store-layer validation instead). The CLI
+exposes data operations (CRUD, review, feedback). Extraction is the harness's
+job (Claude Code, Agent SDK).
 
 Context assembly implements progressive disclosure:
 **rules -> skill -> source -> task**.
 
 | Table | Purpose |
 |-------|---------|
-| **Dimensions** | |
+| **SCD-2 Dimensions** | |
 | `dim_skill` | Declarative instructions loaded at runtime (domain + task_type + version) |
 | `dim_source` | Raw artifacts to process (file paths, MIME types, metadata) |
-| `dim_rule` | Constraints applied globally or per-domain (priority-ordered) |
+| `dim_rule` | Constraints applied globally or per-domain (priority-ordered), keyed by name |
 | `dim_sampling_config` | Prior run sampling settings for pattern detection |
+| **Registry Dimensions** | |
+| `dim_project` | Conformed project dimension for cross-project queries |
+| `dim_facet_type` | Behavioral facet registry (tier, method, output type) |
+| `dim_finding_type` | Open finding-type vocabulary (registry-validated, not an enum) |
 | **Facts** | |
-| `fact_session` | Logged agent executions (with denormalized skill attrs, token tracking) |
+| `fact_session` | Logged agent executions -- native runs or ingested transcripts (denormalized skill attrs, token tracking) |
 | `fact_trace` | Reasoning trace tree nodes within a session |
 | `fact_extraction` | Structured output from agent runs (with denormalized source/skill attrs) |
 | `fact_feedback` | Human corrections on extractions (the flywheel signal) |
 | `fact_trace_feedback` | Human feedback on specific trace nodes |
+| `fact_message` | Transcript messages, full grain |
+| `fact_tool_use` | Transcript tool_use/tool_result blocks |
+| `fact_session_facets` | Behavioral facet values (EAV) |
+| `fact_finding` | Detected patterns with evidence (couch output) |
+| `fact_proposal` | Proposed dimension changes pending human review (evolve output) |
 | **Views** | |
 | `v_feedback_by_skill` | Correction counts by skill + correction_type |
 | `v_feedback_fields` | Field names mentioned in corrections by skill |
@@ -205,6 +223,9 @@ Context assembly implements progressive disclosure:
 | `v_session_feedback_count` | Feedback count per session (for sampling) |
 | **Operational** | |
 | `meta_schema_version` | Tracks schema version |
+| `meta_load_log` | One row per ingest/compile run (row counts, status, errors) |
+
+Full column-level reference: `skill/reference/schema.md`.
 
 ## Project Structure
 
@@ -215,19 +236,24 @@ src/freud_schema/
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
   cli.py             - CLI interface
-  db.py              - DuckDB schema: 4 dim + 5 fact tables, 6 views, CHECK constraints, indexes
-  tables.py          - Pydantic models + 12 enum classes (single source of truth for valid values)
-  store.py           - CRUD operations with insert-time denormalization (ExperimentStore)
+  keys.py            - Deterministic MD5 surrogate keys: dimension_key(), hash_diff()
+  db.py              - DuckDB schema: 4 SCD-2 dims + 3 registries + 10 facts, 6 views,
+                       meta_load_log, CHECK constraints, indexes. No sequences.
+  tables.py          - Pydantic models + 20 enum classes (single source of truth for valid values)
+  store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   orchestrator.py    - Context assembly, provider protocol, provider implementations
   rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
 tests/
-  conftest.py        - Shared fixtures (in-memory DuckDB store)
-  test_schema.py     - Freud corpus, archetypes, harness composition
-  test_experiment.py - DuckDB schema, store, context assembly, providers
-  test_rlm.py        - RLM provider, REPL loop, sandbox, source loading
+  conftest.py          - Shared fixtures (in-memory DuckDB store)
+  test_schema.py       - Freud corpus, archetypes, harness composition
+  test_experiment.py   - DuckDB schema, store, context assembly, providers
+  test_keys.py         - dimension_key()/hash_diff() determinism and NULL-safety
+  test_schema_v017.py  - v0.17 DDL: SCD-2 columns, lineage envelope, new tables
+  test_store_v017.py   - v0.17 store: SCD-2 evolution, registries, resolve_key
+  test_rlm.py          - RLM provider, REPL loop, sandbox, source loading
 docs/
   tutorial-arxiv-extraction.md - End-to-end arxiv extraction pipeline
   tutorial-rlm-provider.md     - RLM provider: REPL loop, sub-calls, presets

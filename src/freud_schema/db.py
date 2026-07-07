@@ -1,21 +1,32 @@
-"""DuckDB schema and connection management for the experiment harness.
+"""DuckDB schema and connection management for the meta-harness (v0.17).
 
-Dimensional model (Kimball-style): 4 dimension tables (dim_skill,
-dim_source, dim_rule, dim_sampling_config), 5 fact tables (fact_session,
-fact_trace, fact_extraction, fact_feedback, fact_trace_feedback), 6
-analytical views, plus meta_schema_version.
+Dimensional model (Kimball-style):
+- 4 SCD Type 2 dimensions: dim_skill, dim_source, dim_rule,
+  dim_sampling_config (effective_from/effective_to/is_current/hash_diff).
+- 3 registry dimensions (append-only, no SCD-2): dim_project,
+  dim_facet_type, dim_finding_type.
+- 10 fact tables: fact_session (accumulating snapshot), fact_trace,
+  fact_extraction, fact_feedback, fact_trace_feedback, fact_message,
+  fact_tool_use, fact_session_facets, fact_finding, fact_proposal.
+- 6 analytical views, meta_schema_version, meta_load_log.
+
+Key scheme: MD5 hash surrogate keys (keys.dimension_key), no sequences.
+Deterministic keys make transcript re-ingestion idempotent. Every fact
+carries a lineage envelope: record_source (CHECK-constrained allowlist)
+and etl_run_id (joins meta_load_log). created_at serves as inserted_at.
+
+Naming (decided 2026-07-07): etl_run_id for lineage, session_key for the
+harness session a row describes. session_id appears nowhere.
+
+finding_type has NO CHECK constraint by design -- it is open-vocabulary,
+registry-validated against dim_finding_type in the store layer, so new
+finding vocabularies are data, not DDL changes.
 
 Fact tables carry denormalized dimension attributes at insert time,
-eliminating fact-to-fact joins. Views replace complex aggregation queries.
-No FK constraints (DuckDB can't CASCADE anyway). CHECK constraints
-enforce enum values.
-
-Tables are created via CREATE TABLE IF NOT EXISTS. For breaking changes,
-use reset_schema() to drop and recreate. No migration path -- this is
-an experiment repo.
-
-Enum classes in tables.py are the single source of truth for valid column
-values. CHECK constraints are generated from those enums via _check_in().
+eliminating fact-to-fact joins. No FK constraints (DuckDB can't CASCADE
+anyway); existence validation lives in the store layer. Tables are
+created via CREATE TABLE IF NOT EXISTS; breaking changes go through
+reset_schema() -- no migration path, this is an experiment repo.
 
 DDL is stored as lists of individual statements (not multi-statement
 strings) so there is no semicolon-splitting anywhere. Semicolons only
@@ -32,6 +43,13 @@ import duckdb
 from freud_schema.tables import (
     AgentRole,
     CorrectionType,
+    DetectionMethod,
+    FacetMethod,
+    FacetOutputType,
+    FindingScope,
+    MessageRole,
+    ProposalStatus,
+    RecordSource,
     RuleScope,
     RuleStatus,
     SamplingStrategy,
@@ -39,6 +57,7 @@ from freud_schema.tables import (
     SkillOrigin,
     SkillStatus,
     SourceStatus,
+    TargetDimension,
     TraceFeedbackType,
     TraceType,
     ValidationStatus,
@@ -57,21 +76,29 @@ def _check_in(column: str, enum_cls: type[Enum]) -> str:
     return f"CHECK ({column} IN ({vals}))"
 
 
+# Shared column blocks. SCD-2 dims and fact lineage envelopes repeat, so
+# they are built once -- one place to change, no drift between tables.
+
+def _scd2_cols() -> str:
+    return f"""    effective_from TIMESTAMP DEFAULT current_timestamp,
+    effective_to TIMESTAMP,
+    is_current BOOLEAN NOT NULL DEFAULT TRUE,
+    hash_diff VARCHAR,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('record_source', RecordSource)}"""
+
+
+def _lineage_cols() -> str:
+    return f"""    record_source VARCHAR NOT NULL DEFAULT 'native',
+    etl_run_id VARCHAR,
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('record_source', RecordSource)}"""
+
+
 # ---------------------------------------------------------------------------
 # Schema DDL -- each element is one complete statement, no semicolons
 # ---------------------------------------------------------------------------
-
-_SEQUENCES: list[str] = [
-    "CREATE SEQUENCE IF NOT EXISTS dim_skill_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS dim_source_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS dim_rule_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS dim_sampling_config_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS fact_session_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS fact_trace_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS fact_extraction_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS fact_feedback_id_seq START 1",
-    "CREATE SEQUENCE IF NOT EXISTS fact_trace_feedback_id_seq START 1",
-]
 
 
 def _build_tables_ddl() -> list[str]:
@@ -79,8 +106,6 @@ def _build_tables_ddl() -> list[str]:
 
     Called once at module level to produce _TABLES_DDL.
     Enum classes in tables.py are the authority for valid values.
-    No FK constraints -- DuckDB can't CASCADE anyway. Existence
-    validation is handled in the store layer.
     """
     return [
         """CREATE TABLE IF NOT EXISTS meta_schema_version (
@@ -88,87 +113,134 @@ def _build_tables_ddl() -> list[str]:
     applied_at TIMESTAMP DEFAULT current_timestamp,
     description VARCHAR
 )""",
-        # -- Dimensions --
+        f"""CREATE TABLE IF NOT EXISTS meta_load_log (
+    etl_run_id VARCHAR NOT NULL,
+    operation VARCHAR NOT NULL,
+    status VARCHAR NOT NULL DEFAULT 'running',
+    started_at TIMESTAMP DEFAULT current_timestamp,
+    completed_at TIMESTAMP,
+    rows_read INTEGER NOT NULL DEFAULT 0,
+    rows_written INTEGER NOT NULL DEFAULT 0,
+    rows_skipped INTEGER NOT NULL DEFAULT 0,
+    error VARCHAR,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    {_check_in('status', SessionStatus)},
+    {_check_in('record_source', RecordSource)}
+)""",
+        # -- SCD Type 2 dimensions --
         f"""CREATE TABLE IF NOT EXISTS dim_skill (
-    id INTEGER DEFAULT nextval('dim_skill_id_seq'),
+    skill_key VARCHAR NOT NULL,
     domain VARCHAR NOT NULL,
     task_type VARCHAR NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     content VARCHAR NOT NULL,
     metadata JSON,
-    parent_skill_id INTEGER,
+    parent_skill_key VARCHAR,
     status VARCHAR NOT NULL DEFAULT 'draft',
     origin VARCHAR NOT NULL DEFAULT 'human_authored',
     activation_conditions JSON,
-    created_at TIMESTAMP DEFAULT current_timestamp,
-    updated_at TIMESTAMP DEFAULT current_timestamp,
-    UNIQUE (domain, task_type, version),
+{_scd2_cols()},
     {_check_in('status', SkillStatus)},
     {_check_in('origin', SkillOrigin)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS dim_source (
-    id INTEGER DEFAULT nextval('dim_source_id_seq'),
+    source_key VARCHAR NOT NULL,
     content_path VARCHAR NOT NULL,
     media_type VARCHAR NOT NULL,
     metadata JSON,
     source_hash VARCHAR,
     status VARCHAR NOT NULL DEFAULT 'active',
-    superseded_by INTEGER,
-    created_at TIMESTAMP DEFAULT current_timestamp,
-    updated_at TIMESTAMP DEFAULT current_timestamp,
+    superseded_by_key VARCHAR,
+{_scd2_cols()},
     {_check_in('status', SourceStatus)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS dim_rule (
-    id INTEGER DEFAULT nextval('dim_rule_id_seq'),
+    rule_key VARCHAR NOT NULL,
+    name VARCHAR NOT NULL,
     scope VARCHAR NOT NULL DEFAULT 'global',
     domain VARCHAR,
     priority INTEGER NOT NULL DEFAULT 0,
     content VARCHAR NOT NULL,
     status VARCHAR NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT current_timestamp,
-    updated_at TIMESTAMP DEFAULT current_timestamp,
+{_scd2_cols()},
     {_check_in('scope', RuleScope)},
     {_check_in('status', RuleStatus)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS dim_sampling_config (
-    id INTEGER DEFAULT nextval('dim_sampling_config_id_seq'),
+    config_key VARCHAR NOT NULL,
     domain VARCHAR,
     task_type VARCHAR,
     strategy VARCHAR NOT NULL,
     parameters JSON NOT NULL DEFAULT '{{}}'::JSON,
     max_samples INTEGER NOT NULL DEFAULT 3,
     status VARCHAR NOT NULL DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT current_timestamp,
-    updated_at TIMESTAMP DEFAULT current_timestamp,
+{_scd2_cols()},
     {_check_in('strategy', SamplingStrategy)},
     {_check_in('status', RuleStatus)}
 )""",
+        # -- Registry dimensions (append-only, no SCD-2) --
+        f"""CREATE TABLE IF NOT EXISTS dim_project (
+    project_key VARCHAR NOT NULL,
+    project_path VARCHAR NOT NULL,
+    project_name VARCHAR,
+    first_seen_at TIMESTAMP DEFAULT current_timestamp,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('record_source', RecordSource)}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS dim_facet_type (
+    facet_type_key VARCHAR NOT NULL,
+    facet_id VARCHAR NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1,
+    method VARCHAR NOT NULL DEFAULT 'computed',
+    output_type VARCHAR NOT NULL DEFAULT 'text',
+    prompt_text VARCHAR,
+    prompt_version INTEGER NOT NULL DEFAULT 1,
+    description VARCHAR,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('method', FacetMethod)},
+    {_check_in('output_type', FacetOutputType)},
+    {_check_in('record_source', RecordSource)}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS dim_finding_type (
+    finding_type_key VARCHAR NOT NULL,
+    finding_type VARCHAR NOT NULL,
+    description VARCHAR,
+    detection_method VARCHAR NOT NULL DEFAULT 'sql',
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('detection_method', DetectionMethod)},
+    {_check_in('record_source', RecordSource)}
+)""",
         # -- Facts --
         f"""CREATE TABLE IF NOT EXISTS fact_session (
-    id INTEGER DEFAULT nextval('fact_session_id_seq'),
-    task_description VARCHAR NOT NULL,
-    task_type VARCHAR NOT NULL,
-    parent_session_id INTEGER,
+    session_key VARCHAR NOT NULL,
+    native_session_id VARCHAR NOT NULL,
+    project_key VARCHAR,
+    task_description VARCHAR,
+    task_type VARCHAR,
+    parent_session_key VARCHAR,
     agent_role VARCHAR NOT NULL DEFAULT 'subagent',
     status VARCHAR NOT NULL DEFAULT 'running',
     model_used VARCHAR,
     context_loaded JSON,
     token_usage JSON,
     result JSON,
-    sampled_session_ids JSON,
-    skill_id INTEGER,
+    sampled_session_keys JSON,
+    skill_key VARCHAR,
     skill_domain VARCHAR,
     skill_task_type VARCHAR,
     skill_version INTEGER,
-    created_at TIMESTAMP DEFAULT current_timestamp,
     completed_at TIMESTAMP,
+{_lineage_cols()},
     {_check_in('agent_role', AgentRole)},
     {_check_in('status', SessionStatus)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS fact_trace (
-    id INTEGER DEFAULT nextval('fact_trace_id_seq'),
-    session_id INTEGER NOT NULL,
-    parent_trace_id INTEGER,
+    trace_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
+    parent_trace_key VARCHAR,
     trace_type VARCHAR NOT NULL,
     depth INTEGER NOT NULL DEFAULT 0,
     sequence_order INTEGER NOT NULL DEFAULT 0,
@@ -177,64 +249,138 @@ def _build_tables_ddl() -> list[str]:
     reasoning VARCHAR,
     alternatives JSON,
     outcome JSON,
-    child_session_id INTEGER,
+    child_session_key VARCHAR,
     duration_ms INTEGER,
-    skill_id INTEGER,
+    skill_key VARCHAR,
     skill_domain VARCHAR,
     skill_task_type VARCHAR,
-    created_at TIMESTAMP DEFAULT current_timestamp,
+{_lineage_cols()},
     {_check_in('trace_type', TraceType)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS fact_extraction (
-    id INTEGER DEFAULT nextval('fact_extraction_id_seq'),
-    session_id INTEGER NOT NULL,
+    extraction_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
     output JSON NOT NULL,
     confidence DOUBLE,
     validation_status VARCHAR NOT NULL DEFAULT 'pending',
     validated_by VARCHAR,
     validated_at TIMESTAMP,
-    source_id INTEGER NOT NULL,
+    source_key VARCHAR NOT NULL,
     source_path VARCHAR,
     source_media_type VARCHAR,
-    skill_id INTEGER NOT NULL,
+    skill_key VARCHAR NOT NULL,
     skill_domain VARCHAR,
     skill_task_type VARCHAR,
     skill_version INTEGER,
-    created_at TIMESTAMP DEFAULT current_timestamp,
+{_lineage_cols()},
     {_check_in('validation_status', ValidationStatus)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS fact_feedback (
-    id INTEGER DEFAULT nextval('fact_feedback_id_seq'),
-    extraction_id INTEGER NOT NULL,
-    session_id INTEGER NOT NULL,
+    feedback_key VARCHAR NOT NULL,
+    extraction_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
     correction JSON NOT NULL,
     correction_type VARCHAR NOT NULL,
     notes VARCHAR,
     created_by VARCHAR,
-    skill_id INTEGER NOT NULL,
+    skill_key VARCHAR NOT NULL,
     skill_domain VARCHAR,
     skill_task_type VARCHAR,
     skill_version INTEGER,
-    source_id INTEGER,
+    source_key VARCHAR,
     source_path VARCHAR,
-    created_at TIMESTAMP DEFAULT current_timestamp,
+{_lineage_cols()},
     {_check_in('correction_type', CorrectionType)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS fact_trace_feedback (
-    id INTEGER DEFAULT nextval('fact_trace_feedback_id_seq'),
-    trace_id INTEGER NOT NULL,
-    session_id INTEGER NOT NULL,
+    trace_feedback_key VARCHAR NOT NULL,
+    trace_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
     feedback_type VARCHAR NOT NULL,
     content VARCHAR NOT NULL,
     correction JSON,
     created_by VARCHAR,
     trace_type VARCHAR,
     trace_title VARCHAR,
-    skill_id INTEGER,
+    skill_key VARCHAR,
     skill_domain VARCHAR,
     skill_task_type VARCHAR,
-    created_at TIMESTAMP DEFAULT current_timestamp,
+{_lineage_cols()},
     {_check_in('feedback_type', TraceFeedbackType)}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS fact_message (
+    message_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
+    role VARCHAR NOT NULL,
+    entry_uuid VARCHAR,
+    parent_uuid VARCHAR,
+    sequence_num INTEGER NOT NULL DEFAULT 0,
+    occurred_at TIMESTAMP,
+    content_text VARCHAR,
+    has_thinking BOOLEAN NOT NULL DEFAULT FALSE,
+    stop_reason VARCHAR,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    is_meta BOOLEAN NOT NULL DEFAULT FALSE,
+    is_sidechain BOOLEAN NOT NULL DEFAULT FALSE,
+{_lineage_cols()},
+    {_check_in('role', MessageRole)}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS fact_tool_use (
+    tool_use_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
+    message_key VARCHAR,
+    tool_use_id VARCHAR,
+    tool_name VARCHAR NOT NULL,
+    tool_input JSON,
+    is_error BOOLEAN,
+    result_text VARCHAR,
+    sequence_num INTEGER NOT NULL DEFAULT 0,
+    occurred_at TIMESTAMP,
+{_lineage_cols()}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS fact_session_facets (
+    facet_row_key VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
+    facet_type_key VARCHAR,
+    facet_id VARCHAR NOT NULL,
+    prompt_version INTEGER NOT NULL DEFAULT 1,
+    value_text VARCHAR,
+    value_numeric DOUBLE,
+    value_bool BOOLEAN,
+    value_json JSON,
+    is_fallback BOOLEAN NOT NULL DEFAULT FALSE,
+    extraction_metadata JSON,
+{_lineage_cols()}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS fact_finding (
+    finding_key VARCHAR NOT NULL,
+    finding_type VARCHAR NOT NULL,
+    finding_type_key VARCHAR NOT NULL,
+    scope VARCHAR NOT NULL DEFAULT 'project',
+    project_key VARCHAR,
+    evidence_session_keys JSON,
+    occurrence_count INTEGER,
+    summary VARCHAR NOT NULL,
+    detected_at TIMESTAMP DEFAULT current_timestamp,
+{_lineage_cols()},
+    {_check_in('scope', FindingScope)}
+)""",
+        f"""CREATE TABLE IF NOT EXISTS fact_proposal (
+    proposal_key VARCHAR NOT NULL,
+    target_dimension VARCHAR NOT NULL,
+    target_key VARCHAR,
+    target_natural_key JSON,
+    proposed_content VARCHAR NOT NULL,
+    proposed_version INTEGER,
+    status VARCHAR NOT NULL DEFAULT 'pending',
+    evidence_finding_keys JSON,
+    resulting_dimension_key VARCHAR,
+    reviewed_by VARCHAR,
+    reviewed_at TIMESTAMP,
+{_lineage_cols()},
+    {_check_in('target_dimension', TargetDimension)},
+    {_check_in('status', ProposalStatus)}
 )""",
     ]
 
@@ -245,96 +391,115 @@ _TABLES_DDL: list[str] = _build_tables_ddl()
 _VIEWS: list[str] = [
     """CREATE VIEW IF NOT EXISTS v_feedback_by_skill AS
 SELECT
-    skill_id, skill_domain, skill_task_type, skill_version,
+    skill_key, skill_domain, skill_task_type, skill_version,
     correction_type,
     COUNT(*) as correction_count,
     MAX(created_at) as last_seen
 FROM fact_feedback
-GROUP BY skill_id, skill_domain, skill_task_type, skill_version, correction_type""",
+GROUP BY skill_key, skill_domain, skill_task_type, skill_version, correction_type""",
     """CREATE VIEW IF NOT EXISTS v_feedback_fields AS
-SELECT skill_id, correction_type, field_name, COUNT(*) as mention_count
+SELECT skill_key, correction_type, field_name, COUNT(*) as mention_count
 FROM (
-    SELECT skill_id, correction_type, unnest(json_keys(correction)) as field_name
+    SELECT skill_key, correction_type, unnest(json_keys(correction)) as field_name
     FROM fact_feedback
 )
-GROUP BY skill_id, correction_type, field_name""",
+GROUP BY skill_key, correction_type, field_name""",
     """CREATE VIEW IF NOT EXISTS v_recurring_traces AS
 SELECT
-    skill_id, skill_domain, skill_task_type,
+    skill_key, skill_domain, skill_task_type,
     trace_type, title,
     COUNT(*) as occurrence_count,
-    COUNT(DISTINCT session_id) as session_count,
-    LIST(DISTINCT session_id ORDER BY session_id) as session_ids,
-    MIN(id) as example_trace_id
+    COUNT(DISTINCT session_key) as session_count,
+    LIST(DISTINCT session_key ORDER BY session_key) as session_keys,
+    MIN(trace_key) as example_trace_key
 FROM fact_trace
-WHERE skill_id IS NOT NULL
-GROUP BY skill_id, skill_domain, skill_task_type, trace_type, title""",
+WHERE skill_key IS NOT NULL
+GROUP BY skill_key, skill_domain, skill_task_type, trace_type, title""",
     """CREATE VIEW IF NOT EXISTS v_recurring_trace_feedback AS
 SELECT
-    skill_id, skill_domain, skill_task_type,
+    skill_key, skill_domain, skill_task_type,
     feedback_type, trace_title,
     COUNT(*) as occurrence_count,
-    LIST(DISTINCT session_id ORDER BY session_id) as session_ids
+    LIST(DISTINCT session_key ORDER BY session_key) as session_keys
 FROM fact_trace_feedback
-WHERE skill_id IS NOT NULL
-GROUP BY skill_id, skill_domain, skill_task_type, feedback_type, trace_title""",
+WHERE skill_key IS NOT NULL
+GROUP BY skill_key, skill_domain, skill_task_type, feedback_type, trace_title""",
     """CREATE VIEW IF NOT EXISTS v_skill_feedback_patterns AS
 SELECT
-    skill_id, skill_domain, skill_task_type, skill_version,
+    skill_key, skill_domain, skill_task_type, skill_version,
     correction_type,
     COUNT(*) as pattern_count,
-    SUM(COUNT(*)) OVER (PARTITION BY skill_id) as total_feedback
+    SUM(COUNT(*)) OVER (PARTITION BY skill_key) as total_feedback
 FROM fact_feedback
-GROUP BY skill_id, skill_domain, skill_task_type, skill_version, correction_type""",
+GROUP BY skill_key, skill_domain, skill_task_type, skill_version, correction_type""",
     """CREATE VIEW IF NOT EXISTS v_session_feedback_count AS
 SELECT
-    session_id, skill_id,
+    session_key, skill_key,
     COUNT(*) as feedback_count
 FROM fact_feedback
-GROUP BY session_id, skill_id""",
+GROUP BY session_key, skill_key""",
 ]
 
 _INDEXES: list[str] = [
     # dim_skill
     "CREATE INDEX IF NOT EXISTS idx_dim_skill_domain_type_status ON dim_skill(domain, task_type, status)",
+    "CREATE INDEX IF NOT EXISTS idx_dim_skill_key_current ON dim_skill(skill_key, is_current)",
     # dim_source
     "CREATE INDEX IF NOT EXISTS idx_dim_source_hash ON dim_source(source_hash)",
+    "CREATE INDEX IF NOT EXISTS idx_dim_source_key_current ON dim_source(source_key, is_current)",
+    # dim_rule
+    "CREATE INDEX IF NOT EXISTS idx_dim_rule_key_current ON dim_rule(rule_key, is_current)",
+    # dim_project
+    "CREATE INDEX IF NOT EXISTS idx_dim_project_path ON dim_project(project_path)",
     # fact_session
-    "CREATE INDEX IF NOT EXISTS idx_fact_session_parent ON fact_session(parent_session_id)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_session_skill ON fact_session(skill_id)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_session_parent ON fact_session(parent_session_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_session_skill ON fact_session(skill_key)",
     "CREATE INDEX IF NOT EXISTS idx_fact_session_status_created ON fact_session(status, created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_session_project ON fact_session(project_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_session_source ON fact_session(record_source)",
     # fact_trace
-    "CREATE INDEX IF NOT EXISTS idx_fact_trace_session ON fact_trace(session_id)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_trace_parent ON fact_trace(parent_trace_id)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_trace_session_depth ON fact_trace(session_id, depth, sequence_order)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_trace_session ON fact_trace(session_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_trace_parent ON fact_trace(parent_trace_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_trace_session_depth ON fact_trace(session_key, depth, sequence_order)",
     "CREATE INDEX IF NOT EXISTS idx_fact_trace_type ON fact_trace(trace_type)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_trace_skill ON fact_trace(skill_id)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_trace_skill ON fact_trace(skill_key)",
     # fact_extraction
-    "CREATE INDEX IF NOT EXISTS idx_fact_extraction_skill_validation ON fact_extraction(skill_id, validation_status)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_extraction_session ON fact_extraction(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_extraction_skill_validation ON fact_extraction(skill_key, validation_status)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_extraction_session ON fact_extraction(session_key)",
     # fact_trace_feedback
-    "CREATE INDEX IF NOT EXISTS idx_fact_trace_feedback_trace ON fact_trace_feedback(trace_id)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_trace_feedback_session ON fact_trace_feedback(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_trace_feedback_trace ON fact_trace_feedback(trace_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_trace_feedback_session ON fact_trace_feedback(session_key)",
     # fact_feedback
-    "CREATE INDEX IF NOT EXISTS idx_fact_feedback_skill ON fact_feedback(skill_id)",
-    "CREATE INDEX IF NOT EXISTS idx_fact_feedback_extraction ON fact_feedback(extraction_id)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_feedback_skill ON fact_feedback(skill_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_feedback_extraction ON fact_feedback(extraction_key)",
     # dim_sampling_config
     "CREATE INDEX IF NOT EXISTS idx_dim_sampling_config_domain ON dim_sampling_config(domain, task_type, status)",
+    # fact_message / fact_tool_use (ingestion-scale tables)
+    "CREATE INDEX IF NOT EXISTS idx_fact_message_session ON fact_message(session_key, sequence_num)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_message_key ON fact_message(message_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_session ON fact_tool_use(session_key, sequence_num)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_name ON fact_tool_use(tool_name)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_tool_use_key ON fact_tool_use(tool_use_key)",
+    # fact_session_facets
+    "CREATE INDEX IF NOT EXISTS idx_fact_session_facets_session ON fact_session_facets(session_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_session_facets_facet ON fact_session_facets(facet_id, prompt_version)",
+    # fact_finding / fact_proposal
+    "CREATE INDEX IF NOT EXISTS idx_fact_finding_type ON fact_finding(finding_type)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_finding_project ON fact_finding(project_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_proposal_status ON fact_proposal(status)",
+    # meta_load_log
+    "CREATE INDEX IF NOT EXISTS idx_meta_load_log_run ON meta_load_log(etl_run_id)",
 ]
 
-_INITIAL_VERSION = """INSERT INTO meta_schema_version (version, description)
-SELECT 1, 'Initial 6-table schema'
-WHERE NOT EXISTS (SELECT 1 FROM meta_schema_version WHERE version = 1)"""
+_SCHEMA_VERSIONS: list[tuple[int, str]] = [
+    (1, "Initial 6-table schema"),
+    (2, "10-table schema: traces, trace_feedback, sampling_configs + indexes + cascades"),
+    (3, "Dimensional model: dim_/fact_ tables, denormalized facts, 6 views, no FKs"),
+    (4, "v0.17 meta-harness: MD5 hash keys, SCD-2 dims, registries, "
+        "fact_message/tool_use/facets/finding/proposal, meta_load_log"),
+]
 
-_SCHEMA_V2 = """INSERT INTO meta_schema_version (version, description)
-SELECT 2, '10-table schema: traces, trace_feedback, sampling_configs + indexes + cascades'
-WHERE NOT EXISTS (SELECT 1 FROM meta_schema_version WHERE version = 2)"""
-
-_SCHEMA_V3 = """INSERT INTO meta_schema_version (version, description)
-SELECT 3, 'Dimensional model: dim_/fact_ tables, denormalized facts, 6 views, no FKs'
-WHERE NOT EXISTS (SELECT 1 FROM meta_schema_version WHERE version = 3)"""
-
-_ALL_DDL: list[str] = _SEQUENCES + _TABLES_DDL + _VIEWS + _INDEXES
+_ALL_DDL: list[str] = _TABLES_DDL + _VIEWS + _INDEXES
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +508,7 @@ _ALL_DDL: list[str] = _SEQUENCES + _TABLES_DDL + _VIEWS + _INDEXES
 
 
 def get_ddl() -> str:
-    """Return the full DDL (sequences + tables + views + indexes) as a SQL string.
+    """Return the full DDL (tables + views + indexes) as a SQL string.
 
     Joins statements with semicolons for duckdb CLI consumption:
         freud-schema db ddl | duckdb :memory:
@@ -370,9 +535,13 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Create all tables, views, indexes and seed schema versions."""
     for stmt in _ALL_DDL:
         con.execute(stmt)
-    con.execute(_INITIAL_VERSION)
-    con.execute(_SCHEMA_V2)
-    con.execute(_SCHEMA_V3)
+    for version, description in _SCHEMA_VERSIONS:
+        con.execute(
+            """INSERT INTO meta_schema_version (version, description)
+               SELECT ?, ?
+               WHERE NOT EXISTS (SELECT 1 FROM meta_schema_version WHERE version = ?)""",
+            [version, description, version],
+        )
 
 
 def get_schema_version(con: duckdb.DuckDBPyConnection) -> int:
@@ -394,15 +563,13 @@ def reset_schema(con: duckdb.DuckDBPyConnection) -> None:
                  "v_skill_feedback_patterns", "v_session_feedback_count"):
         con.execute(f"DROP VIEW IF EXISTS {view}")
     # Drop tables (dependents first)
-    for table in ("fact_trace_feedback", "fact_feedback", "fact_trace",
+    for table in ("fact_proposal", "fact_finding", "fact_session_facets",
+                  "fact_tool_use", "fact_message",
+                  "fact_trace_feedback", "fact_feedback", "fact_trace",
                   "fact_extraction", "fact_session",
+                  "dim_finding_type", "dim_facet_type", "dim_project",
                   "dim_source", "dim_skill", "dim_rule",
-                  "dim_sampling_config", "meta_schema_version"):
+                  "dim_sampling_config",
+                  "meta_load_log", "meta_schema_version"):
         con.execute(f"DROP TABLE IF EXISTS {table}")
-    # Drop sequences
-    for seq in ("fact_trace_feedback_id_seq", "fact_trace_id_seq",
-                "dim_sampling_config_id_seq", "fact_feedback_id_seq",
-                "fact_extraction_id_seq", "fact_session_id_seq",
-                "dim_source_id_seq", "dim_skill_id_seq", "dim_rule_id_seq"):
-        con.execute(f"DROP SEQUENCE IF EXISTS {seq}")
     init_schema(con)

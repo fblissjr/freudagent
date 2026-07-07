@@ -12,9 +12,11 @@ The harness is the moat. Behavior comes from data (skills, rules, archetypes), n
 ```
 src/freud_schema/
   cli.py             - CLI interface (freud-schema)
-  db.py              - DuckDB schema: 4 dim + 5 fact tables, 6 views, CHECK constraints, indexes
-  tables.py          - Pydantic models + 12 enum classes (single source of truth)
-  store.py           - CRUD operations with insert-time denormalization (ExperimentStore)
+  keys.py            - Deterministic MD5 surrogate keys: dimension_key(), hash_diff()
+  db.py              - DuckDB schema: 4 SCD-2 dims + 3 registries + 10 facts, 6 views,
+                       meta_load_log, CHECK constraints, indexes. No sequences.
+  tables.py          - Pydantic models + 20 enum classes (single source of truth)
+  store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   orchestrator.py    - Context assembly, provider protocol, provider implementations
   harness.py         - Archetype composition into system prompts
   archetypes.py      - 9 archetypes in a 3x3 grid
@@ -57,12 +59,12 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 
 `--db` is a global flag (before the subcommand). Defaults to `data/freudagent.duckdb`.
 
-Workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> harness extracts -> `extraction list/show/validate` -> `feedback add` -> `skill deprecate` -> `skill add --version N`
+Workflow: `db init` -> `rule add` -> `skill add` -> `source add` -> harness extracts -> `extraction list/show/validate` -> `feedback add` -> `skill add --version N` (SCD-2: the new version automatically closes the prior row; no manual deprecate step)
 
 Full CLI reference is in `skill/skill.md`. Key commands:
 
-- `freud-schema extraction list|show|validate|reject`
-- `freud-schema feedback add --extraction-id N --type T --correction '{...}'`
+- `freud-schema extraction list|show|validate|reject` (keys or unique prefixes, git-short-hash style)
+- `freud-schema feedback add --extraction-key <key-or-prefix> --type T --correction '{...}'`
 - `freud-schema skill add|list|deprecate|activate` (add supports `--version N`)
 - `freud-schema session list|show`
 
@@ -94,7 +96,8 @@ Schema docs: `.claude/skills/db-query.md`
 - Models: Pydantic v2 (`model_validate`, `model_dump`), `Field(default_factory=list)` for lists
 - JSON: **orjson** (not json)
 - Enums: construct with members (`SkillStatus.ACTIVE`), never bare strings
-- 12 enum classes in `tables.py` are the single source of truth; CHECK constraints generated from them
+- 20 enum classes in `tables.py` are the single source of truth; CHECK constraints generated from them
+- `finding_type` is deliberately NOT an enum: open vocabulary, registry-validated against `dim_finding_type` in the store (new finding types are rows, not code)
 - No FK constraints (DuckDB can't CASCADE anyway) -- existence validated in store layer
 - Fact tables carry denormalized dimension attributes populated at insert time
 - 6 analytical views replace complex aggregation queries (no N+1 patterns)
@@ -106,17 +109,25 @@ Schema docs: `.claude/skills/db-query.md`
 - All DB access through `ExperimentStore` methods -- never `store.con.execute` directly
 - Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
 - All SQL uses parameterized enum values (no hardcoded string literals)
+- Keys: MD5 hash surrogates via `keys.dimension_key()`. Entity keys from natural keys
+  (skill = domain|task_type, rule = name, source = content_path). Ingested facts get
+  deterministic keys (idempotent re-ingest); native facts get uuid-salted keys
+- Naming: `etl_run_id` = lineage (joins `meta_load_log`); `session_key` = harness session.
+  `session_id` is banned from DDL
+- SCD-2 dims: changes close the current row and insert a new one; rows never mutate.
+  Query current state with `is_current`. Facts are append-only EXCEPT `fact_session`
+  (accumulating snapshot: status/result/completed_at update in place)
 - Denormalization: use `_resolve_skill_attrs()` for skill lookups on fact inserts. Don't `_require()` + `get_skill()` separately -- the denormalization fetch validates existence as a side effect
-- Existence validation: only use `_require()` when no denormalization fetch covers that reference (e.g., session_id on extractions has no denormalization)
+- Existence validation: only use `_require()` when no denormalization fetch covers that reference (e.g., session_key on extractions has no denormalization)
 - New views must be added to `reset_schema()` drop list (before tables) and to `_ALL_DDL`
-- After `store.insert_*()`, use `model.model_copy(update={"id": new_id})` instead of re-fetching
+- After `store.insert_*()`, use `model.model_copy(update={"<table>_key": new_key})` instead of re-fetching
 - No migration path -- breaking changes use `reset_schema()` (experiment repo, no legacy data)
 - New tables must be added to `reset_schema()` drop list (order matters: dependents first)
 - DDL stored as `list[str]` (one statement per element, no semicolon splitting)
 
 ### CLI
 - `--status`/`--scope`/`--type` args must use `choices=[e.value for e in EnumClass]`
-- Handlers that modify by ID must check existence first and `sys.exit(1)` if not found
+- Handlers that modify by key resolve prefixes via `store.resolve_key()` first and `sys.exit(1)` on no-match/ambiguity
 - CLI exposes data operations only -- no execution/orchestration commands (harness's job)
 
 ### Tests

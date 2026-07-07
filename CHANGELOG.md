@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.17.0
+
+Phase 0 of the meta-harness plan (see internal plan doc): the schema realigned
+to the star-schema reference pattern so transcript ingestion (Phase 1) can be
+idempotent by construction.
+
+### Changed
+
+- **MD5 hash surrogate keys everywhere** (`keys.dimension_key`), replacing all
+  9 sequences and integer ids. Entity keys are deterministic from natural keys:
+  skills = (domain, task_type), sources = content_path, rules = name, sampling
+  configs = (domain, task_type). Every model field renamed `id` -> `<table>_key`;
+  all cross-references renamed (`skill_id` -> `skill_key`, `session_id` ->
+  `session_key`, etc.). `session_id` no longer exists anywhere in the DDL:
+  `etl_run_id` is the lineage identifier, `session_key` the harness session.
+- **SCD Type 2 on all four core dimensions** (`effective_from`/`effective_to`/
+  `is_current`/`hash_diff`): attribute changes close the current row and insert
+  a new one; rows never mutate; `updated_at` dropped. `insert_source`/`insert_rule`
+  are idempotent on identical re-adds and evolve on change. Skill status changes
+  (activate/deprecate) are SCD-2 evolutions. Skill versions are monotonic per
+  entity.
+- **Rules are keyed by a new required `name`** (also the future compile target
+  filename `.claude/rules/<name>.md`).
+- **fact_session unified across origins**: one row per harness session, native
+  experiment run or ingested transcript, distinguished by `record_source`
+  (CHECK-constrained allowlist). `task_description`/`task_type` now nullable;
+  new `native_session_id`, `project_key` columns. Documented as an accumulating
+  snapshot fact (status/result update in place; all other facts append-only).
+- CLI id arguments become keys with git-style unique-prefix resolution
+  (`store.resolve_key`); `rule add` requires `--name`.
+- Schema version 3 -> 4. Breaking change via `reset_schema()`, no migration.
+
+### Added
+
+- `keys.py`: `dimension_key()` / `hash_diff()` -- deterministic, NULL-safe key
+  generation; the primitive Phase 1's idempotent re-ingest guarantee builds on.
+- **8 new tables**: `dim_project` (conformed project dimension), `dim_facet_type`
+  + `fact_session_facets` (facet registry, EAV), `dim_finding_type` (open
+  finding vocabulary -- registry-validated in the store, deliberately no CHECK
+  enum), `fact_message` + `fact_tool_use` (transcript grain, deterministic keys,
+  skip-if-exists inserts), `fact_finding` (couch outputs, evidence-linked),
+  `fact_proposal` (evolve outputs, pending/approved/rejected lifecycle), plus
+  `meta_load_log` (one row per ingest/compile run).
+- Lineage envelope on every fact: `record_source` + `etl_run_id`; load-run
+  lifecycle methods (`start_load_run`/`complete_load_run`).
+- New enums: `RecordSource`, `ProposalStatus`, `TargetDimension`, `FindingScope`,
+  `FacetMethod`, `FacetOutputType`, `DetectionMethod`, `MessageRole`.
+- New store methods: project/facet-type/finding-type registries, message/tool-use
+  inserts, findings, proposals, `resolve_key` prefix resolution.
+- Tests: `test_keys.py`, `test_schema_v017.py`, `test_store_v017.py`.
+- `[tool.pytest.ini_options]` anchoring rootdir (test collection previously
+  escaped the repo and broke against an unrelated parent directory).
+
 ## 0.16.1
 
 ### Fixed

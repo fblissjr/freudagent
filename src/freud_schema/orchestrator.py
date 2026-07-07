@@ -49,13 +49,13 @@ class Provider(Protocol):
 # ---------------------------------------------------------------------------
 
 _SOURCE_TAG_RE = re.compile(
-    r'<source\s+id="(\d+)"\s+type="([^"]*)"\s+path="([^"]*)"\s*/>'
+    r'<source\s+id="([^"]+)"\s+type="([^"]*)"\s+path="([^"]*)"\s*/>'
 )
 
 
-def format_source_tag(source_id: int, media_type: str, path: str) -> str:
+def format_source_tag(source_key: str, media_type: str, path: str) -> str:
     """Render a source reference tag for inclusion in user messages."""
-    return f'<source id="{source_id}" type="{media_type}" path="{path}" />'
+    return f'<source id="{source_key}" type="{media_type}" path="{path}" />'
 
 
 def parse_source_tags(text: str) -> list[dict[str, str]]:
@@ -82,8 +82,8 @@ def strip_source_tags(text: str) -> str:
 def assemble_runner_context(
     store: ExperimentStore,
     *,
-    skill_id: int,
-    source_ids: list[int],
+    skill_key: str,
+    source_keys: list[str],
     domain: str | None = None,
     task_params: str = "",
     preset: str | None = None,
@@ -118,7 +118,7 @@ def assemble_runner_context(
         rules_block = f"# Rules\n\n{rules_text}\n\n"
 
     # Layer 2: Skill (loaded by routing decision)
-    skill = store.get_skill(skill_id)
+    skill = store.get_skill(skill_key)
     skill_block = ""
     if skill:
         skill_block = f"# Skill: {skill.domain} / {skill.task_type} (v{skill.version})\n\n{skill.content}\n\n"
@@ -131,19 +131,19 @@ def assemble_runner_context(
     # Layer 2.6: Feedback summary (flywheel signal)
     feedback_summary_block = ""
     if include_feedback_summary and skill:
-        agg = store.aggregate_feedback(skill_id, include_examples=True, max_examples=3)
+        agg = store.aggregate_feedback(skill_key, include_examples=True, max_examples=3)
         if agg:
             feedback_summary_block = _format_feedback_summary(agg)
 
     # Layer 3: Source references (bulk fetch)
     source_block = ""
-    if source_ids:
-        source_map = store.get_sources_by_ids(source_ids)
-        for sid in source_ids:
-            source = source_map.get(sid)
+    if source_keys:
+        source_map = store.get_sources_by_keys(source_keys)
+        for skey in source_keys:
+            source = source_map.get(skey)
             if source:
                 source_block += format_source_tag(
-                    source.id, source.media_type, source.content_path
+                    skey, source.media_type, source.content_path
                 ) + "\n"
         if source_block:
             source_block = f"# Sources\n\n{source_block}\n"
@@ -175,7 +175,7 @@ def _format_prior_runs(prior_runs: list[dict]) -> str:
     lines = ["# Prior Runs (learn from these)\n"]
     for ctx in prior_runs:
         session = ctx["session"]
-        lines.append(f"## Run #{session.id} ({session.status}, {session.created_at})")
+        lines.append(f"## Run #{session.session_key[:8]} ({session.status}, {session.created_at})")
         lines.append(f"Task: {session.task_description}\n")
 
         traces = ctx.get("traces", [])

@@ -1,5 +1,7 @@
 # Tutorial: Extracting structured data from an arxiv paper
 
+Last updated: 2026-07-07
+
 This walks through the full FreudAgent pipeline using a real arxiv paper as
 the data source. Every step explains not just the command but why the system
 is designed that way.
@@ -62,17 +64,24 @@ model call as the first layer of context.
 
 ```bash
 uv run freud-schema rule add \
+  --name valid-json-output \
   --content "Output valid JSON. No markdown fences, no commentary outside the JSON object." \
   --scope global --priority 10
 
 uv run freud-schema rule add \
+  --name no-fabrication \
   --content "Never fabricate data. If a field cannot be determined from the source, use null." \
   --scope global --priority 9
 
 uv run freud-schema rule add \
+  --name exact-quotes \
   --content "Use exact quotes from the paper when populating 'key_quote' fields." \
   --scope domain-specific --domain arxiv --priority 5
 ```
+
+**Why `--name` is required:** `name` is the rule's stable identity -- it's also
+the future compile target filename (`.claude/rules/<name>.md`). A row id isn't
+stable enough for that; a name is.
 
 **Why rules are separate from skills:** Rules are invariants. "Don't fabricate
 data" applies whether you're extracting from arxiv papers, legal contracts, or
@@ -124,10 +133,11 @@ Extract only what is stated in the paper. For fields you cannot determine, use n
 
 **Why skills are versioned and have status:** Skills evolve. Your first
 extraction prompt will be imperfect. Feedback (step 8) tells you what's wrong.
-You write a v2 skill that fixes it, mark v1 as deprecated, and re-run. The
-database tracks which skill version produced which extraction, so you can
-measure whether v2 actually improved things. This is the "flywheel" the
-project keeps referencing: extract -> review -> correct -> refine skill ->
+You write a v2 skill that fixes it and re-run -- `dim_skill` is SCD-2, so
+inserting a higher version automatically supersedes v1 (no separate deprecate
+step). The database tracks which skill version produced which extraction, so
+you can measure whether v2 actually improved things. This is the "flywheel"
+the project keeps referencing: extract -> review -> correct -> refine skill ->
 re-extract.
 
 **Why `--status active`:** Skills start as `draft` by default. Only `active`
@@ -186,7 +196,8 @@ skill = store.get_active_skill("arxiv", "extraction")
 sources = store.list_sources()
 
 system_prompt, user_message = assemble_runner_context(
-    store, skill_id=skill.id, source_ids=[s.id for s in sources], domain="arxiv",
+    store, skill_key=skill.skill_key,
+    source_keys=[s.source_key for s in sources], domain="arxiv",
 )
 
 # See exactly what a model would receive
@@ -213,8 +224,9 @@ After the harness produces extractions (step 6b below), inspect them:
 # See extraction records
 uv run freud-schema extraction list
 
-# See the full output
-uv run freud-schema extraction show 1
+# See the full output (key or unique prefix from the list above,
+# git-short-hash style, e.g. 4f2b9c31)
+uv run freud-schema extraction show 4f2b9c31
 
 # See the session log
 uv run freud-schema session list
@@ -272,14 +284,15 @@ names, so provider comparisons accumulate automatically.
 # List all extractions
 uv run freud-schema extraction list
 
-# Look at the real extraction (the second one, after echo)
-uv run freud-schema extraction show 2
+# Look at the real extraction (the second one, after echo) -- use its
+# key or a unique prefix, e.g. 8d3a7e02
+uv run freud-schema extraction show 8d3a7e02
 
 # If it looks good
-uv run freud-schema extraction validate 2 --by "your-name"
+uv run freud-schema extraction validate 8d3a7e02 --by "your-name"
 
 # If it's wrong
-uv run freud-schema extraction reject 2 --by "your-name"
+uv run freud-schema extraction reject 8d3a7e02 --by "your-name"
 ```
 
 **Why validation is explicit:** The harness doesn't assume model output is
@@ -296,14 +309,14 @@ an author name. Feedback records what went wrong:
 ```bash
 # The model missed a limitation
 uv run freud-schema feedback add \
-  --extraction-id 2 --type missing_field \
+  --extraction-key 8d3a7e02 --type missing_field \
   --correction '{"field": "limitations_stated", "missing": "The paper notes that attention on very long sequences is computationally expensive."}' \
   --notes "Section 7 discusses this explicitly" \
   --by "your-name"
 
 # The model got an author wrong
 uv run freud-schema feedback add \
-  --extraction-id 2 --type wrong_value \
+  --extraction-key 8d3a7e02 --type wrong_value \
   --correction '{"field": "authors", "was": "Ashish Vaswan", "should_be": "Ashish Vaswani"}' \
   --by "your-name"
 ```
@@ -314,7 +327,7 @@ This isn't bureaucracy -- it's signal. When you aggregate feedback across many
 extractions, patterns emerge:
 
 ```bash
-uv run freud-schema feedback list --skill-id 1 --aggregate
+uv run freud-schema feedback list --skill-key 9c1e4a7b --aggregate
 ```
 
 If `missing_field` dominates, your skill instructions aren't explicit enough
@@ -384,8 +397,8 @@ It's the result.
   them via the harness.
 
 - **Write a v2 skill.** Based on feedback, write a better extraction prompt.
-  Add it with `--version 2 --status active`, deprecate v1 with
-  `freud-schema skill deprecate 1`, and re-run. Compare extractions.
+  Add it with `--version 2 --status active` -- v1 is superseded automatically
+  (SCD-2), no separate deprecate step needed -- and re-run. Compare extractions.
   See the [flywheel tutorial](tutorial-flywheel.md) for a full walkthrough.
 
 - **Compare providers.** Run the same skill against Claude and a local model.

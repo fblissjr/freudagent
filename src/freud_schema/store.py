@@ -1,9 +1,25 @@
-"""CRUD operations and retrieval queries for the experiment harness.
+"""CRUD operations and retrieval queries for the meta-harness (v0.17).
 
-Dimensional model: dimension tables (dim_*) hold reference data, fact
-tables (fact_*) hold events with denormalized dimension attributes.
-Views handle aggregation queries. No FK constraints -- existence
-validation done in the store layer.
+Dimensional model access layer. Key scheme: MD5 hash surrogate keys
+(keys.dimension_key). Key generation policy:
+
+- SCD-2 dimensions: entity key from natural key parts (e.g. skill_key =
+  dimension_key(domain, task_type)). All history rows share the key;
+  is_current/effective ranges distinguish versions.
+- Ingested facts (messages, tool uses, facets, findings): fully
+  deterministic keys, so re-ingestion computes the same keys and skips
+  existing rows -- idempotency is a property of key generation, not a
+  separate mechanism.
+- Native facts (extractions, feedback): uuid-salted keys, because the
+  event is intrinsically unique and never re-ingested.
+
+SCD-2 semantics: any attribute change closes the current row
+(effective_to, is_current=false) and inserts a new current row. Rows
+never mutate. Exception: fact_session is an accumulating snapshot --
+status/result/completed_at update in place as the session progresses.
+
+finding_type is registry-validated against dim_finding_type here (no
+CHECK constraint) so new finding vocabularies are data, not DDL.
 
 All queries are parameterized. JSON fields are serialized with orjson
 on write and deserialized on read via automatic type detection from
@@ -13,26 +29,39 @@ DuckDB's cursor.description (type_code == "JSON").
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import uuid4
 
 import duckdb
 import orjson
 
 from freud_schema.db import init_schema
+from freud_schema.keys import dimension_key, hash_diff
 from freud_schema.tables import (
     Extraction,
+    FacetType,
     Feedback,
+    Finding,
+    FindingType,
+    LoadRun,
+    Message,
+    Project,
+    Proposal,
+    ProposalStatus,
+    RecordSource,
     Rule,
     RuleScope,
     RuleStatus,
     SamplingConfig,
     SamplingStrategy,
     Session,
+    SessionFacet,
     SessionStatus,
     Skill,
     SkillOrigin,
     SkillStatus,
     Source,
     SourceStatus,
+    ToolUse,
     Trace,
     TraceFeedback,
     TraceFeedbackType,
@@ -55,12 +84,35 @@ def _from_json(val: str | None) -> dict | list | None:
     return orjson.loads(val)
 
 
+# Table -> key column mapping. Doubles as the identifier allowlist for
+# resolve_key(), so no caller-provided string ever lands in SQL unchecked.
+_KEY_COLUMNS: dict[str, str] = {
+    "dim_skill": "skill_key",
+    "dim_source": "source_key",
+    "dim_rule": "rule_key",
+    "dim_sampling_config": "config_key",
+    "dim_project": "project_key",
+    "dim_facet_type": "facet_type_key",
+    "dim_finding_type": "finding_type_key",
+    "fact_session": "session_key",
+    "fact_trace": "trace_key",
+    "fact_extraction": "extraction_key",
+    "fact_feedback": "feedback_key",
+    "fact_trace_feedback": "trace_feedback_key",
+    "fact_message": "message_key",
+    "fact_tool_use": "tool_use_key",
+    "fact_session_facets": "facet_row_key",
+    "fact_finding": "finding_key",
+    "fact_proposal": "proposal_key",
+}
+
+
 class ExperimentStore:
-    """Data access layer for the experiment harness."""
+    """Data access layer for the meta-harness."""
 
     def __init__(self, con: duckdb.DuckDBPyConnection):
         self.con = con
-        self._session_skill_cache: dict[int, dict] = {}
+        self._session_skill_cache: dict[str, dict] = {}
         init_schema(con)
 
     def close(self) -> None:
@@ -104,96 +156,169 @@ class ExperimentStore:
         return [self._row_to_dict(desc, r) for r in result.fetchall()]
 
     # -------------------------------------------------------------------
-    # Internal: existence validation (replaces FK enforcement)
+    # Internal: key plumbing (replaces FK enforcement)
     # -------------------------------------------------------------------
 
-    def _require(self, table: str, entity_id: int, label: str) -> None:
+    def _key_exists(self, table: str, key: str) -> bool:
+        key_col = _KEY_COLUMNS[table]
+        row = self.con.execute(
+            f"SELECT 1 FROM {table} WHERE {key_col} = ? LIMIT 1", [key],
+        ).fetchone()
+        return row is not None
+
+    def _require(self, table: str, key: str, label: str) -> None:
         """Raise ValueError if a referenced entity doesn't exist.
 
         Called at insert boundaries to catch orphaned references that
         FKs would have rejected. Only used when no denormalization fetch
         will validate the reference as a side effect.
         """
-        row = self.con.execute(
-            f"SELECT 1 FROM {table} WHERE id = ?", [entity_id],
-        ).fetchone()
-        if row is None:
-            raise ValueError(f"{label} {entity_id} not found")
+        if not self._key_exists(table, key):
+            raise ValueError(f"{label} {key} not found")
+
+    def resolve_key(self, table: str, key_col: str, prefix: str) -> str:
+        """Resolve a key prefix to a full key, git-short-hash style.
+
+        Raises ValueError if the prefix matches nothing or more than one
+        key. table/key_col are validated against the schema's own
+        table->key mapping, never interpolated from caller strings.
+        """
+        if _KEY_COLUMNS.get(table) != key_col:
+            raise ValueError(f"Unknown table/key combination: {table}.{key_col}")
+        rows = self.con.execute(
+            f"SELECT DISTINCT {key_col} FROM {table} WHERE {key_col} LIKE ? LIMIT 2",
+            [prefix + "%"],
+        ).fetchall()
+        if not rows:
+            raise ValueError(f"No {table} match for key prefix '{prefix}'")
+        if len(rows) > 1:
+            raise ValueError(f"Ambiguous key prefix '{prefix}' for {table}")
+        return rows[0][0]
+
+    # -------------------------------------------------------------------
+    # Internal: SCD-2 machinery
+    # -------------------------------------------------------------------
+
+    def _current_row(self, table: str, key: str) -> dict | None:
+        key_col = _KEY_COLUMNS[table]
+        return self._fetchone(
+            f"SELECT * FROM {table} WHERE {key_col} = ? AND is_current", [key],
+        )
+
+    def _close_current(self, table: str, key: str) -> None:
+        key_col = _KEY_COLUMNS[table]
+        self.con.execute(
+            f"""UPDATE {table} SET is_current = FALSE,
+                effective_to = current_timestamp
+                WHERE {key_col} = ? AND is_current""",
+            [key],
+        )
 
     def _resolve_skill_attrs(
         self,
-        skill_id: int,
+        skill_key: str,
         domain: str | None = None,
         task_type: str | None = None,
         version: int | None = None,
     ) -> tuple[str | None, str | None, int | None]:
-        """Resolve skill domain/task_type/version, fetching from dim_skill if needed.
+        """Resolve skill domain/task_type/version from the current row.
 
-        Validates existence: raises ValueError if skill_id doesn't exist.
+        Validates existence: raises ValueError if skill_key has no row.
         Skips the fetch if domain is already provided (caller pre-filled).
         """
         if domain is not None:
             return domain, task_type, version
-        skill = self.get_skill(skill_id)
+        skill = self.get_skill(skill_key)
         if skill is None:
-            raise ValueError(f"Skill {skill_id} not found")
+            raise ValueError(f"Skill {skill_key} not found")
         return skill.domain, skill.task_type, skill.version
 
     # -------------------------------------------------------------------
     # Internal: session skill attribute cache (for bulk trace inserts)
     # -------------------------------------------------------------------
 
-    def _get_session_skill_attrs(self, session_id: int) -> dict | None:
+    def _get_session_skill_attrs(self, session_key: str) -> dict | None:
         """Get session's skill attributes, cached for bulk trace inserts."""
-        if session_id in self._session_skill_cache:
-            return self._session_skill_cache[session_id]
+        if session_key in self._session_skill_cache:
+            return self._session_skill_cache[session_key]
         d = self._fetchone(
-            "SELECT skill_id, skill_domain, skill_task_type FROM fact_session WHERE id = ?",
-            [session_id],
+            "SELECT skill_key, skill_domain, skill_task_type "
+            "FROM fact_session WHERE session_key = ?",
+            [session_key],
         )
         if d:
-            self._session_skill_cache[session_id] = d
+            self._session_skill_cache[session_key] = d
         return d
 
     # -------------------------------------------------------------------
-    # Skills (dim_skill)
+    # Skills (dim_skill, SCD-2)
     # -------------------------------------------------------------------
 
-    def insert_skill(self, skill: Skill) -> int:
-        result = self.con.execute(
-            """INSERT INTO dim_skill (domain, task_type, version, content, metadata,
-               parent_skill_id, status, origin, activation_conditions)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [skill.domain, skill.task_type, skill.version, skill.content,
-             _json(skill.metadata), skill.parent_skill_id, skill.status,
-             skill.origin, _json(skill.activation_conditions)],
-        ).fetchone()
-        return result[0]
+    def insert_skill(self, skill: Skill) -> str:
+        """Insert a new skill version. Entity key: (domain, task_type).
 
-    def get_skill(self, skill_id: int) -> Skill | None:
-        d = self._fetchone("SELECT * FROM dim_skill WHERE id = ?", [skill_id])
+        If a current row exists for the entity, the new version must
+        exceed it; the current row is closed and the new one becomes
+        current. Status changes without a version bump go through
+        activate_skill/deprecate_skill instead.
+        """
+        key = dimension_key(skill.domain, skill.task_type)
+        current = self._current_row("dim_skill", key)
+        if current is not None and skill.version <= current["version"]:
+            raise ValueError(
+                f"Skill {skill.domain}/{skill.task_type} version must exceed "
+                f"current version {current['version']} (got {skill.version})"
+            )
+        if current is not None:
+            self._close_current("dim_skill", key)
+        self.con.execute(
+            """INSERT INTO dim_skill (skill_key, domain, task_type, version, content,
+               metadata, parent_skill_key, status, origin, activation_conditions,
+               hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, skill.domain, skill.task_type, skill.version, skill.content,
+             _json(skill.metadata), skill.parent_skill_key, skill.status,
+             skill.origin, _json(skill.activation_conditions),
+             hash_diff(content=skill.content, status=skill.status.value,
+                       version=skill.version, origin=skill.origin.value,
+                       metadata=_json(skill.metadata),
+                       parent_skill_key=skill.parent_skill_key,
+                       activation_conditions=_json(skill.activation_conditions)),
+             skill.record_source],
+        )
+        return key
+
+    def get_skill(self, skill_key: str, version: int | None = None) -> Skill | None:
+        """Fetch a skill: the current row by default, or a specific version."""
+        if version is None:
+            d = self._current_row("dim_skill", skill_key)
+        else:
+            d = self._fetchone(
+                """SELECT * FROM dim_skill WHERE skill_key = ? AND version = ?
+                   ORDER BY effective_from DESC LIMIT 1""",
+                [skill_key, version],
+            )
         return Skill(**d) if d else None
 
     def get_active_skill(self, domain: str, task_type: str) -> Skill | None:
-        """Find the latest active skill for a domain + task_type."""
-        d = self._fetchone(
-            """SELECT * FROM dim_skill
-               WHERE domain = ? AND task_type = ? AND status = ?
-               ORDER BY version DESC LIMIT 1""",
-            [domain, task_type, SkillStatus.ACTIVE],
-        )
-        return Skill(**d) if d else None
+        """Find the current skill for a domain + task_type, if active."""
+        skill = self.get_skill(dimension_key(domain, task_type))
+        if skill is not None and skill.status == SkillStatus.ACTIVE:
+            return skill
+        return None
 
     def list_skills(
         self,
         domain: str | None = None,
         status: SkillStatus | None = None,
         origin: SkillOrigin | None = None,
-        parent_skill_id: int | None = None,
+        parent_skill_key: str | None = None,
+        include_history: bool = False,
     ) -> list[Skill]:
         query = "SELECT * FROM dim_skill WHERE 1=1"
         params: list = []
+        if not include_history:
+            query += " AND is_current"
         if domain:
             query += " AND domain = ?"
             params.append(domain)
@@ -203,86 +328,124 @@ class ExperimentStore:
         if origin:
             query += " AND origin = ?"
             params.append(origin)
-        if parent_skill_id is not None:
-            query += " AND parent_skill_id = ?"
-            params.append(parent_skill_id)
+        if parent_skill_key is not None:
+            query += " AND parent_skill_key = ?"
+            params.append(parent_skill_key)
         query += " ORDER BY domain, task_type, version DESC"
         return [Skill(**d) for d in self._fetchall(query, params)]
 
-    def activate_skill(self, skill_id: int) -> None:
+    def _evolve_skill_status(self, skill_key: str, status: SkillStatus) -> None:
+        """SCD-2 status change: close current row, insert copy with new status."""
+        current = self._current_row("dim_skill", skill_key)
+        if current is None:
+            raise ValueError(f"Skill {skill_key} not found")
+        if current["status"] == status.value:
+            return  # already there; no history noise
+        self._close_current("dim_skill", skill_key)
         self.con.execute(
-            "UPDATE dim_skill SET status = ?, updated_at = current_timestamp WHERE id = ?",
-            [SkillStatus.ACTIVE, skill_id],
+            """INSERT INTO dim_skill (skill_key, domain, task_type, version, content,
+               metadata, parent_skill_key, status, origin, activation_conditions,
+               hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [skill_key, current["domain"], current["task_type"], current["version"],
+             current["content"], _json(current["metadata"]),
+             current["parent_skill_key"], status, current["origin"],
+             _json(current["activation_conditions"]),
+             hash_diff(content=current["content"], status=status.value,
+                       version=current["version"], origin=current["origin"],
+                       metadata=_json(current["metadata"]),
+                       parent_skill_key=current["parent_skill_key"],
+                       activation_conditions=_json(current["activation_conditions"])),
+             current["record_source"]],
         )
 
-    def deprecate_skill(self, skill_id: int) -> None:
-        self.con.execute(
-            "UPDATE dim_skill SET status = ?, updated_at = current_timestamp WHERE id = ?",
-            [SkillStatus.DEPRECATED, skill_id],
-        )
+    def activate_skill(self, skill_key: str) -> None:
+        self._evolve_skill_status(skill_key, SkillStatus.ACTIVE)
 
-    def get_active_sub_skills(self, parent_skill_id: int) -> list[Skill]:
-        """Get active skills with the given parent_skill_id."""
+    def deprecate_skill(self, skill_key: str) -> None:
+        self._evolve_skill_status(skill_key, SkillStatus.DEPRECATED)
+
+    def get_active_sub_skills(self, parent_skill_key: str) -> list[Skill]:
+        """Get current active skills with the given parent_skill_key."""
         return [Skill(**d) for d in self._fetchall(
             """SELECT * FROM dim_skill
-               WHERE parent_skill_id = ? AND status = ?
+               WHERE parent_skill_key = ? AND status = ? AND is_current
                ORDER BY version DESC""",
-            [parent_skill_id, SkillStatus.ACTIVE],
+            [parent_skill_key, SkillStatus.ACTIVE],
         )]
 
     def insert_derived_skill(
         self,
         skill: Skill,
         *,
-        source_session_ids: list[int],
-        source_trace_ids: list[int],
-    ) -> int:
+        source_session_keys: list[str],
+        source_trace_keys: list[str],
+    ) -> str:
         """Insert a data-derived skill with provenance tracking."""
         skill = skill.model_copy(update={
             "origin": SkillOrigin.DATA_DERIVED,
+            "record_source": RecordSource.DERIVED,
             "metadata": {
                 **(skill.metadata or {}),
                 "derived_from": {
-                    "session_ids": source_session_ids,
-                    "trace_ids": source_trace_ids,
+                    "session_keys": source_session_keys,
+                    "trace_keys": source_trace_keys,
                 },
             },
         })
         return self.insert_skill(skill)
 
     # -------------------------------------------------------------------
-    # Sources (dim_source)
+    # Sources (dim_source, SCD-2)
     # -------------------------------------------------------------------
 
-    def insert_source(self, source: Source) -> int:
-        result = self.con.execute(
-            """INSERT INTO dim_source (content_path, media_type, metadata, source_hash, status)
-               VALUES (?, ?, ?, ?, ?)
-               RETURNING id""",
-            [source.content_path, source.media_type, _json(source.metadata),
-             source.source_hash, source.status],
-        ).fetchone()
-        return result[0]
+    def insert_source(self, source: Source) -> str:
+        """Register a source. Entity key: content_path.
 
-    def get_source(self, source_id: int) -> Source | None:
-        d = self._fetchone("SELECT * FROM dim_source WHERE id = ?", [source_id])
+        Idempotent: re-adding an identical source is a no-op; a changed
+        one (new hash, status, metadata) evolves the SCD-2 row.
+        """
+        key = dimension_key(source.content_path)
+        new_hash = hash_diff(
+            content_path=source.content_path, media_type=source.media_type,
+            metadata=_json(source.metadata), source_hash=source.source_hash,
+            status=source.status.value, superseded_by_key=source.superseded_by_key,
+        )
+        current = self._current_row("dim_source", key)
+        if current is not None:
+            if current["hash_diff"] == new_hash:
+                return key
+            self._close_current("dim_source", key)
+        self.con.execute(
+            """INSERT INTO dim_source (source_key, content_path, media_type, metadata,
+               source_hash, status, superseded_by_key, hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, source.content_path, source.media_type, _json(source.metadata),
+             source.source_hash, source.status, source.superseded_by_key,
+             new_hash, source.record_source],
+        )
+        return key
+
+    def get_source(self, source_key: str) -> Source | None:
+        d = self._current_row("dim_source", source_key)
         return Source(**d) if d else None
 
-    def get_sources_by_ids(self, source_ids: list[int]) -> dict[int, Source]:
-        """Bulk fetch sources by ID. Returns {id: Source} map."""
-        if not source_ids:
+    def get_sources_by_keys(self, source_keys: list[str]) -> dict[str, Source]:
+        """Bulk fetch current sources by key. Returns {key: Source} map."""
+        if not source_keys:
             return {}
-        placeholders = ", ".join("?" for _ in source_ids)
+        placeholders = ", ".join("?" for _ in source_keys)
         return {
-            d["id"]: Source(**d)
+            d["source_key"]: Source(**d)
             for d in self._fetchall(
-                f"SELECT * FROM dim_source WHERE id IN ({placeholders})",
-                source_ids,
+                f"SELECT * FROM dim_source WHERE source_key IN ({placeholders})"
+                " AND is_current",
+                source_keys,
             )
         }
 
     def list_sources(self, status: SourceStatus | None = None) -> list[Source]:
-        query = "SELECT * FROM dim_source WHERE 1=1"
+        query = "SELECT * FROM dim_source WHERE is_current"
         params: list = []
         if status:
             query += " AND status = ?"
@@ -291,42 +454,239 @@ class ExperimentStore:
         return [Source(**d) for d in self._fetchall(query, params)]
 
     # -------------------------------------------------------------------
-    # Sessions (fact_session)
+    # Rules (dim_rule, SCD-2)
     # -------------------------------------------------------------------
 
-    def insert_session(self, session: Session) -> int:
+    def insert_rule(self, rule: Rule) -> str:
+        """Insert or evolve a rule. Entity key: name (which is also the
+        compile target filename). Identical re-adds are no-ops."""
+        key = dimension_key(rule.name)
+        new_hash = hash_diff(
+            name=rule.name, scope=rule.scope.value, domain=rule.domain,
+            priority=rule.priority, content=rule.content, status=rule.status.value,
+        )
+        current = self._current_row("dim_rule", key)
+        if current is not None:
+            if current["hash_diff"] == new_hash:
+                return key
+            self._close_current("dim_rule", key)
+        self.con.execute(
+            """INSERT INTO dim_rule (rule_key, name, scope, domain, priority,
+               content, status, hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, rule.name, rule.scope, rule.domain, rule.priority,
+             rule.content, rule.status, new_hash, rule.record_source],
+        )
+        return key
+
+    def get_rule(self, rule_key: str) -> Rule | None:
+        d = self._current_row("dim_rule", rule_key)
+        return Rule(**d) if d else None
+
+    def get_rules(self, domain: str | None = None) -> list[Rule]:
+        """Load current active rules: global + domain-specific, by priority."""
+        query = "SELECT * FROM dim_rule WHERE status = ? AND is_current"
+        params: list = [RuleStatus.ACTIVE]
+        if domain:
+            query += " AND (scope = ? OR domain = ?)"
+            params.extend([RuleScope.GLOBAL, domain])
+        else:
+            query += " AND scope = ?"
+            params.append(RuleScope.GLOBAL)
+        query += " ORDER BY priority DESC"
+        return [Rule(**d) for d in self._fetchall(query, params)]
+
+    def list_rules(self, include_history: bool = False) -> list[Rule]:
+        query = "SELECT * FROM dim_rule"
+        if not include_history:
+            query += " WHERE is_current"
+        query += " ORDER BY scope, domain, priority DESC"
+        return [Rule(**d) for d in self._fetchall(query)]
+
+    # -------------------------------------------------------------------
+    # Sampling Configs (dim_sampling_config, SCD-2)
+    # -------------------------------------------------------------------
+
+    def insert_sampling_config(self, config: SamplingConfig) -> str:
+        """Insert or evolve a sampling config. Entity key: (domain, task_type)."""
+        key = dimension_key(config.domain, config.task_type)
+        new_hash = hash_diff(
+            domain=config.domain, task_type=config.task_type,
+            strategy=config.strategy.value, parameters=_json(config.parameters),
+            max_samples=config.max_samples, status=config.status.value,
+        )
+        current = self._current_row("dim_sampling_config", key)
+        if current is not None:
+            if current["hash_diff"] == new_hash:
+                return key
+            self._close_current("dim_sampling_config", key)
+        self.con.execute(
+            """INSERT INTO dim_sampling_config (config_key, domain, task_type,
+               strategy, parameters, max_samples, status, hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, config.domain, config.task_type, config.strategy,
+             _json(config.parameters), config.max_samples, config.status,
+             new_hash, config.record_source],
+        )
+        return key
+
+    def get_sampling_config(
+        self,
+        domain: str | None = None,
+        task_type: str | None = None,
+    ) -> SamplingConfig | None:
+        """Find the best-matching current active sampling config.
+        Priority: exact domain+task_type > domain-only > global (NULL domain).
+        """
+        d = self._fetchone(
+            """SELECT * FROM dim_sampling_config WHERE status = ? AND is_current
+               AND (domain = ? OR domain IS NULL)
+               AND (task_type = ? OR task_type IS NULL)
+               ORDER BY (domain IS NOT NULL)::int + (task_type IS NOT NULL)::int DESC
+               LIMIT 1""",
+            [RuleStatus.ACTIVE, domain, task_type],
+        )
+        return SamplingConfig(**d) if d else None
+
+    def list_sampling_configs(self) -> list[SamplingConfig]:
+        """List current sampling configs."""
+        return [SamplingConfig(**d) for d in self._fetchall(
+            "SELECT * FROM dim_sampling_config WHERE is_current "
+            "ORDER BY domain, task_type"
+        )]
+
+    # -------------------------------------------------------------------
+    # Registry dimensions (append-only)
+    # -------------------------------------------------------------------
+
+    def ensure_project(self, project: Project) -> str:
+        """Register a project if unseen; idempotent. Key: project_path."""
+        key = dimension_key(project.project_path)
+        if not self._key_exists("dim_project", key):
+            self.con.execute(
+                """INSERT INTO dim_project (project_key, project_path, project_name,
+                   record_source) VALUES (?, ?, ?, ?)""",
+                [key, project.project_path, project.project_name,
+                 project.record_source],
+            )
+        return key
+
+    def get_project(self, project_key: str) -> Project | None:
+        d = self._fetchone(
+            "SELECT * FROM dim_project WHERE project_key = ?", [project_key])
+        return Project(**d) if d else None
+
+    def list_projects(self) -> list[Project]:
+        return [Project(**d) for d in self._fetchall(
+            "SELECT * FROM dim_project ORDER BY project_path")]
+
+    def register_facet_type(self, facet: FacetType) -> str:
+        """Register a facet type version; idempotent per (facet_id, prompt_version).
+
+        Bumping prompt_version adds a row -- registry entries are never
+        overwritten, so old facet values stay interpretable.
+        """
+        key = dimension_key(facet.facet_id, facet.prompt_version)
+        if not self._key_exists("dim_facet_type", key):
+            self.con.execute(
+                """INSERT INTO dim_facet_type (facet_type_key, facet_id, tier, method,
+                   output_type, prompt_text, prompt_version, description, record_source)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [key, facet.facet_id, facet.tier, facet.method, facet.output_type,
+                 facet.prompt_text, facet.prompt_version, facet.description,
+                 facet.record_source],
+            )
+        return key
+
+    def get_facet_type(self, facet_id: str, prompt_version: int = 1) -> FacetType | None:
+        d = self._fetchone(
+            "SELECT * FROM dim_facet_type WHERE facet_type_key = ?",
+            [dimension_key(facet_id, prompt_version)],
+        )
+        return FacetType(**d) if d else None
+
+    def list_facet_types(self) -> list[FacetType]:
+        return [FacetType(**d) for d in self._fetchall(
+            "SELECT * FROM dim_facet_type ORDER BY tier, facet_id, prompt_version")]
+
+    def register_finding_type(self, ft: FindingType) -> str:
+        """Register a finding vocabulary entry; idempotent. Key: finding_type.
+
+        This registry is what validates fact_finding.finding_type -- new
+        vocabularies are rows here, never enum edits.
+        """
+        key = dimension_key(ft.finding_type)
+        if not self._key_exists("dim_finding_type", key):
+            self.con.execute(
+                """INSERT INTO dim_finding_type (finding_type_key, finding_type,
+                   description, detection_method, record_source)
+                   VALUES (?, ?, ?, ?, ?)""",
+                [key, ft.finding_type, ft.description, ft.detection_method,
+                 ft.record_source],
+            )
+        return key
+
+    def get_finding_type(self, finding_type: str) -> FindingType | None:
+        d = self._fetchone(
+            "SELECT * FROM dim_finding_type WHERE finding_type_key = ?",
+            [dimension_key(finding_type)],
+        )
+        return FindingType(**d) if d else None
+
+    def list_finding_types(self) -> list[FindingType]:
+        return [FindingType(**d) for d in self._fetchall(
+            "SELECT * FROM dim_finding_type ORDER BY finding_type")]
+
+    # -------------------------------------------------------------------
+    # Sessions (fact_session, accumulating snapshot)
+    # -------------------------------------------------------------------
+
+    def insert_session(self, session: Session) -> str:
+        """Insert a session. Key: (record_source, native_session_id).
+
+        Native runs get a generated native_session_id; ingested sessions
+        carry the harness's own id, so re-ingesting the same transcript
+        resolves to the same key and skips the insert.
+        """
+        native_id = session.native_session_id or uuid4().hex
+        key = dimension_key(session.record_source.value, native_id)
+        if self._key_exists("fact_session", key):
+            return key
         # Denormalize skill attributes (validates existence as side effect)
         skill_domain = session.skill_domain
         skill_task_type = session.skill_task_type
         skill_version = session.skill_version
-        if session.skill_id is not None:
+        if session.skill_key is not None:
             skill_domain, skill_task_type, skill_version = self._resolve_skill_attrs(
-                session.skill_id, skill_domain, skill_task_type, skill_version,
+                session.skill_key, skill_domain, skill_task_type, skill_version,
             )
-        result = self.con.execute(
-            """INSERT INTO fact_session (task_description, task_type, parent_session_id,
-               agent_role, skill_id, skill_domain, skill_task_type, skill_version,
-               context_loaded, model_used, token_usage, status, sampled_session_ids)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [session.task_description, session.task_type, session.parent_session_id,
-             session.agent_role, session.skill_id, skill_domain, skill_task_type,
-             skill_version, _json(session.context_loaded), session.model_used,
+        self.con.execute(
+            """INSERT INTO fact_session (session_key, native_session_id, project_key,
+               task_description, task_type, parent_session_key, agent_role,
+               skill_key, skill_domain, skill_task_type, skill_version,
+               context_loaded, model_used, token_usage, status,
+               sampled_session_keys, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, native_id, session.project_key,
+             session.task_description, session.task_type,
+             session.parent_session_key, session.agent_role,
+             session.skill_key, skill_domain, skill_task_type, skill_version,
+             _json(session.context_loaded), session.model_used,
              _json(session.token_usage), session.status,
-             _json(session.sampled_session_ids)],
-        ).fetchone()
-        sid = result[0]
+             _json(session.sampled_session_keys),
+             session.record_source, session.etl_run_id],
+        )
         # Cache skill attrs for subsequent trace inserts
-        self._session_skill_cache[sid] = {
-            "skill_id": session.skill_id,
+        self._session_skill_cache[key] = {
+            "skill_key": session.skill_key,
             "skill_domain": skill_domain,
             "skill_task_type": skill_task_type,
         }
-        return sid
+        return key
 
     def complete_session(
         self,
-        session_id: int,
+        session_key: str,
         *,
         status: SessionStatus = SessionStatus.COMPLETED,
         result: dict | None = None,
@@ -334,26 +694,28 @@ class ExperimentStore:
     ) -> None:
         self.con.execute(
             """UPDATE fact_session SET status = ?, result = ?, token_usage = ?,
-               completed_at = current_timestamp WHERE id = ?""",
-            [status, _json(result), _json(token_usage), session_id],
+               completed_at = current_timestamp WHERE session_key = ?""",
+            [status, _json(result), _json(token_usage), session_key],
         )
 
-    def update_session_model(self, session_id: int, model_used: str) -> None:
+    def update_session_model(self, session_key: str, model_used: str) -> None:
         """Update the model_used field from a provider response."""
         self.con.execute(
-            "UPDATE fact_session SET model_used = ? WHERE id = ?",
-            [model_used, session_id],
+            "UPDATE fact_session SET model_used = ? WHERE session_key = ?",
+            [model_used, session_key],
         )
 
-    def get_session(self, session_id: int) -> Session | None:
-        d = self._fetchone("SELECT * FROM fact_session WHERE id = ?", [session_id])
+    def get_session(self, session_key: str) -> Session | None:
+        d = self._fetchone(
+            "SELECT * FROM fact_session WHERE session_key = ?", [session_key])
         return Session(**d) if d else None
 
     def list_sessions(
         self,
         status: SessionStatus | None = None,
-        parent_id: int | None = None,
-        skill_id: int | None = None,
+        parent_key: str | None = None,
+        skill_key: str | None = None,
+        record_source: RecordSource | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
         limit: int | None = None,
@@ -363,12 +725,15 @@ class ExperimentStore:
         if status:
             query += " AND status = ?"
             params.append(status)
-        if parent_id is not None:
-            query += " AND parent_session_id = ?"
-            params.append(parent_id)
-        if skill_id is not None:
-            query += " AND skill_id = ?"
-            params.append(skill_id)
+        if parent_key is not None:
+            query += " AND parent_session_key = ?"
+            params.append(parent_key)
+        if skill_key is not None:
+            query += " AND skill_key = ?"
+            params.append(skill_key)
+        if record_source is not None:
+            query += " AND record_source = ?"
+            params.append(record_source)
         if created_after is not None:
             query += " AND created_at >= ?"
             params.append(created_after)
@@ -385,124 +750,140 @@ class ExperimentStore:
     # Traces (fact_trace)
     # -------------------------------------------------------------------
 
-    def insert_trace(self, trace: Trace) -> int:
-        """Insert a trace node. Denormalizes skill attrs from session."""
-        skill_id = trace.skill_id
+    def insert_trace(self, trace: Trace) -> str:
+        """Insert a trace node. Denormalizes skill attrs from session.
+
+        Key: (session_key, depth, sequence_order, title) -- deterministic,
+        so bulk re-imports of the same trace buffer are idempotent.
+        """
+        key = dimension_key(trace.session_key, trace.depth,
+                            trace.sequence_order, trace.title)
+        if self._key_exists("fact_trace", key):
+            return key
+        skill_key = trace.skill_key
         skill_domain = trace.skill_domain
         skill_task_type = trace.skill_task_type
-        if skill_id is None:
-            attrs = self._get_session_skill_attrs(trace.session_id)
+        if skill_key is None:
+            attrs = self._get_session_skill_attrs(trace.session_key)
             if attrs is None:
-                raise ValueError(f"Session {trace.session_id} not found")
-            skill_id = attrs.get("skill_id")
+                raise ValueError(f"Session {trace.session_key} not found")
+            skill_key = attrs.get("skill_key")
             skill_domain = attrs.get("skill_domain")
             skill_task_type = attrs.get("skill_task_type")
-        result = self.con.execute(
-            """INSERT INTO fact_trace (session_id, parent_trace_id, trace_type, depth,
-               sequence_order, title, content, reasoning, alternatives, outcome,
-               child_session_id, duration_ms, skill_id, skill_domain, skill_task_type)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [trace.session_id, trace.parent_trace_id, trace.trace_type,
+        self.con.execute(
+            """INSERT INTO fact_trace (trace_key, session_key, parent_trace_key,
+               trace_type, depth, sequence_order, title, content, reasoning,
+               alternatives, outcome, child_session_key, duration_ms,
+               skill_key, skill_domain, skill_task_type, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, trace.session_key, trace.parent_trace_key, trace.trace_type,
              trace.depth, trace.sequence_order, trace.title, trace.content,
              trace.reasoning, _json(trace.alternatives), _json(trace.outcome),
-             trace.child_session_id, trace.duration_ms,
-             skill_id, skill_domain, skill_task_type],
-        ).fetchone()
-        return result[0]
+             trace.child_session_key, trace.duration_ms,
+             skill_key, skill_domain, skill_task_type,
+             trace.record_source, trace.etl_run_id],
+        )
+        return key
 
-    def get_trace(self, trace_id: int) -> Trace | None:
-        """Fetch a single trace node by id."""
-        d = self._fetchone("SELECT * FROM fact_trace WHERE id = ?", [trace_id])
+    def get_trace(self, trace_key: str) -> Trace | None:
+        """Fetch a single trace node by key."""
+        d = self._fetchone(
+            "SELECT * FROM fact_trace WHERE trace_key = ?", [trace_key])
         return Trace(**d) if d else None
 
-    def get_session_traces(self, session_id: int) -> list[Trace]:
+    def get_session_traces(self, session_key: str) -> list[Trace]:
         """Get all trace nodes for a session, ordered for tree rendering."""
         return [Trace(**d) for d in self._fetchall(
-            "SELECT * FROM fact_trace WHERE session_id = ? ORDER BY depth, sequence_order",
-            [session_id],
+            "SELECT * FROM fact_trace WHERE session_key = ? "
+            "ORDER BY depth, sequence_order",
+            [session_key],
         )]
 
-    def get_trace_children(self, parent_trace_id: int) -> list[Trace]:
+    def get_trace_children(self, parent_trace_key: str) -> list[Trace]:
         """Get immediate children of a trace node."""
         return [Trace(**d) for d in self._fetchall(
-            "SELECT * FROM fact_trace WHERE parent_trace_id = ? ORDER BY sequence_order",
-            [parent_trace_id],
+            "SELECT * FROM fact_trace WHERE parent_trace_key = ? "
+            "ORDER BY sequence_order",
+            [parent_trace_key],
         )]
 
-    def count_traces_by_type(self, session_id: int) -> list[tuple[str, int]]:
+    def count_traces_by_type(self, session_key: str) -> list[tuple[str, int]]:
         """Count traces by type for a session -- summary statistics."""
         rows = self.con.execute(
             """SELECT trace_type, COUNT(*) as cnt
-               FROM fact_trace WHERE session_id = ?
+               FROM fact_trace WHERE session_key = ?
                GROUP BY trace_type ORDER BY cnt DESC""",
-            [session_id],
+            [session_key],
         ).fetchall()
         return [(r[0], r[1]) for r in rows]
 
-    def delete_session_traces(self, session_id: int) -> int:
+    def delete_session_traces(self, session_key: str) -> int:
         """Delete all traces for a session. Returns count deleted.
         Also deletes fact_trace_feedback referencing these traces."""
         row = self.con.execute(
-            "SELECT COUNT(*) FROM fact_trace WHERE session_id = ?", [session_id],
+            "SELECT COUNT(*) FROM fact_trace WHERE session_key = ?", [session_key],
         ).fetchone()
         count = row[0] if row else 0
         # Delete trace feedback first (no FK but maintain referential integrity)
         self.con.execute(
-            "DELETE FROM fact_trace_feedback WHERE trace_id IN (SELECT id FROM fact_trace WHERE session_id = ?)",
-            [session_id],
+            "DELETE FROM fact_trace_feedback WHERE trace_key IN "
+            "(SELECT trace_key FROM fact_trace WHERE session_key = ?)",
+            [session_key],
         )
-        self.con.execute("DELETE FROM fact_trace WHERE session_id = ?", [session_id])
+        self.con.execute(
+            "DELETE FROM fact_trace WHERE session_key = ?", [session_key])
         return count
 
     # -------------------------------------------------------------------
     # Trace Feedback (fact_trace_feedback)
     # -------------------------------------------------------------------
 
-    def insert_trace_feedback(self, tf: TraceFeedback) -> int:
+    def insert_trace_feedback(self, tf: TraceFeedback) -> str:
         """Insert feedback on a specific trace node. Denormalizes trace + skill attrs."""
         trace_type = tf.trace_type
         trace_title = tf.trace_title
-        skill_id = tf.skill_id
+        skill_key = tf.skill_key
         skill_domain = tf.skill_domain
         skill_task_type = tf.skill_task_type
         if trace_type is None:
-            trace = self.get_trace(tf.trace_id)
+            trace = self.get_trace(tf.trace_key)
             if trace is None:
-                raise ValueError(f"Trace {tf.trace_id} not found")
+                raise ValueError(f"Trace {tf.trace_key} not found")
             trace_type = trace.trace_type
             trace_title = trace.title
-            skill_id = trace.skill_id
+            skill_key = trace.skill_key
             skill_domain = trace.skill_domain
             skill_task_type = trace.skill_task_type
-        result = self.con.execute(
-            """INSERT INTO fact_trace_feedback (trace_id, session_id, feedback_type,
-               content, correction, created_by,
-               trace_type, trace_title, skill_id, skill_domain, skill_task_type)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [tf.trace_id, tf.session_id, tf.feedback_type,
+        key = dimension_key(tf.trace_key, uuid4().hex)
+        self.con.execute(
+            """INSERT INTO fact_trace_feedback (trace_feedback_key, trace_key,
+               session_key, feedback_type, content, correction, created_by,
+               trace_type, trace_title, skill_key, skill_domain, skill_task_type,
+               record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, tf.trace_key, tf.session_key, tf.feedback_type,
              tf.content, _json(tf.correction), tf.created_by,
-             trace_type, trace_title, skill_id, skill_domain, skill_task_type],
-        ).fetchone()
-        return result[0]
+             trace_type, trace_title, skill_key, skill_domain, skill_task_type,
+             tf.record_source, tf.etl_run_id],
+        )
+        return key
 
     def list_trace_feedback(
         self,
         *,
-        trace_id: int | None = None,
-        session_id: int | None = None,
+        trace_key: str | None = None,
+        session_key: str | None = None,
         feedback_type: TraceFeedbackType | None = None,
     ) -> list[TraceFeedback]:
         """List trace feedback, filterable by trace, session, or type."""
         query = "SELECT * FROM fact_trace_feedback WHERE 1=1"
         params: list = []
-        if trace_id is not None:
-            query += " AND trace_id = ?"
-            params.append(trace_id)
-        if session_id is not None:
-            query += " AND session_id = ?"
-            params.append(session_id)
+        if trace_key is not None:
+            query += " AND trace_key = ?"
+            params.append(trace_key)
+        if session_key is not None:
+            query += " AND session_key = ?"
+            params.append(session_key)
         if feedback_type is not None:
             query += " AND feedback_type = ?"
             params.append(feedback_type)
@@ -511,79 +892,85 @@ class ExperimentStore:
 
     def aggregate_trace_feedback(
         self,
-        session_id: int,
+        session_key: str,
     ) -> list[tuple[str, int]]:
         """Count trace feedback by type for a session. No join needed."""
         rows = self.con.execute(
             """SELECT feedback_type, COUNT(*)
                FROM fact_trace_feedback
-               WHERE session_id = ?
+               WHERE session_key = ?
                GROUP BY feedback_type ORDER BY COUNT(*) DESC""",
-            [session_id],
+            [session_key],
         ).fetchall()
         return [(r[0], r[1]) for r in rows]
 
-    def get_trace_with_feedback(self, trace_id: int) -> dict | None:
+    def get_trace_with_feedback(self, trace_key: str) -> dict | None:
         """Fetch a trace with all its feedback records."""
-        trace = self.get_trace(trace_id)
+        trace = self.get_trace(trace_key)
         if trace is None:
             return None
-        feedback = self.list_trace_feedback(trace_id=trace_id)
+        feedback = self.list_trace_feedback(trace_key=trace_key)
         return {"trace": trace, "feedback": feedback}
 
     # -------------------------------------------------------------------
     # Extractions (fact_extraction)
     # -------------------------------------------------------------------
 
-    def insert_extraction(self, extraction: Extraction) -> int:
-        self._require("fact_session", extraction.session_id, "Session")
+    def insert_extraction(self, extraction: Extraction) -> str:
+        self._require("fact_session", extraction.session_key, "Session")
         # Denormalize source attributes (validates existence as side effect)
         source_path = extraction.source_path
         source_media_type = extraction.source_media_type
         if source_path is None:
-            source = self.get_source(extraction.source_id)
+            source = self.get_source(extraction.source_key)
             if source is None:
-                raise ValueError(f"Source {extraction.source_id} not found")
+                raise ValueError(f"Source {extraction.source_key} not found")
             source_path = source.content_path
             source_media_type = source.media_type
         # Denormalize skill attributes (validates existence as side effect)
         skill_domain, skill_task_type, skill_version = self._resolve_skill_attrs(
-            extraction.skill_id, extraction.skill_domain,
+            extraction.skill_key, extraction.skill_domain,
             extraction.skill_task_type, extraction.skill_version,
         )
-        result = self.con.execute(
-            """INSERT INTO fact_extraction (session_id, output, confidence, validation_status,
-               source_id, source_path, source_media_type,
-               skill_id, skill_domain, skill_task_type, skill_version)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [extraction.session_id, _json(extraction.output), extraction.confidence,
-             extraction.validation_status,
-             extraction.source_id, source_path, source_media_type,
-             extraction.skill_id, skill_domain, skill_task_type, skill_version],
-        ).fetchone()
-        return result[0]
+        # uuid-salted: native event, intrinsically unique, never re-ingested
+        key = dimension_key(extraction.session_key, extraction.source_key,
+                            uuid4().hex)
+        self.con.execute(
+            """INSERT INTO fact_extraction (extraction_key, session_key, output,
+               confidence, validation_status, source_key, source_path,
+               source_media_type, skill_key, skill_domain, skill_task_type,
+               skill_version, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, extraction.session_key, _json(extraction.output),
+             extraction.confidence, extraction.validation_status,
+             extraction.source_key, source_path, source_media_type,
+             extraction.skill_key, skill_domain, skill_task_type, skill_version,
+             extraction.record_source, extraction.etl_run_id],
+        )
+        return key
 
-    def get_extraction(self, extraction_id: int) -> Extraction | None:
-        d = self._fetchone("SELECT * FROM fact_extraction WHERE id = ?", [extraction_id])
+    def get_extraction(self, extraction_key: str) -> Extraction | None:
+        d = self._fetchone(
+            "SELECT * FROM fact_extraction WHERE extraction_key = ?",
+            [extraction_key])
         return Extraction(**d) if d else None
 
     def update_validation(
         self,
-        extraction_id: int,
+        extraction_key: str,
         *,
         status: ValidationStatus,
         validated_by: str | None = None,
     ) -> None:
         self.con.execute(
             """UPDATE fact_extraction SET validation_status = ?, validated_by = ?,
-               validated_at = current_timestamp WHERE id = ?""",
-            [status, validated_by, extraction_id],
+               validated_at = current_timestamp WHERE extraction_key = ?""",
+            [status, validated_by, extraction_key],
         )
 
     def list_extractions(
         self,
-        skill_id: int | None = None,
+        skill_key: str | None = None,
         validation_status: ValidationStatus | None = None,
         created_after: datetime | None = None,
         created_before: datetime | None = None,
@@ -591,9 +978,9 @@ class ExperimentStore:
     ) -> list[Extraction]:
         query = "SELECT * FROM fact_extraction WHERE 1=1"
         params: list = []
-        if skill_id is not None:
-            query += " AND skill_id = ?"
-            params.append(skill_id)
+        if skill_key is not None:
+            query += " AND skill_key = ?"
+            params.append(skill_key)
         if validation_status:
             query += " AND validation_status = ?"
             params.append(validation_status)
@@ -607,20 +994,21 @@ class ExperimentStore:
         params.append(limit)
         return [Extraction(**d) for d in self._fetchall(query, params)]
 
-    def get_validated_extractions(self, skill_id: int, limit: int = 10) -> list[Extraction]:
+    def get_validated_extractions(self, skill_key: str, limit: int = 10) -> list[Extraction]:
         """Retrieval query: find prior validated extractions for a skill."""
         return self.list_extractions(
-            skill_id=skill_id, validation_status=ValidationStatus.VALIDATED, limit=limit
+            skill_key=skill_key, validation_status=ValidationStatus.VALIDATED,
+            limit=limit,
         )
 
-    def get_extraction_with_feedback(self, extraction_id: int) -> dict | None:
+    def get_extraction_with_feedback(self, extraction_key: str) -> dict | None:
         """Fetch extraction with all its feedback records."""
-        extraction = self.get_extraction(extraction_id)
+        extraction = self.get_extraction(extraction_key)
         if extraction is None:
             return None
         feedback = [Feedback(**d) for d in self._fetchall(
-            "SELECT * FROM fact_feedback WHERE extraction_id = ? ORDER BY created_at",
-            [extraction_id],
+            "SELECT * FROM fact_feedback WHERE extraction_key = ? ORDER BY created_at",
+            [extraction_key],
         )]
         return {"extraction": extraction, "feedback": feedback}
 
@@ -628,50 +1016,51 @@ class ExperimentStore:
     # Feedback (fact_feedback)
     # -------------------------------------------------------------------
 
-    def insert_feedback(self, fb: Feedback) -> int:
+    def insert_feedback(self, fb: Feedback) -> str:
         # Denormalize skill attributes (validates existence as side effect)
         skill_domain, skill_task_type, skill_version = self._resolve_skill_attrs(
-            fb.skill_id, fb.skill_domain, fb.skill_task_type, fb.skill_version,
+            fb.skill_key, fb.skill_domain, fb.skill_task_type, fb.skill_version,
         )
-        # Denormalize source attributes from extraction (validates existence as side effect)
-        source_id = fb.source_id
+        # Denormalize source attributes from extraction (validates existence)
+        source_key = fb.source_key
         source_path = fb.source_path
-        if source_id is None:
-            ext = self.get_extraction(fb.extraction_id)
+        if source_key is None:
+            ext = self.get_extraction(fb.extraction_key)
             if ext is None:
-                raise ValueError(f"Extraction {fb.extraction_id} not found")
-            source_id = ext.source_id
+                raise ValueError(f"Extraction {fb.extraction_key} not found")
+            source_key = ext.source_key
             source_path = ext.source_path
             if source_path is None:
-                source = self.get_source(ext.source_id)
+                source = self.get_source(ext.source_key)
                 if source:
                     source_path = source.content_path
-        result = self.con.execute(
-            """INSERT INTO fact_feedback (extraction_id, session_id, skill_id,
+        # uuid-salted: native event, intrinsically unique, never re-ingested
+        key = dimension_key(fb.extraction_key, uuid4().hex)
+        self.con.execute(
+            """INSERT INTO fact_feedback (feedback_key, extraction_key, session_key,
                correction, correction_type, notes, created_by,
-               skill_domain, skill_task_type, skill_version,
-               source_id, source_path)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [fb.extraction_id, fb.session_id, fb.skill_id,
+               skill_key, skill_domain, skill_task_type, skill_version,
+               source_key, source_path, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, fb.extraction_key, fb.session_key,
              _json(fb.correction), fb.correction_type, fb.notes, fb.created_by,
-             skill_domain, skill_task_type, skill_version,
-             source_id, source_path],
-        ).fetchone()
-        return result[0]
+             fb.skill_key, skill_domain, skill_task_type, skill_version,
+             source_key, source_path, fb.record_source, fb.etl_run_id],
+        )
+        return key
 
-    def list_feedback(self, skill_id: int | None = None) -> list[Feedback]:
+    def list_feedback(self, skill_key: str | None = None) -> list[Feedback]:
         query = "SELECT * FROM fact_feedback WHERE 1=1"
         params: list = []
-        if skill_id is not None:
-            query += " AND skill_id = ?"
-            params.append(skill_id)
+        if skill_key is not None:
+            query += " AND skill_key = ?"
+            params.append(skill_key)
         query += " ORDER BY created_at DESC"
         return [Feedback(**d) for d in self._fetchall(query, params)]
 
     def aggregate_feedback(
         self,
-        skill_id: int,
+        skill_key: str,
         *,
         include_examples: bool = False,
         max_examples: int = 3,
@@ -681,19 +1070,18 @@ class ExperimentStore:
         Uses v_feedback_by_skill and v_feedback_fields views.
         Returns: [{"correction_type": str, "count": int, "fields": [str], "examples": [dict]}]
         """
-        # Get correction type counts from view
         type_rows = self._fetchall(
             """SELECT correction_type, correction_count as cnt
                FROM v_feedback_by_skill
-               WHERE skill_id = ?
+               WHERE skill_key = ?
                ORDER BY correction_count DESC""",
-            [skill_id],
+            [skill_key],
         )
 
-        # Get field-level detail from view
         field_rows = self._fetchall(
-            "SELECT correction_type, field_name FROM v_feedback_fields WHERE skill_id = ?",
-            [skill_id],
+            "SELECT correction_type, field_name FROM v_feedback_fields "
+            "WHERE skill_key = ?",
+            [skill_key],
         )
         fields_by_type: dict[str, list[str]] = {}
         for row in field_rows:
@@ -715,9 +1103,9 @@ class ExperimentStore:
             if include_examples:
                 example_rows = self._fetchall(
                     """SELECT correction FROM fact_feedback
-                       WHERE skill_id = ? AND correction_type = ?
+                       WHERE skill_key = ? AND correction_type = ?
                        ORDER BY created_at DESC LIMIT ?""",
-                    [skill_id, ct, max_examples],
+                    [skill_key, ct, max_examples],
                 )
                 entry["examples"] = [r["correction"] for r in example_rows]
             results.append(entry)
@@ -725,75 +1113,217 @@ class ExperimentStore:
         return results
 
     # -------------------------------------------------------------------
-    # Rules (dim_rule)
+    # Messages and tool uses (fact_message, fact_tool_use) -- ingested grain
     # -------------------------------------------------------------------
 
-    def insert_rule(self, rule: Rule) -> int:
-        result = self.con.execute(
-            """INSERT INTO dim_rule (scope, domain, priority, content, status)
-               VALUES (?, ?, ?, ?, ?)
-               RETURNING id""",
-            [rule.scope, rule.domain, rule.priority, rule.content, rule.status],
-        ).fetchone()
-        return result[0]
-
-    def get_rules(self, domain: str | None = None) -> list[Rule]:
-        """Load active rules: global + domain-specific, ordered by priority."""
-        query = "SELECT * FROM dim_rule WHERE status = ?"
-        params: list = [RuleStatus.ACTIVE]
-        if domain:
-            query += " AND (scope = ? OR domain = ?)"
-            params.extend([RuleScope.GLOBAL, domain])
-        else:
-            query += " AND scope = ?"
-            params.append(RuleScope.GLOBAL)
-        query += " ORDER BY priority DESC"
-        return [Rule(**d) for d in self._fetchall(query, params)]
-
-    def list_rules(self) -> list[Rule]:
-        return [Rule(**d) for d in self._fetchall(
-            "SELECT * FROM dim_rule ORDER BY scope, domain, priority DESC"
-        )]
-
-    # -------------------------------------------------------------------
-    # Sampling Configs (dim_sampling_config)
-    # -------------------------------------------------------------------
-
-    def insert_sampling_config(self, config: SamplingConfig) -> int:
-        """Insert a sampling configuration."""
-        result = self.con.execute(
-            """INSERT INTO dim_sampling_config (domain, task_type, strategy,
-               parameters, max_samples, status)
-               VALUES (?, ?, ?, ?, ?, ?)
-               RETURNING id""",
-            [config.domain, config.task_type, config.strategy,
-             _json(config.parameters), config.max_samples, config.status],
-        ).fetchone()
-        return result[0]
-
-    def get_sampling_config(
-        self,
-        domain: str | None = None,
-        task_type: str | None = None,
-    ) -> SamplingConfig | None:
-        """Find the best-matching active sampling config.
-        Priority: exact domain+task_type > domain-only > global (NULL domain).
-        """
-        d = self._fetchone(
-            """SELECT * FROM dim_sampling_config WHERE status = ?
-               AND (domain = ? OR domain IS NULL)
-               AND (task_type = ? OR task_type IS NULL)
-               ORDER BY (domain IS NOT NULL)::int + (task_type IS NOT NULL)::int DESC
-               LIMIT 1""",
-            [RuleStatus.ACTIVE, domain, task_type],
+    def insert_message(self, msg: Message) -> str:
+        """Insert a transcript message. Key: (session_key, entry_uuid) --
+        deterministic; re-ingestion skips existing rows."""
+        key = dimension_key(msg.session_key, msg.entry_uuid or uuid4().hex)
+        if self._key_exists("fact_message", key):
+            return key
+        self.con.execute(
+            """INSERT INTO fact_message (message_key, session_key, role, entry_uuid,
+               parent_uuid, sequence_num, occurred_at, content_text, has_thinking,
+               stop_reason, input_tokens, output_tokens, is_meta, is_sidechain,
+               record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, msg.session_key, msg.role, msg.entry_uuid, msg.parent_uuid,
+             msg.sequence_num, msg.occurred_at, msg.content_text, msg.has_thinking,
+             msg.stop_reason, msg.input_tokens, msg.output_tokens,
+             msg.is_meta, msg.is_sidechain, msg.record_source, msg.etl_run_id],
         )
-        return SamplingConfig(**d) if d else None
+        return key
 
-    def list_sampling_configs(self) -> list[SamplingConfig]:
-        """List all sampling configs."""
-        return [SamplingConfig(**d) for d in self._fetchall(
-            "SELECT * FROM dim_sampling_config ORDER BY domain, task_type"
+    def insert_tool_use(self, tu: ToolUse) -> str:
+        """Insert a tool use. Key: (session_key, tool_use_id) --
+        deterministic; re-ingestion skips existing rows."""
+        key = dimension_key(tu.session_key, tu.tool_use_id or uuid4().hex)
+        if self._key_exists("fact_tool_use", key):
+            return key
+        self.con.execute(
+            """INSERT INTO fact_tool_use (tool_use_key, session_key, message_key,
+               tool_use_id, tool_name, tool_input, is_error, result_text,
+               sequence_num, occurred_at, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, tu.session_key, tu.message_key, tu.tool_use_id, tu.tool_name,
+             _json(tu.tool_input), tu.is_error, tu.result_text,
+             tu.sequence_num, tu.occurred_at, tu.record_source, tu.etl_run_id],
+        )
+        return key
+
+    # -------------------------------------------------------------------
+    # Session facets (fact_session_facets)
+    # -------------------------------------------------------------------
+
+    def insert_session_facet(self, facet: SessionFacet) -> str:
+        """Insert a facet value. Registry-validated: the (facet_id,
+        prompt_version) must be registered in dim_facet_type first.
+        Key is deterministic -- re-running a populator is idempotent."""
+        facet_type_key = facet.facet_type_key or dimension_key(
+            facet.facet_id, facet.prompt_version)
+        self._require("dim_facet_type", facet_type_key,
+                      f"Facet type {facet.facet_id} v{facet.prompt_version}")
+        key = dimension_key(facet.session_key, facet.facet_id, facet.prompt_version)
+        if self._key_exists("fact_session_facets", key):
+            return key
+        self.con.execute(
+            """INSERT INTO fact_session_facets (facet_row_key, session_key,
+               facet_type_key, facet_id, prompt_version, value_text, value_numeric,
+               value_bool, value_json, is_fallback, extraction_metadata,
+               record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, facet.session_key, facet_type_key, facet.facet_id,
+             facet.prompt_version, facet.value_text, facet.value_numeric,
+             facet.value_bool, _json(facet.value_json), facet.is_fallback,
+             _json(facet.extraction_metadata), facet.record_source,
+             facet.etl_run_id],
+        )
+        return key
+
+    def get_session_facets(self, session_key: str) -> list[SessionFacet]:
+        return [SessionFacet(**d) for d in self._fetchall(
+            "SELECT * FROM fact_session_facets WHERE session_key = ? "
+            "ORDER BY facet_id, prompt_version",
+            [session_key],
         )]
+
+    # -------------------------------------------------------------------
+    # Findings (fact_finding) -- registry-validated open vocabulary
+    # -------------------------------------------------------------------
+
+    def insert_finding(self, finding: Finding) -> str:
+        """Insert a couch finding. finding_type must be registered in
+        dim_finding_type (decided 2026-07-07: registry, not enum)."""
+        ft = self.get_finding_type(finding.finding_type)
+        if ft is None:
+            raise ValueError(
+                f"finding_type '{finding.finding_type}' is not registered in "
+                f"dim_finding_type -- register it first (it's a row, not an enum)"
+            )
+        key = dimension_key(finding.finding_type, finding.scope.value,
+                            finding.project_key, finding.summary,
+                            finding.etl_run_id)
+        if self._key_exists("fact_finding", key):
+            return key
+        self.con.execute(
+            """INSERT INTO fact_finding (finding_key, finding_type, finding_type_key,
+               scope, project_key, evidence_session_keys, occurrence_count, summary,
+               record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, finding.finding_type, ft.finding_type_key, finding.scope,
+             finding.project_key, _json(finding.evidence_session_keys),
+             finding.occurrence_count, finding.summary,
+             finding.record_source, finding.etl_run_id],
+        )
+        return key
+
+    def get_finding(self, finding_key: str) -> Finding | None:
+        d = self._fetchone(
+            "SELECT * FROM fact_finding WHERE finding_key = ?", [finding_key])
+        return Finding(**d) if d else None
+
+    def list_findings(
+        self,
+        finding_type: str | None = None,
+        scope: str | None = None,
+        project_key: str | None = None,
+        limit: int = 100,
+    ) -> list[Finding]:
+        query = "SELECT * FROM fact_finding WHERE 1=1"
+        params: list = []
+        if finding_type is not None:
+            query += " AND finding_type = ?"
+            params.append(finding_type)
+        if scope is not None:
+            query += " AND scope = ?"
+            params.append(scope)
+        if project_key is not None:
+            query += " AND project_key = ?"
+            params.append(project_key)
+        query += " ORDER BY detected_at DESC LIMIT ?"
+        params.append(limit)
+        return [Finding(**d) for d in self._fetchall(query, params)]
+
+    # -------------------------------------------------------------------
+    # Proposals (fact_proposal)
+    # -------------------------------------------------------------------
+
+    def insert_proposal(self, proposal: Proposal) -> str:
+        key = dimension_key(proposal.target_dimension.value,
+                            proposal.target_key, uuid4().hex)
+        self.con.execute(
+            """INSERT INTO fact_proposal (proposal_key, target_dimension, target_key,
+               target_natural_key, proposed_content, proposed_version, status,
+               evidence_finding_keys, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, proposal.target_dimension, proposal.target_key,
+             _json(proposal.target_natural_key), proposal.proposed_content,
+             proposal.proposed_version, proposal.status,
+             _json(proposal.evidence_finding_keys),
+             proposal.record_source, proposal.etl_run_id],
+        )
+        return key
+
+    def get_proposal(self, proposal_key: str) -> Proposal | None:
+        d = self._fetchone(
+            "SELECT * FROM fact_proposal WHERE proposal_key = ?", [proposal_key])
+        return Proposal(**d) if d else None
+
+    def list_proposals(
+        self,
+        status: ProposalStatus | None = None,
+        limit: int = 100,
+    ) -> list[Proposal]:
+        query = "SELECT * FROM fact_proposal WHERE 1=1"
+        params: list = []
+        if status is not None:
+            query += " AND status = ?"
+            params.append(status)
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        return [Proposal(**d) for d in self._fetchall(query, params)]
+
+    # -------------------------------------------------------------------
+    # Load log (meta_load_log)
+    # -------------------------------------------------------------------
+
+    def start_load_run(
+        self,
+        operation: str,
+        *,
+        record_source: RecordSource = RecordSource.NATIVE,
+    ) -> str:
+        """Open a load-log row for an ingestion/compile run; returns etl_run_id."""
+        etl_run_id = uuid4().hex
+        self.con.execute(
+            """INSERT INTO meta_load_log (etl_run_id, operation, status, record_source)
+               VALUES (?, ?, ?, ?)""",
+            [etl_run_id, operation, SessionStatus.RUNNING, record_source],
+        )
+        return etl_run_id
+
+    def complete_load_run(
+        self,
+        etl_run_id: str,
+        *,
+        status: SessionStatus = SessionStatus.COMPLETED,
+        rows_read: int = 0,
+        rows_written: int = 0,
+        rows_skipped: int = 0,
+        error: str | None = None,
+    ) -> None:
+        self.con.execute(
+            """UPDATE meta_load_log SET status = ?, completed_at = current_timestamp,
+               rows_read = ?, rows_written = ?, rows_skipped = ?, error = ?
+               WHERE etl_run_id = ?""",
+            [status, rows_read, rows_written, rows_skipped, error, etl_run_id],
+        )
+
+    def get_load_run(self, etl_run_id: str) -> LoadRun | None:
+        d = self._fetchone(
+            "SELECT * FROM meta_load_log WHERE etl_run_id = ?", [etl_run_id])
+        return LoadRun(**d) if d else None
 
     # -------------------------------------------------------------------
     # Prior Run Sampling
@@ -802,29 +1332,30 @@ class ExperimentStore:
     def sample_prior_sessions(
         self,
         *,
-        skill_id: int,
+        skill_key: str,
         strategy: SamplingStrategy = SamplingStrategy.RECENT,
         max_samples: int = 3,
-        exclude_session_ids: list[int] | None = None,
+        exclude_session_keys: list[str] | None = None,
     ) -> list[Session]:
         """Sample completed/failed sessions for context injection.
 
         Only samples completed or failed sessions (not running).
-        Excludes sessions in exclude_session_ids (prevents self-sampling).
+        Excludes sessions in exclude_session_keys (prevents self-sampling).
         """
-        exclude = exclude_session_ids or []
+        exclude = exclude_session_keys or []
 
         # Build reusable WHERE clause pieces
-        where = "skill_id = ? AND status IN (?, ?)"
-        base_params: list = [skill_id, SessionStatus.COMPLETED, SessionStatus.FAILED]
+        where = "skill_key = ? AND status IN (?, ?)"
+        base_params: list = [skill_key, SessionStatus.COMPLETED, SessionStatus.FAILED]
         if exclude:
             placeholders = ", ".join("?" for _ in exclude)
-            where += f" AND id NOT IN ({placeholders})"
+            where += f" AND session_key NOT IN ({placeholders})"
             base_params.extend(exclude)
 
         if strategy == SamplingStrategy.RECENT:
             return [Session(**d) for d in self._fetchall(
-                f"SELECT * FROM fact_session WHERE {where} ORDER BY created_at DESC LIMIT ?",
+                f"SELECT * FROM fact_session WHERE {where} "
+                f"ORDER BY created_at DESC LIMIT ?",
                 base_params + [max_samples],
             )]
 
@@ -836,16 +1367,16 @@ class ExperimentStore:
 
         if strategy == SamplingStrategy.HIGH_FEEDBACK:
             # Use v_session_feedback_count view
-            hf_where = "s.skill_id = ? AND s.status IN (?, ?)"
-            hf_params: list = [skill_id, SessionStatus.COMPLETED, SessionStatus.FAILED]
+            hf_where = "s.skill_key = ? AND s.status IN (?, ?)"
+            hf_params: list = [skill_key, SessionStatus.COMPLETED, SessionStatus.FAILED]
             if exclude:
                 hf_phs = ", ".join("?" for _ in exclude)
-                hf_where += f" AND s.id NOT IN ({hf_phs})"
+                hf_where += f" AND s.session_key NOT IN ({hf_phs})"
                 hf_params.extend(exclude)
             return [Session(**d) for d in self._fetchall(
                 f"""SELECT s.* FROM fact_session s
                     LEFT JOIN v_session_feedback_count v
-                        ON v.session_id = s.id AND v.skill_id = s.skill_id
+                        ON v.session_key = s.session_key AND v.skill_key = s.skill_key
                     WHERE {hf_where}
                     ORDER BY COALESCE(v.feedback_count, 0) DESC
                     LIMIT ?""",
@@ -854,14 +1385,15 @@ class ExperimentStore:
 
         if strategy == SamplingStrategy.STRATIFIED_OUTCOME:
             def _fetch_by_status(st: SessionStatus) -> list[Session]:
-                so_where = "skill_id = ? AND status = ?"
-                so_params: list = [skill_id, st]
+                so_where = "skill_key = ? AND status = ?"
+                so_params: list = [skill_key, st]
                 if exclude:
                     so_phs = ", ".join("?" for _ in exclude)
-                    so_where += f" AND id NOT IN ({so_phs})"
+                    so_where += f" AND session_key NOT IN ({so_phs})"
                     so_params.extend(exclude)
                 return [Session(**d) for d in self._fetchall(
-                    f"SELECT * FROM fact_session WHERE {so_where} ORDER BY created_at DESC LIMIT ?",
+                    f"SELECT * FROM fact_session WHERE {so_where} "
+                    f"ORDER BY created_at DESC LIMIT ?",
                     so_params + [max_samples],
                 )]
 
@@ -880,43 +1412,43 @@ class ExperimentStore:
             return completed[:n_completed] + failed[:n_failed]
 
         if strategy == SamplingStrategy.STRATIFIED_FEEDBACK:
-            # Use denormalized skill_id on fact_feedback
-            sf_params: list = [skill_id, SessionStatus.COMPLETED, SessionStatus.FAILED]
-            sf_where = "f.skill_id = ? AND s.status IN (?, ?)"
+            # Use denormalized skill_key on fact_feedback
+            sf_params: list = [skill_key, SessionStatus.COMPLETED, SessionStatus.FAILED]
+            sf_where = "f.skill_key = ? AND s.status IN (?, ?)"
             if exclude:
                 sf_phs = ", ".join("?" for _ in exclude)
-                sf_where += f" AND s.id NOT IN ({sf_phs})"
+                sf_where += f" AND s.session_key NOT IN ({sf_phs})"
                 sf_params.extend(exclude)
             type_sessions = self.con.execute(
                 f"""WITH ranked AS (
-                        SELECT f.correction_type, s.id as session_id,
+                        SELECT f.correction_type, s.session_key,
                                ROW_NUMBER() OVER (
                                    PARTITION BY f.correction_type
                                    ORDER BY s.created_at DESC
                                ) as rn
                         FROM fact_feedback f
-                        JOIN fact_session s ON f.session_id = s.id
+                        JOIN fact_session s ON f.session_key = s.session_key
                         WHERE {sf_where}
                     )
-                    SELECT session_id FROM ranked WHERE rn = 1""",
+                    SELECT session_key FROM ranked WHERE rn = 1""",
                 sf_params,
             ).fetchall()
 
-            seen: set[int] = set()
-            session_ids: list[int] = []
-            for (sid,) in type_sessions:
-                if sid not in seen:
-                    session_ids.append(sid)
-                    seen.add(sid)
-                if len(session_ids) >= max_samples:
+            seen: set[str] = set()
+            session_keys: list[str] = []
+            for (skey,) in type_sessions:
+                if skey not in seen:
+                    session_keys.append(skey)
+                    seen.add(skey)
+                if len(session_keys) >= max_samples:
                     break
 
-            if not session_ids:
+            if not session_keys:
                 return []
-            placeholders = ", ".join("?" for _ in session_ids)
+            placeholders = ", ".join("?" for _ in session_keys)
             return [Session(**d) for d in self._fetchall(
-                f"SELECT * FROM fact_session WHERE id IN ({placeholders})",
-                session_ids,
+                f"SELECT * FROM fact_session WHERE session_key IN ({placeholders})",
+                session_keys,
             )]
 
         return []
@@ -925,22 +1457,22 @@ class ExperimentStore:
     # Rich Session Retrieval
     # -------------------------------------------------------------------
 
-    def get_session_with_context(self, session_id: int) -> dict | None:
+    def get_session_with_context(self, session_key: str) -> dict | None:
         """Fetch a session with its traces, extractions, feedback, and trace feedback."""
-        session = self.get_session(session_id)
+        session = self.get_session(session_key)
         if session is None:
             return None
 
-        traces = self.get_session_traces(session_id)
+        traces = self.get_session_traces(session_key)
         extractions = [Extraction(**d) for d in self._fetchall(
-            "SELECT * FROM fact_extraction WHERE session_id = ? ORDER BY created_at",
-            [session_id],
+            "SELECT * FROM fact_extraction WHERE session_key = ? ORDER BY created_at",
+            [session_key],
         )]
         feedback = [Feedback(**d) for d in self._fetchall(
-            "SELECT * FROM fact_feedback WHERE session_id = ? ORDER BY created_at",
-            [session_id],
+            "SELECT * FROM fact_feedback WHERE session_key = ? ORDER BY created_at",
+            [session_key],
         )]
-        trace_feedback = self.list_trace_feedback(session_id=session_id)
+        trace_feedback = self.list_trace_feedback(session_key=session_key)
 
         return {
             "session": session,
@@ -950,11 +1482,11 @@ class ExperimentStore:
             "trace_feedback": trace_feedback,
         }
 
-    def get_sessions_with_context(self, session_ids: list[int]) -> list[dict]:
+    def get_sessions_with_context(self, session_keys: list[str]) -> list[dict]:
         """Bulk version of get_session_with_context."""
         return [
-            ctx for sid in session_ids
-            if (ctx := self.get_session_with_context(sid)) is not None
+            ctx for skey in session_keys
+            if (ctx := self.get_session_with_context(skey)) is not None
         ]
 
     # -------------------------------------------------------------------
@@ -970,7 +1502,7 @@ class ExperimentStore:
         Uses v_skill_feedback_patterns view.
         Returns [{"skill": Skill, "patterns": [(correction_type, count)], "total_feedback": int}].
         """
-        query = """SELECT DISTINCT skill_id, total_feedback
+        query = """SELECT DISTINCT skill_key, total_feedback
                    FROM v_skill_feedback_patterns
                    WHERE total_feedback >= ?"""
         params: list = [min_feedback_count]
@@ -983,16 +1515,16 @@ class ExperimentStore:
 
         results = []
         for row in skill_totals:
-            sid = row["skill_id"]
-            skill = self.get_skill(sid)
+            skey = row["skill_key"]
+            skill = self.get_skill(skey)
             if skill is None:
                 continue
             patterns = self._fetchall(
                 """SELECT correction_type, pattern_count
                    FROM v_skill_feedback_patterns
-                   WHERE skill_id = ?
+                   WHERE skill_key = ?
                    ORDER BY pattern_count DESC""",
-                [sid],
+                [skey],
             )
             results.append({
                 "skill": skill,
@@ -1004,48 +1536,48 @@ class ExperimentStore:
 
     def get_recurring_traces(
         self,
-        skill_id: int,
+        skill_key: str,
         trace_type: TraceType,
         min_occurrences: int = 2,
     ) -> list[dict]:
         """Find recurring traces via v_recurring_traces view. No join needed."""
         rows = self._fetchall(
-            """SELECT title, occurrence_count, session_ids, example_trace_id
+            """SELECT title, occurrence_count, session_keys, example_trace_key
                FROM v_recurring_traces
-               WHERE skill_id = ? AND trace_type = ?
+               WHERE skill_key = ? AND trace_type = ?
                  AND occurrence_count >= ?
                ORDER BY occurrence_count DESC""",
-            [skill_id, trace_type, min_occurrences],
+            [skill_key, trace_type, min_occurrences],
         )
         return [
             {
                 "title": r["title"],
                 "count": r["occurrence_count"],
-                "session_ids": r["session_ids"],
-                "example_trace_id": r["example_trace_id"],
+                "session_keys": r["session_keys"],
+                "example_trace_key": r["example_trace_key"],
             }
             for r in rows
         ]
 
     def get_recurring_trace_feedback(
         self,
-        skill_id: int,
+        skill_key: str,
         min_occurrences: int = 2,
     ) -> list[dict]:
         """Find recurring trace feedback via v_recurring_trace_feedback view."""
         rows = self._fetchall(
-            """SELECT feedback_type, trace_title, occurrence_count, session_ids
+            """SELECT feedback_type, trace_title, occurrence_count, session_keys
                FROM v_recurring_trace_feedback
-               WHERE skill_id = ? AND occurrence_count >= ?
+               WHERE skill_key = ? AND occurrence_count >= ?
                ORDER BY occurrence_count DESC""",
-            [skill_id, min_occurrences],
+            [skill_key, min_occurrences],
         )
         return [
             {
                 "feedback_type": r["feedback_type"],
                 "trace_title": r["trace_title"],
                 "count": r["occurrence_count"],
-                "session_ids": r["session_ids"],
+                "session_keys": r["session_keys"],
             }
             for r in rows
         ]

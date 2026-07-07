@@ -1,5 +1,7 @@
 # Tutorial: The feedback flywheel end-to-end
 
+Last updated: 2026-07-07
+
 This walks through the full flywheel loop: extract, review, correct, refine skill,
 re-extract, compare. Every step uses real CLI commands against the database.
 
@@ -21,13 +23,13 @@ the flywheel mechanics.
 Aggregate feedback by correction type to identify patterns:
 
 ```bash
-uv run freud-schema feedback list --skill-id 1 --aggregate
+uv run freud-schema feedback list --skill-key 9c1e4a7b --aggregate
 ```
 
 Output looks like:
 
 ```
-Feedback for skill 1:
+Feedback for skill 9c1e4a7b:
   missing_field             1x
   wrong_value               1x
 ```
@@ -43,14 +45,15 @@ Each correction type tells you something different about the skill:
 Look at the individual feedback entries to understand the specific failures:
 
 ```bash
-uv run freud-schema feedback list --skill-id 1
+uv run freud-schema feedback list --skill-key 9c1e4a7b
 ```
 
-Then review the extraction that was corrected (use the extraction ID from the
-feedback output -- your IDs may differ from this example):
+Then review the extraction that was corrected (use the extraction key or a
+unique prefix from the feedback output -- your keys will differ from this
+example):
 
 ```bash
-uv run freud-schema extraction show <extraction-id>
+uv run freud-schema extraction show <extraction-key>
 ```
 
 The goal: identify patterns. If multiple corrections say "missing limitation" or
@@ -99,21 +102,31 @@ IMPORTANT:
 These changes map directly to the feedback: `wrong_value` on authors -> spelling instruction;
 `missing_field` on limitations -> expanded extraction guidance.
 
-## 4. Deprecate v1
+## 4. v1 is superseded automatically
 
-Now that v2 is active, deprecate v1 so it won't be selected by `get_active_skill()`:
+`dim_skill` is SCD-2, keyed by `(domain, task_type)` -- v1 and v2 share the
+same `skill_key`. Inserting v2 in step 3 already closed v1's row
+(`is_current = false`), so there's no separate deprecate step: `get_active_skill()`
+only ever looks at the current row, and v2 is now it. Running
+`skill deprecate <key>` at this point would flip the *current* row (v2, the
+one you just activated) to `deprecated` instead -- not what you want here.
+`skill deprecate`/`skill activate` are for retiring or reinstating whichever
+version is current, independent of adding a new one.
 
-```bash
-uv run freud-schema skill deprecate 1
-```
-
-Verify:
+Verify v2 is the only current row:
 
 ```bash
 uv run freud-schema skill list
 ```
 
-You should see v1 as `deprecated` and v2 as `active`.
+You should see one row: v2, `active`. `skill list` only shows current rows --
+v1's closed row still exists in `dim_skill` with `is_current = false`; inspect
+it with the DuckDB MCP tools if you want the version history:
+
+```sql
+SELECT version, status, is_current, effective_from, effective_to
+FROM dim_skill WHERE skill_key = '9c1e4a7b...' ORDER BY effective_from;
+```
 
 ## 5. Re-extract
 
@@ -130,7 +143,8 @@ skill = store.get_active_skill("arxiv", "extraction")  # picks up v2 automatical
 sources = store.list_sources()
 
 system_prompt, user_message = assemble_runner_context(
-    store, skill_id=skill.id, source_ids=[s.id for s in sources], domain="arxiv",
+    store, skill_key=skill.skill_key,
+    source_keys=[s.source_key for s in sources], domain="arxiv",
 )
 
 provider = get_provider("echo")  # or "anthropic", "local", "rlm", etc.
@@ -144,14 +158,14 @@ additional routing is needed.
 
 ## 6. Compare extractions
 
-List all extractions to find the v1 and v2 extraction IDs, then compare:
+List all extractions to find the v1 and v2 extraction keys, then compare:
 
 ```bash
 uv run freud-schema extraction list
 
-# Compare the two (use your actual IDs)
-uv run freud-schema extraction show <v1-extraction-id>
-uv run freud-schema extraction show <v2-extraction-id>
+# Compare the two (use your actual keys or unique prefixes)
+uv run freud-schema extraction show <v1-extraction-key>
+uv run freud-schema extraction show <v2-extraction-key>
 ```
 
 With the echo provider, the difference is in the system prompt: v2's system prompt
@@ -160,13 +174,13 @@ output -- v2 should produce more accurate author names and catch more limitation
 
 ## 7. Inspect the session
 
-List sessions to find the IDs, then inspect the v2 run:
+List sessions to find the keys, then inspect the v2 run:
 
 ```bash
 uv run freud-schema session list
 
-# Show the session from the v2 run (use your actual ID)
-uv run freud-schema session show <session-id>
+# Show the session from the v2 run (use its actual key or unique prefix)
+uv run freud-schema session show <session-key>
 ```
 
 This shows the model used, token usage (if using a real provider), context loaded,
@@ -185,8 +199,9 @@ collects and counts. Pattern detection (identifying that "missing_field" correct
 all target the same field) is currently human reasoning.
 
 **Phase 3 (Skill Evolution):** Manual. You drafted the v2 skill based on feedback
-patterns. The `skill add --version 2` and `skill deprecate` commands are tools, but
-the synthesis step (deciding what to change) is human.
+patterns. `skill add --version 2` is a tool -- and, since `dim_skill` is SCD-2,
+it automatically supersedes v1 with no separate deprecate step -- but the
+synthesis step (deciding what to change) is human.
 
 **Phase 4 (Impact Verification):** Manual. You compared extractions by eye. Holdout
 testing (running the new skill against already-validated extractions to measure
@@ -206,12 +221,12 @@ draft v2 from feedback patterns) is deferred -- see `internal/BACKLOG.md`.
   answers this.
 
 - **Aggregate across versions.** Use the DuckDB MCP tools to compare feedback
-  counts between skill versions:
+  counts between skill versions -- `skill_version` is denormalized onto
+  `fact_feedback`, so no join is needed:
   ```sql
-  SELECT f.skill_id, s.version, COUNT(f.id) as corrections
-  FROM fact_feedback f
-  JOIN dim_skill s ON f.skill_id = s.id
-  GROUP BY f.skill_id, s.version
+  SELECT skill_key, skill_version, COUNT(*) as corrections
+  FROM fact_feedback
+  GROUP BY skill_key, skill_version
   ```
 
 - **Try different presets.** Use `assemble_runner_context(..., preset="careful-executor")`

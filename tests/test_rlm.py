@@ -139,11 +139,17 @@ def test_load_source_content_unsupported_type(tmp_path):
 
 
 def test_source_tag_round_trip():
-    """format_source_tag output is correctly parsed by parse_source_tags."""
-    tag = format_source_tag(42, "application/pdf", "/data/policy.pdf")
+    """format_source_tag output is correctly parsed by parse_source_tags.
+
+    v0.17: source keys are md5 hash strings (hex letters + digits), not
+    sequential integers -- this exercises that the tag regex matches hex
+    keys, not just digits.
+    """
+    key = "ab12cd34ef56ab12cd34ef56ab12cd34"
+    tag = format_source_tag(key, "application/pdf", "/data/policy.pdf")
     parsed = parse_source_tags(tag)
     assert len(parsed) == 1
-    assert parsed[0]["id"] == "42"
+    assert parsed[0]["id"] == key
     assert parsed[0]["media_type"] == "application/pdf"
     assert parsed[0]["path"] == "/data/policy.pdf"
 
@@ -151,8 +157,8 @@ def test_source_tag_round_trip():
 def test_source_tag_round_trip_multiple():
     """Multiple tags in a block are all parsed."""
     tags = (
-        format_source_tag(1, "text/plain", "/a.txt") + "\n"
-        + format_source_tag(2, "application/json", "/b.json") + "\n"
+        format_source_tag("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4", "text/plain", "/a.txt") + "\n"
+        + format_source_tag("112233445566778899aabbccddeeff00", "application/json", "/b.json") + "\n"
         + "Execute extraction task."
     )
     parsed = parse_source_tags(tags)

@@ -53,7 +53,7 @@ The 9 Freudian agentic archetypes in a 3x3 grid, plus 6 presets for composing th
 ```python
 # Context assembly with preset
 system_prompt, user_message = assemble_runner_context(
-    store, skill_id=1, source_ids=[1, 2], preset="careful-executor"
+    store, skill_key=skill_key, source_keys=[source_key], preset="careful-executor"
 )
 # system_prompt now contains:
 #   - Archetype fragments (from preset)

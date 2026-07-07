@@ -1,5 +1,7 @@
 # Tutorial: Using the RLM provider for large-context extraction
 
+Last updated: 2026-07-07
+
 The RLM (Recursive Language Model) provider wraps any model with a Python REPL
 loop. Instead of passing the entire source to the model in one shot, the model
 writes code to explore, slice, and transform the input iteratively. This is useful
@@ -72,8 +74,11 @@ The existing arxiv tutorial pointed out that the harness passes source
 When RLMProvider receives a user message containing source tags like:
 
 ```xml
-<source id="1" type="application/pdf" path="data/papers/attention-is-all-you-need.pdf" />
+<source id="5e7a2c904b1d8f3e6a0c9b2d4f6e8a1c" type="application/pdf" path="data/papers/attention-is-all-you-need.pdf" />
 ```
+
+(`id` is the full 32-char MD5 `source_key`, not a truncated prefix -- unlike
+CLI arguments, tag content isn't resolved through `resolve_key()`.)
 
 It parses the tags and attempts to load the file content:
 
@@ -112,7 +117,8 @@ sources = store.list_sources()
 
 # See what context assembly produces
 system_prompt, user_message = assemble_runner_context(
-    store, skill_id=skill.id, source_ids=[s.id for s in sources], domain="arxiv",
+    store, skill_key=skill.skill_key,
+    source_keys=[s.source_key for s in sources], domain="arxiv",
 )
 
 # The echo provider shows exactly what a model receives
@@ -206,7 +212,7 @@ rlm = get_provider("rlm", base_url="http://localhost:8080", max_iterations=10)
 
 # Prepend archetype identity to the system prompt
 system_prompt_with_preset, user_message = assemble_runner_context(
-    store, skill_id=skill.id, source_ids=[s.id for s in sources],
+    store, skill_key=skill.skill_key, source_keys=[s.source_key for s in sources],
     domain="arxiv", preset="recursive-decomposer",
 )
 result = rlm.complete(system_prompt_with_preset, user_message)
@@ -294,7 +300,7 @@ result_rlm = rlm.complete(system_prompt, user_message)
 
 # RLM with preset
 system_with_preset, user_msg = assemble_runner_context(
-    store, skill_id=skill.id, source_ids=[s.id for s in sources],
+    store, skill_key=skill.skill_key, source_keys=[s.source_key for s in sources],
     domain="arxiv", preset="recursive-decomposer",
 )
 result_rlm_preset = rlm.complete(system_with_preset, user_msg)
@@ -303,8 +309,8 @@ result_rlm_preset = rlm.complete(system_with_preset, user_msg)
 Then compare using CLI or MCP tools:
 
 ```bash
-uv run freud-schema extraction list --skill-id 1
-uv run freud-schema extraction show <id>
+uv run freud-schema extraction list --skill-key 9c1e4a7b
+uv run freud-schema extraction show <key-or-prefix>
 uv run freud-schema session list
 ```
 
