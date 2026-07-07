@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.19.0
+version: 0.20.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -146,6 +146,26 @@ Detects retry loops, tool error clusters, interruption hotspots, and
 permission friction, with evidence session keys attached. The LLM layer
 (user-correction patterns) runs inside Claude Code -- see the `/couch`
 project skill.
+
+### Evolve and Materialize
+
+```bash
+freud-schema proposal add --target dim_rule \
+    --natural-key '{"name": "no-retry-loops"}' \
+    --content "..." --evidence <finding-key>,<finding-key>
+freud-schema proposal list [--status pending]
+freud-schema proposal show <key-or-prefix>
+freud-schema proposal approve <key-or-prefix> [--by NAME]   # creates the SCD-2 version
+freud-schema proposal reject <key-or-prefix> [--by NAME]
+freud-schema compile --out .claude/rules [--scope global]
+```
+
+Approval is the one human atom -- nothing auto-applies. `compile` renders
+current active rules to `<name>.md` with a do-not-edit header, a source
+line, and a provenance footer naming the approving proposal and its
+findings. The privacy gate is fail-closed: files containing home paths or
+the OS username are blocked, and the last good compile survives.
+Rollback: `store.rollback_dimension()` then recompile.
 
 ## Corpus
 

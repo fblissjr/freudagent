@@ -25,11 +25,13 @@ from freud_schema.harness import PRESETS, compose_preset, compose_system_prompt
 from freud_schema.models import FreudEntry
 from freud_schema.tables import (
     CorrectionType,
+    ProposalStatus,
     RuleScope,
     SamplingStrategy,
     SessionStatus,
     SkillOrigin,
     SkillStatus,
+    TargetDimension,
     TraceFeedbackType,
     TraceType,
     ValidationStatus,
@@ -251,6 +253,41 @@ def main(argv: list[str] | None = None) -> None:
     p_couch_list.add_argument("--type", default=None, help="Filter by finding_type")
     p_couch_list.add_argument("--limit", type=int, default=30)
 
+    # --- Proposal commands (evolve) ---
+    p_prop = sub.add_parser("proposal", help="Propose and approve dimension changes")
+    p_prop_sub = p_prop.add_subparsers(dest="proposal_action")
+    p_prop_add = p_prop_sub.add_parser("add", help="Draft a proposal (pending)")
+    p_prop_add.add_argument("--target", required=True,
+                            choices=[e.value for e in TargetDimension])
+    p_prop_add.add_argument("--natural-key", required=True,
+                            help='JSON, e.g. \'{"name": "no-retry-loops"}\'')
+    p_prop_add.add_argument("--content", required=True,
+                            help="Proposed rule/skill content")
+    p_prop_add.add_argument("--version", type=int, default=None,
+                            help="Proposed skill version (skills only)")
+    p_prop_add.add_argument("--evidence", default=None,
+                            help="Comma-separated finding keys backing this proposal")
+    p_prop_list = p_prop_sub.add_parser("list", help="List proposals")
+    p_prop_list.add_argument("--status", default=None,
+                             choices=[e.value for e in ProposalStatus])
+    p_prop_show = p_prop_sub.add_parser("show", help="Show proposal details")
+    p_prop_show.add_argument("key", help="Proposal key or unique prefix")
+    p_prop_approve = p_prop_sub.add_parser(
+        "approve", help="Approve: creates the new dimension version")
+    p_prop_approve.add_argument("key", help="Proposal key or unique prefix")
+    p_prop_approve.add_argument("--by", default=None, help="Reviewer name")
+    p_prop_reject = p_prop_sub.add_parser("reject", help="Reject: no changes applied")
+    p_prop_reject.add_argument("key", help="Proposal key or unique prefix")
+    p_prop_reject.add_argument("--by", default=None, help="Reviewer name")
+
+    # --- Compile (materialize) ---
+    p_compile = sub.add_parser(
+        "compile", help="Render current active rules to .md files (build output)")
+    p_compile.add_argument("--out", required=True,
+                           help="Target directory (e.g. .claude/rules)")
+    p_compile.add_argument("--scope", default=None,
+                           choices=[e.value for e in RuleScope])
+
     # --- Sampling config commands ---
     p_sc = sub.add_parser("sampling-config", help="Manage sampling configs")
     p_sc_sub = p_sc.add_subparsers(dest="sampling_config_action")
@@ -382,6 +419,10 @@ def main(argv: list[str] | None = None) -> None:
         _handle_ingest(args)
     elif args.command == "couch":
         _handle_couch(args)
+    elif args.command == "proposal":
+        _handle_proposal(args)
+    elif args.command == "compile":
+        _handle_compile(args)
     elif args.command == "sampling-config":
         _handle_sampling_config(args)
 
@@ -799,6 +840,93 @@ def _handle_ingest(args) -> None:
     print(f"  rows read:    {stats['rows_read']:>8}")
     print(f"  rows written: {stats['rows_written']:>8}")
     print(f"  rows skipped: {stats['rows_skipped']:>8}")
+
+
+def _handle_proposal(args) -> None:
+    from freud_schema.tables import Proposal
+
+    with _get_store(args.db) as store:
+        if args.proposal_action == "add":
+            try:
+                natural_key = orjson.loads(args.natural_key)
+            except orjson.JSONDecodeError:
+                print(f"Invalid --natural-key JSON: {args.natural_key}", file=sys.stderr)
+                sys.exit(1)
+            evidence = ([k.strip() for k in args.evidence.split(",") if k.strip()]
+                        if args.evidence else None)
+            pkey = store.insert_proposal(Proposal(
+                target_dimension=TargetDimension(args.target),
+                target_natural_key=natural_key,
+                proposed_content=args.content,
+                proposed_version=args.version,
+                evidence_finding_keys=evidence,
+            ))
+            print(f"Proposal created (pending): key={pkey}")
+        elif args.proposal_action == "list":
+            status = ProposalStatus(args.status) if args.status else None
+            proposals = store.list_proposals(status=status)
+            if not proposals:
+                print("No proposals.")
+            for p in proposals:
+                nk = orjson.dumps(p.target_natural_key).decode() if p.target_natural_key else "{}"
+                print(f"  [{p.proposal_key[:8]}] [{p.status.value}] "
+                      f"{p.target_dimension.value} {nk}: {p.proposed_content[:50]}")
+        elif args.proposal_action == "show":
+            pkey = _resolve_or_exit(store, "fact_proposal", "proposal_key",
+                                    args.key, "Proposal")
+            p = store.get_proposal(pkey)
+            print(f"  Proposal: {p.proposal_key}")
+            print(f"  Status: {p.status.value}")
+            print(f"  Target: {p.target_dimension.value}")
+            print(f"  Natural key: {orjson.dumps(p.target_natural_key).decode() if p.target_natural_key else '{}'}")
+            if p.proposed_version:
+                print(f"  Proposed version: {p.proposed_version}")
+            if p.evidence_finding_keys:
+                print(f"  Evidence findings: {', '.join(k[:8] for k in p.evidence_finding_keys)}")
+            if p.resulting_dimension_key:
+                print(f"  Resulting dimension key: {p.resulting_dimension_key}")
+            if p.reviewed_by or p.reviewed_at:
+                print(f"  Reviewed: {p.reviewed_by or 'anon'} at {p.reviewed_at}")
+            print("  Proposed content:")
+            for line in p.proposed_content.splitlines():
+                print(f"    {line}")
+        elif args.proposal_action in ("approve", "reject"):
+            pkey = _resolve_or_exit(store, "fact_proposal", "proposal_key",
+                                    args.key, "Proposal")
+            try:
+                if args.proposal_action == "approve":
+                    result_key = store.approve_proposal(pkey, reviewed_by=args.by)
+                    print(f"Proposal {pkey[:8]} approved. "
+                          f"Dimension key: {result_key}")
+                    print("Run `freud-schema compile --out <dir>` to materialize.")
+                else:
+                    store.reject_proposal(pkey, reviewed_by=args.by)
+                    print(f"Proposal {pkey[:8]} rejected.")
+            except ValueError as e:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
+        else:
+            print("Use: proposal add|list|show|approve|reject", file=sys.stderr)
+            sys.exit(1)
+
+
+def _handle_compile(args) -> None:
+    from freud_schema.materialize import compile_rules
+
+    scope = RuleScope(args.scope) if args.scope else None
+    with _get_store(args.db) as store:
+        result = compile_rules(store, args.out, scope=scope)
+    for f in result["written"]:
+        print(f"  wrote   {f}")
+    for f in result["removed"]:
+        print(f"  removed {f}")
+    for b in result["blocked"]:
+        print(f"  BLOCKED {b['file']} (privacy gate): {', '.join(b['leaks'])}",
+              file=sys.stderr)
+    print(f"Compile: {len(result['written'])} written, "
+          f"{len(result['removed'])} removed, {len(result['blocked'])} blocked.")
+    if result["blocked"]:
+        sys.exit(1)
 
 
 def _handle_couch(args) -> None:

@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.20.0
+
+Phase 3 of the meta-harness plan: evolve + materialize. The loop is closed --
+the first rule mined from real session history is compiled into this repo's
+`.claude/rules/` with its full evidence chain.
+
+### Added
+
+- **Proposal lifecycle**: `approve_proposal` applies a pending proposal to its
+  target dimension (rule evolve/create, skill version bump with data_derived
+  origin, sampling config) as an SCD-2 evolution, recording
+  resulting_dimension_key, reviewer, and timestamp. `reject_proposal` records
+  the decision and changes nothing downstream. Pending-only guards on both.
+  Approval is the one human atom -- nothing calls it automatically.
+- **`rollback_dimension`**: close the current SCD-2 row, reopen the prior one.
+  Symmetric with evolution, no destructive undo; recompile to propagate.
+- **The compiler** (`materialize.py`): `compile --out DIR [--scope]` renders
+  current active rules to `<name>.md` with a do-not-edit header, a source line
+  (dimension key + effective_from), and a provenance footer naming the
+  approving proposal and its evidence findings. Managed-file hygiene: files for
+  deactivated rules are removed, but only files carrying the compiled marker --
+  hand-written neighbors are never touched. Deterministic output.
+- **Fail-closed privacy gate**: rendered files containing home-directory paths
+  or the OS username are not written; the last good compile of a blocked rule
+  survives; CLI exits nonzero on any block.
+- CLI: `proposal add|list|show|approve|reject`, `compile`.
+- `.claude/rules/no-identical-retries.md`: the first compiled rule, evidence:
+  16 retry-loop findings mined from real transcripts across the project corpus.
+- Tests: `test_evolve.py`, `test_materialize.py` (including planted-leak gate
+  tests and rollback-then-recompile round-trip).
+
 ## 0.19.0
 
 Phase 2 of the meta-harness plan: the couch. Analysis passes over the

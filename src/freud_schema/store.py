@@ -62,6 +62,7 @@ from freud_schema.tables import (
     SkillStatus,
     Source,
     SourceStatus,
+    TargetDimension,
     ToolUse,
     Trace,
     TraceFeedback,
@@ -1328,6 +1329,108 @@ class ExperimentStore:
         query += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)
         return [Proposal(**d) for d in self._fetchall(query, params)]
+
+    def approve_proposal(self, proposal_key: str, *, reviewed_by: str | None = None) -> str:
+        """Approve a pending proposal: apply it to the target dimension
+        (SCD-2 evolution) and record the resulting dimension key. The one
+        human atom in the flywheel -- nothing calls this automatically.
+
+        Returns the entity key of the evolved/created dimension row.
+        """
+        p = self.get_proposal(proposal_key)
+        if p is None:
+            raise ValueError(f"Proposal {proposal_key} not found")
+        if p.status != ProposalStatus.PENDING:
+            raise ValueError(f"Proposal {proposal_key} is not pending ({p.status.value})")
+        nk = p.target_natural_key or {}
+
+        if p.target_dimension == TargetDimension.DIM_RULE:
+            if not nk.get("name"):
+                raise ValueError("Rule proposal requires target_natural_key.name")
+            result_key = self.insert_rule(Rule(
+                name=nk["name"],
+                scope=RuleScope(nk.get("scope", RuleScope.GLOBAL.value)),
+                domain=nk.get("domain"),
+                priority=nk.get("priority", 0),
+                content=p.proposed_content,
+                status=RuleStatus.ACTIVE,
+                record_source=RecordSource.DERIVED,
+            ))
+        elif p.target_dimension == TargetDimension.DIM_SKILL:
+            if not nk.get("domain") or not nk.get("task_type"):
+                raise ValueError(
+                    "Skill proposal requires target_natural_key.domain and .task_type")
+            current = self.get_skill(dimension_key(nk["domain"], nk["task_type"]))
+            version = p.proposed_version or (current.version + 1 if current else 1)
+            result_key = self.insert_skill(Skill(
+                domain=nk["domain"], task_type=nk["task_type"], version=version,
+                content=p.proposed_content, status=SkillStatus.ACTIVE,
+                origin=SkillOrigin.DATA_DERIVED,
+                record_source=RecordSource.DERIVED,
+            ))
+        else:  # TargetDimension.DIM_SAMPLING_CONFIG
+            cfg = _from_json(p.proposed_content)
+            if not isinstance(cfg, dict) or "strategy" not in cfg:
+                raise ValueError(
+                    "Sampling-config proposal requires proposed_content as JSON "
+                    "with a strategy field")
+            result_key = self.insert_sampling_config(SamplingConfig(
+                domain=nk.get("domain"), task_type=nk.get("task_type"),
+                strategy=SamplingStrategy(cfg["strategy"]),
+                parameters=cfg.get("parameters", {}),
+                max_samples=cfg.get("max_samples", 3),
+                record_source=RecordSource.DERIVED,
+            ))
+
+        self.con.execute(
+            """UPDATE fact_proposal SET status = ?, resulting_dimension_key = ?,
+               reviewed_by = ?, reviewed_at = current_timestamp
+               WHERE proposal_key = ?""",
+            [ProposalStatus.APPROVED, result_key, reviewed_by, proposal_key],
+        )
+        return result_key
+
+    def reject_proposal(self, proposal_key: str, *, reviewed_by: str | None = None) -> None:
+        """Reject a pending proposal. No dimension change, no compile."""
+        p = self.get_proposal(proposal_key)
+        if p is None:
+            raise ValueError(f"Proposal {proposal_key} not found")
+        if p.status != ProposalStatus.PENDING:
+            raise ValueError(f"Proposal {proposal_key} is not pending ({p.status.value})")
+        self.con.execute(
+            """UPDATE fact_proposal SET status = ?, reviewed_by = ?,
+               reviewed_at = current_timestamp WHERE proposal_key = ?""",
+            [ProposalStatus.REJECTED, reviewed_by, proposal_key],
+        )
+
+    # -------------------------------------------------------------------
+    # SCD-2 rollback
+    # -------------------------------------------------------------------
+
+    _SCD2_TABLES = ("dim_skill", "dim_source", "dim_rule", "dim_sampling_config")
+
+    def rollback_dimension(self, table: str, key: str) -> None:
+        """Roll an entity back one SCD-2 version: close the current row,
+        reopen the most recently closed one. Symmetric with evolution --
+        no destructive undo, the rolled-back row stays in history.
+        Recompile after rolling back to update materialized files."""
+        if table not in self._SCD2_TABLES:
+            raise ValueError(f"{table} is not an SCD-2 dimension")
+        key_col = _KEY_COLUMNS[table]
+        prior = self._fetchone(
+            f"""SELECT effective_from FROM {table}
+                WHERE {key_col} = ? AND NOT is_current
+                ORDER BY effective_from DESC LIMIT 1""",
+            [key],
+        )
+        if prior is None:
+            raise ValueError(f"{table} {key} has no prior version to roll back to")
+        self._close_current(table, key)
+        self.con.execute(
+            f"""UPDATE {table} SET is_current = TRUE, effective_to = NULL
+                WHERE {key_col} = ? AND effective_from = ?""",
+            [key, prior["effective_from"]],
+        )
 
     # -------------------------------------------------------------------
     # Load log (meta_load_log)
