@@ -145,7 +145,12 @@ Schema docs: `.claude/skills/db-query.md`
 - Reference keys via the named recipes (`session_key_for`, `message_key_for`) -- never
   re-derive dimension_key formulas at call sites
 - After `store.insert_*()`, use `model.model_copy(update={"<table>_key": new_key})` instead of re-fetching
-- No migration path -- breaking changes use `reset_schema()` (experiment repo, no legacy data)
+- No migration path, by explicit policy (owner decision, 2026-07-08): this is a research
+  repo, never prod. All warehouse data is disposable test/research data -- breaking schema
+  changes use `reset_schema()` + re-ingest (deterministic keys make re-ingest idempotent).
+  Do NOT build migration machinery or data-preservation paths. Git history of code and
+  git-tracked artifacts is the only history that matters. If this ever changes, the owner
+  will say so explicitly.
 - New tables must be added to `reset_schema()` drop list (order matters: dependents first)
 - DDL stored as `list[str]` (one statement per element, no semicolon splitting)
 

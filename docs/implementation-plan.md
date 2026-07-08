@@ -45,7 +45,7 @@ restated here because several milestones are large enough to tempt shortcuts.
 
 | # | Milestone | Roadmap phase | Size | Depends on |
 |---|-----------|--------------|------|------------|
-| M1 | Migration framework | 1 | M | — |
+| M1 | Reset-based schema lifecycle (policy) | 1 | S | — |
 | M0 | Cold-start playbook + staleness detector | 0 | S | M1 |
 | M2 | Key algorithm versioning (SHA-256) | 1 | M | M1 |
 | M3 | Tenancy in natural keys | 1 | M | M1, M2 |
@@ -66,55 +66,46 @@ work). The order within tracks matters. Track C (M8–M10) can start once the
 substrate track lands; Track D additionally needs M5 and M7 from Track B
 (see the dependency column). The two tracks then proceed in parallel.
 
-Rationale for the two counterintuitive orderings, from the roadmap: M1
-(migrations) precedes everything because every later milestone alters schema
-and must ship as a migration, not a reset; M2/M3 (keys, tenancy) precede all
-data-accumulating milestones because entity identity is baked into every key
-in the system and rekeying gets more expensive with every row written.
+Rationale for the orderings: M1 precedes everything because it fixes the
+change mechanism every later milestone uses (schema changes = code + reset +
+re-ingest; never a data migration — see the CLAUDE.md policy). M2/M3 (keys,
+tenancy) still come early because entity identity is baked into every key:
+with reset-based changes the cost of deferring them isn't a rekey migration
+but re-creating accumulated native test data (feedback, proposals), which
+grows with time.
 
 ---
 
 ## Track A — Substrate
 
-### M1. Migration framework
+### M1. Reset-based schema lifecycle (no migrations — by policy)
 
-**Goal**: invert the "no migration path" convention. `reset_schema()` becomes
-test-only; every schema change from this point forward ships as a forward
-migration.
+**Goal**: codify that this repo never migrates data. Owner decision
+(2026-07-08, recorded in CLAUDE.md): this is a research repo, never prod;
+all warehouse data is disposable test/research data; git history of code
+and git-tracked artifacts is the only history that matters. Schema changes
+ship as **code + `reset_schema()` + re-ingest** — no migration machinery,
+no data-preservation paths, until the owner explicitly says otherwise.
 
 **Changes**
-- New module `src/freud_schema/migrations.py`:
-  - `Migration` dataclass: `version: int`, `description: str`,
-    `statements: list[str]` (one statement per element, same no-semicolon
-    convention as db.py) plus an optional `data_fn(con)` for migrations that
-    must transform rows, not just DDL.
-  - `MIGRATIONS: list[Migration]` — ordered, append-only. The existing
-    `_SCHEMA_VERSIONS` entries become historical no-op markers (versions 1–5
-    describe already-created schema).
-  - `migrate(con) -> list[int]`: reads `meta_schema_version`, applies every
-    migration with `version > current` inside a transaction per migration,
-    records each in `meta_schema_version`. Idempotent by construction.
-  - `latest_version()` and a `pending(con)` inspector.
-- `db.py`: `init_schema()` continues to create the latest schema directly
-  (fresh databases don't replay history) but stamps *all* migration versions
-  as applied. `reset_schema()` grows a required `force: bool` keyword and the
-  CLI `db reset` gains an `--i-know-this-deletes-everything` flag.
-- CLI: `db migrate` (applies pending, prints each), `db version` (current vs
-  latest, pending list).
-- CLAUDE.md conventions section: replace "no migration path" with the new
-  rule — *breaking changes ship as migrations; reset_schema is for tests*.
+- CLAUDE.md carries the policy (done alongside this plan revision).
+- Document the standard schema-change recipe in the DB conventions: edit
+  DDL in db.py (registering new tables in `ALL_TABLES` and the reset drop
+  list) → `db reset` → `ingest transcripts` → `couch run` → recreate any
+  native test rows the work needs. Deterministic keys make the re-ingest
+  half idempotent and cheap; native rows (feedback, proposals) are test
+  data and are recreated, not preserved.
+- `_SCHEMA_VERSIONS` in db.py continues as a plain changelog of what the
+  current DDL is (bump on breaking change), not a migration ledger.
 
-**Tests**
-- Fresh `:memory:` DB: `init_schema` → `pending()` empty.
-- Simulated old DB (create v5 schema by hand) → `migrate()` → schema
-  introspection (`information_schema.columns`) matches a freshly-created DB
-  exactly. This equivalence test is the permanent guard: every future
-  migration must keep it green.
-- `migrate()` twice → second run applies nothing.
+**Tests**: none beyond the existing inventory test — every DB is always
+freshly created at the latest schema, so schema drift between databases
+cannot exist by construction.
 
-**Done when**: the equivalence test exists and passes, `db migrate` works
-against a copy of a real pre-existing database file, and CLAUDE.md reflects
-the new convention.
+**Done when**: CLAUDE.md carries the policy, the change recipe is
+documented, and no milestone below references a data migration. (A
+production descendant reintroduces forward migrations as its first
+substrate task — that requirement lives in ROADMAP Phase 1, not here.)
 
 ### M0. Cold-start playbook + staleness detector
 
@@ -158,33 +149,18 @@ make the algorithm itself versioned so this never has to be a crisis again.
   `hashlib.sha256(...).hexdigest()[:32]`. Same length as MD5 hex — no column
   or prefix-resolution changes. Add module constant `KEY_ALGORITHM =
   "sha256/32"` and record it in a new `meta_key_algorithm` single-row table
-  (created by the M1 migration) so a database self-describes its key scheme.
-- Rekey migration (`data_fn`), shipped as **one combined pass with M3's
-  tenancy component** — two consecutive full-warehouse rekeys would double
-  the cross-reference risk for no benefit, and tenancy is known up front,
-  so the single migration computes SHA-256 keys with the tenant component
-  already in the natural key. It recomputes every key from natural keys
-  stored on the rows themselves, in dependency order:
-  - dims: skill (`domain|task_type`), rule (`name`), source (`content_path`),
-    sampling config, project (`project_path`), facet/finding types.
-  - facts: sessions (`record_source|native_session_id` via
-    `session_key_for`), messages (`session_key|entry_uuid`), tool uses
-    (`session_key|tool_use_id`), then uuid-salted native facts (unchanged —
-    their keys are opaque, only their *reference* columns rewrite).
-  - reference columns and JSON key lists (`evidence_session_keys`,
-    `evidence_finding_keys`, `sampled_session_keys`) rewrite via an
-    old-key → new-key map built during the pass.
-  - `store.resolve_key()` prefixes are display-only; nothing else to touch.
-- The migration refuses to run twice (checks `meta_key_algorithm`).
+  (created at `init_schema`) so a database self-describes its key scheme.
+- **No rekey migration** — per M1 policy, existing databases are reset and
+  re-ingested. M2 and M3 land together as one reset (SHA-256 keys with the
+  tenant component already in the natural key) so the warehouse is reset
+  once, not twice. Native test rows are recreated as needed.
 
 **Tests**
 - Golden test: known natural keys → expected sha256/32 values.
-- Migration test: build a v5-keyed DB with cross-references (finding with
-  evidence sessions, proposal with evidence findings), migrate, verify every
-  reference resolves and `ingest` of the same transcript file writes zero
-  rows (idempotency survives rekeying).
+- Fresh DB → ingest a fixture corpus → re-ingest the same corpus →
+  `rows_written=0` (idempotency holds under the new algorithm).
 
-**Done when**: re-ingest of an unchanged corpus on a migrated DB reports
+**Done when**: golden tests pass, re-ingest of an unchanged corpus reports
 `rows_written=0`, and no MD5 call remains in `src/`.
 
 ### M3. Tenancy in natural keys
@@ -200,12 +176,13 @@ collision, and conflicting knowledge is handled by scoping.
   pattern — `_resolve_skill_attrs` also returns tenant).
 - New registry `dim_tenant` (append-only, like `dim_project`):
   `tenant_key = dimension_key(tenant_id)`, `tenant_id`, `display_name`.
-  Migration seeds the `default` tenant and backfills every existing row.
+  The `default` tenant is seeded at `init_schema`; no backfill — existing
+  databases reset per M1 policy.
 - Natural keys grow a leading tenant component: skill =
   `tenant|domain|task_type`, rule = `tenant|name`, source =
-  `tenant|content_path`. This is NOT a second rekey — the single combined
-  migration built in M2 computes SHA-256 keys with the tenant component
-  included in one pass, which is why M3 rides immediately behind M2.
+  `tenant|content_path`. M2 and M3 land together as a single reset (SHA-256
+  keys with the tenant component included), which is why M3 rides
+  immediately behind M2 — the warehouse is reset once, not twice.
 - Store: `ensure_tenant()`, tenant parameter (default `"default"`) threaded
   through `insert_*`, `get_active_skill`, `get_rules`, `resolve_key`
   (prefix resolution scopes to tenant), and the aggregate/query methods.
@@ -368,13 +345,13 @@ scoping becomes enforceable.
   with a single default-tenant row (`strict_identity`, default false) so the
   single-operator mode keeps working with free-text names. M13 reuses the
   same shape for per-tenant eval policy rows — the grain is per-tenant from
-  day one, no later migration. When strict:
+  day one, no later grain change. When strict:
   `approve_proposal`/`reject_proposal` require `reviewed_by` to resolve to a
   principal holding `approve` for the proposal's tenant; `update_validation`
   requires `validate`; violations raise before any write.
 - Actor columns (`created_by`, `reviewed_by`, `validated_by`) keep their
   VARCHAR type but store principal_ids when strict — no destructive column
-  migration, one behavior flag.
+  schema churn, one behavior flag.
 - CLI: `principal add|list`, `grant add|list`, `policy set strict-identity
   on|off`.
 
@@ -520,7 +497,8 @@ is the default human entry point.
   `occurred_at > watermark` and advance it inside the same transaction.
   Full-rescan stays available (`couch run --full`) for after-backfill use.
 - Thresholds as data: `dim_finding_type` gains `parameters JSON`
-  (M1 migration); `run_couch` reads per-type parameters with the module
+  (schema change via reset, per M1 policy); `run_couch` reads per-type
+  parameters with the module
   constants as defaults — per-tenant/per-domain tuning is a row edit.
 - Proposal linkage: `approve_proposal` (given evidence findings) marks the
   findings' cases `addressed` with the proposal key — the flywheel's
@@ -545,8 +523,8 @@ conflict detection around the existing proposal table.
 
 **Changes**
 - `fact_proposal` gains `priority INTEGER`, `risk` enum (low | medium |
-  high), `assigned_to`, `conflicts_with_key` (M1 migration; nullable, no
-  back-fill needed).
+  high), `assigned_to`, `conflicts_with_key` (schema change via reset, per
+  M1 policy; all nullable).
 - Store: `insert_proposal` detects an existing *pending* proposal targeting
   the same `(target_dimension, natural key)` → stamps `conflicts_with_key`
   on the new one (both stay pending; a human resolves by rejecting one —
@@ -708,7 +686,8 @@ These don't get milestone numbers; they get enforced at every milestone.
   logical column ordering) and the a2ui `prompt_addendum.md` sync.
 - **Inventory tests**: the existing `ALL_TABLES`/`ALL_VIEWS` inventory test
   is the tripwire for forgotten registrations — every milestone adding
-  tables must extend it, and M1's schema-equivalence test must stay green.
+  tables must extend it (and add new tables to the `reset_schema()` drop
+  list, dependents first).
 - **Privacy discipline**: every new free-text surface (case summaries, eval
   metrics, unit feedback notes in compiled output, API responses) inherits
   the counts-and-names-only rule; the M6 scanners run over compiled output
@@ -724,7 +703,6 @@ These don't get milestone numbers; they get enforced at every milestone.
 
 | Risk | Where | Mitigation |
 |------|-------|------------|
-| The combined M2+M3 rekey migration corrupts cross-references | JSON key lists in findings/proposals/sessions | Single pass (one rekey, not two); old→new map built once, applied everywhere; migration test with deliberately cross-referenced fixture; refuse-to-rerun guard |
 | Backend split (M4) stalls on dialect drift | Analytical views, JSON ops | Postgres scope limited to the knowledge store (small SQL surface); telemetry stays DuckDB; parameterized backend test matrix |
 | FTS/VSS extension availability varies by platform | M8 | Lexical index required, vector optional; brute-force cosine fallback; zero-extension test path in CI |
 | Eval gate (M13) creates approval friction that tempts bypass | Human workflow | Gate is per-tenant policy, off by default until holdout sets exist; `require_eval` turns on per dimension; auto-approve stays risk-capped |
@@ -796,7 +774,10 @@ see the research doc's sourcing note.
 
 Consistent with the roadmap's non-goals: no orchestration engine, no
 scheduler, no workflow runtime — the harness decomposes, routes, loops, and
-runs anything that needs a model. No removal of the human approval atom —
+runs anything that needs a model. No data migrations, ever, in this repo —
+warehouse data is disposable by policy (CLAUDE.md); schema changes reset
+and re-ingest, and only a production descendant would reintroduce
+migration machinery. No removal of the human approval atom —
 every automation added here (auto-approve grants, case auto-verify, eval
 gates) narrows what humans must look at; none widens what machines may
 change. And no universal ontology: every vocabulary added in this plan

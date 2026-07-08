@@ -172,6 +172,10 @@ exists (`meta_schema_version`); nothing consumes it yet.
   engine-specific SQL in the analytical views.
 - **Forward migrations**: invert the reset convention. Once the warehouse
   holds a single human correction, `reset_schema()` is for tests only.
+  (Scope note: this applies to a *production descendant* only. By explicit
+  owner policy, this research repo itself stays reset-based — all warehouse
+  data here is disposable test data, and git history of code and tracked
+  artifacts is the only history that matters. See CLAUDE.md.)
 - **Multi-tenant natural keys**: entity identity is currently
   single-namespace (skill = `domain|task_type`, rule = bare `name`). These
   collide the moment two teams exist. Tenancy/team must join the natural key
