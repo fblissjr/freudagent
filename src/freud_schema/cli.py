@@ -71,6 +71,11 @@ def main(argv: list[str] | None = None) -> None:
         description="Experiment harness for data-driven agent orchestration",
     )
     parser.add_argument("--db", default=None, help="Path to DuckDB file (default: data/freudagent.duckdb)")
+    parser.add_argument(
+        "--tenant", default="default",
+        help="Tenant scope for dimension entities (skills, rules, sources, "
+             "sampling configs); default: 'default'",
+    )
     sub = parser.add_subparsers(dest="command")
 
     # --- Data commands ---
@@ -439,14 +444,16 @@ def _get_store(db_path: str | None = None):
     return ExperimentStore(con)
 
 
-def _resolve_or_exit(store, table: str, prefix: str) -> str:
+def _resolve_or_exit(store, table: str, prefix: str, tenant_id: str | None = None) -> str:
     """Resolve a key or unique prefix, or print the error and exit(1).
 
     Every command that takes an entity reference now takes a key or unique
-    key prefix (git-short-hash style) instead of an integer id.
+    key prefix (git-short-hash style) instead of an integer id. tenant_id
+    scopes resolution for the four tenant-keyed dims (store.resolve_key
+    ignores it for every other table).
     """
     try:
-        return store.resolve_key(table, prefix)
+        return store.resolve_key(table, prefix, tenant_id=tenant_id)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
@@ -497,11 +504,11 @@ def _handle_skill(args) -> None:
                 sys.exit(1)
             skill = Skill(
                 domain=args.domain, task_type=args.task_type,
-                version=args.version,
+                version=args.version, tenant_id=args.tenant,
                 content=content, status=SkillStatus(args.status),
             )
             skill_key = store.insert_skill(skill)
-            print(f"Skill created: key={skill_key} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
+            print(f"Skill created: key={skill_key} tenant={args.tenant} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
         elif args.skill_action == "list":
             for s in store.list_skills():
                 origin_tag = f" [{s.origin.value}]" if s.origin != SkillOrigin.HUMAN_AUTHORED else ""
@@ -520,7 +527,7 @@ def _handle_skill(args) -> None:
                     for ct, cnt in r["patterns"]:
                         print(f"    {ct:20s} {cnt:>4}x")
         elif args.skill_action in ("deprecate", "activate"):
-            skill_key = _resolve_or_exit(store, "dim_skill", args.key)
+            skill_key = _resolve_or_exit(store, "dim_skill", args.key, tenant_id=args.tenant)
             action = store.deprecate_skill if args.skill_action == "deprecate" else store.activate_skill
             action(skill_key)
             verb = "deprecated" if args.skill_action == "deprecate" else "activated"
@@ -534,9 +541,10 @@ def _handle_source(args) -> None:
 
     with _get_store(args.db) as store:
         if args.source_action == "add":
-            source = Source(content_path=args.path, media_type=args.media_type)
+            source = Source(content_path=args.path, media_type=args.media_type,
+                             tenant_id=args.tenant)
             source_key = store.insert_source(source)
-            print(f"Source registered: key={source_key} path={args.path}")
+            print(f"Source registered: key={source_key} tenant={args.tenant} path={args.path}")
         elif args.source_action == "list":
             for s in store.list_sources():
                 print(f"  [{s.source_key[:8]}] {s.content_path} ({s.media_type}) [{s.status.value}]")
@@ -551,10 +559,10 @@ def _handle_rule(args) -> None:
         if args.rule_action == "add":
             rule = Rule(
                 name=args.name, scope=RuleScope(args.scope), domain=args.domain,
-                priority=args.priority, content=args.content,
+                priority=args.priority, content=args.content, tenant_id=args.tenant,
             )
             rule_key = store.insert_rule(rule)
-            print(f"Rule created: key={rule_key} name={args.name} scope={args.scope}")
+            print(f"Rule created: key={rule_key} tenant={args.tenant} name={args.name} scope={args.scope}")
         elif args.rule_action == "list":
             for r in store.list_rules():
                 domain = f" domain={r.domain}" if r.domain else ""
@@ -570,7 +578,7 @@ def _handle_feedback(args) -> None:
         if args.feedback_action == "list":
             skill_key = None
             if args.skill_key:
-                skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key)
+                skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key, tenant_id=args.tenant)
             if args.aggregate and skill_key:
                 agg = store.aggregate_feedback(skill_key)
                 if not agg:
@@ -616,7 +624,7 @@ def _handle_extraction(args) -> None:
         if args.extraction_action == "list":
             skill_key = None
             if args.skill_key:
-                skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key)
+                skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key, tenant_id=args.tenant)
             exts = store.list_extractions(
                 skill_key=skill_key,
                 validation_status=ValidationStatus(args.status) if args.status else None,
@@ -752,7 +760,7 @@ def _handle_trace(args) -> None:
                 for fb in tf_data["feedback"]:
                     print(f"    [{fb.feedback_type.value}] {fb.content}")
         elif args.trace_action == "patterns":
-            skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key)
+            skill_key = _resolve_or_exit(store, "dim_skill", args.skill_key, tenant_id=args.tenant)
             patterns = store.get_recurring_traces(
                 skill_key,
                 TraceType(args.type),
@@ -905,7 +913,7 @@ def _handle_compile(args) -> None:
 
     scope = RuleScope(args.scope) if args.scope else None
     with _get_store(args.db) as store:
-        result = compile_rules(store, args.out, scope=scope)
+        result = compile_rules(store, args.out, scope=scope, tenant_id=args.tenant)
     for f in result["written"]:
         print(f"  wrote   {f}")
     for f in result["removed"]:
@@ -951,9 +959,10 @@ def _handle_sampling_config(args) -> None:
                 domain=args.domain,
                 task_type=args.task_type,
                 max_samples=args.max_samples,
+                tenant_id=args.tenant,
             )
             config_key = store.insert_sampling_config(config)
-            print(f"Sampling config created: key={config_key} strategy={args.strategy}")
+            print(f"Sampling config created: key={config_key} tenant={args.tenant} strategy={args.strategy}")
         elif args.sampling_config_action == "list":
             configs = store.list_sampling_configs()
             if not configs:

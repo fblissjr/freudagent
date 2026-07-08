@@ -1,6 +1,103 @@
 # Changelog
 
-## 0.21.0
+## 0.23.0
+
+M2+M3 of the enterprise-scale implementation plan: key algorithm versioning
+and tenancy in natural keys, landed as a single reset (per the M1 no-migrations
+policy -- SHA-256 keys with the tenant component already in the natural key,
+so the warehouse resets once, not twice).
+
+### Added
+
+- keys.py: `KEY_ALGORITHM = "sha256/32"` constant; `dimension_key()` and
+  `hash_diff()` now hash with SHA-256, truncated to the first 32 hex chars
+  (same length as the MD5 hex scheme they replace -- no column width or
+  prefix-resolution changes).
+- db.py: `meta_key_algorithm` (single-row, seeded with `KEY_ALGORITHM` at
+  `init_schema()`) so a database self-describes its key scheme.
+- db.py/tables.py/store.py: `dim_tenant` registry (append-only, mirrors
+  `dim_project`), seeded with a `default` tenant at `init_schema()`.
+  `ExperimentStore.ensure_tenant()`/`get_tenant()`/`list_tenants()` and the
+  `tenant_key_for()` recipe.
+- tables.py: `tenant_id: str = "default"` on `Skill`, `Rule`, `Source`,
+  `SamplingConfig`; `tenant_key: str | None = None` denormalized onto every
+  fact model.
+- cli.py: global `--tenant` flag (default `"default"`), threaded into
+  `skill add`, `rule add`, `source add`, `sampling-config add`, the
+  `dim_skill` prefix-resolving handlers, and `compile`.
+- `_SCHEMA_VERSIONS`: version 6, "sha256/32 keys, dim_tenant registry,
+  tenant-scoped natural keys, meta_key_algorithm".
+- Tests: `tests/test_tenancy.py` (two-tenant collision, default-tenant
+  back-compat, `resolve_key` tenant scoping, `init_schema` seeds); golden
+  sha256/32 key values and the `KEY_ALGORITHM` constant added to
+  `tests/test_keys.py`.
+
+### Changed
+
+- The four SCD-2 dims' natural keys now lead with `tenant_id`: skill =
+  `(tenant_id, domain, task_type)`, rule = `(tenant_id, name)`, source =
+  `(tenant_id, content_path)`, sampling config = `(tenant_id, domain,
+  task_type)`. Two tenants can hold the "same" entity without collision.
+- store.py: `get_active_skill()`, `get_rules()`, `get_sampling_config()`,
+  and `resolve_key()` (for the four tenant-keyed dims only) gained a
+  `tenant_id` parameter, defaulting to `"default"` -- omitting it preserves
+  pre-0.23 behavior exactly. `_resolve_skill_attrs()` additionally resolves
+  the skill's `tenant_key`; the five skill-denormalizing fact inserts
+  (session, trace, extraction, feedback, trace_feedback) set the fact's
+  `tenant_key` from it when a skill is linked, else from the model's own
+  `tenant_key` or the default tenant. `insert_derived_skill()` inherits the
+  parent skill's `tenant_id`. `approve_proposal()` reads an optional
+  `tenant_id` out of `target_natural_key`, defaulting to `"default"`.
+- materialize.py: `compile_rules()` gained a `tenant_id` parameter
+  (default `"default"`); compiles one tenant's rules per run.
+- Docs (CLAUDE.md, skill/skill.md, skill/reference/schema.md,
+  skill/reference/context-assembly.md, a2ui/prompt_addendum.md): MD5 ->
+  sha256/32 throughout; schema.md/a2ui docs gained `dim_tenant` (and
+  schema.md gained `meta_key_algorithm`) plus `tenant_id`/`tenant_key`
+  column documentation.
+
+### Notes
+
+- No data migration, per the M1 policy: existing databases reset
+  (`reset_schema()`) and re-ingest; deterministic keys make re-ingest
+  idempotent, native test rows (skills, rules, feedback, proposals) are
+  disposable and recreated as needed.
+- `hash_diff()`/natural-key content fingerprints do not include `tenant_id`
+  -- it is identity, not content, consistent with `domain`/`task_type`/
+  `name`/`content_path` already being excluded from `hash_diff()`.
+
+## 0.22.0
+
+M1 of the enterprise-scale implementation plan: reset-based schema
+lifecycle, codified. Plus the planning-doc arc that produced it.
+
+### Added
+
+- `ROADMAP.md`: enterprise-scale roadmap generalized from a structural
+  critique -- seven invariants worth preserving, seven phases of substrate
+  work, explicitly scoped to a production descendant, not this repo.
+- `docs/implementation-plan.md`: 15-milestone build plan (M0-M14) across
+  six tracks, with dated research-review amendments and a risk register.
+- `docs/research-agent-data-representation.md`: research pass over the 2026
+  harness-engineering literature (ACE, MCE, Meta-Harness, Self-Harness,
+  ScientistOne, Weng's harness post) and production practice, validating
+  the files-as-truth + warehouse-as-catalog architecture; per-data-type
+  representation guidance (code, diagrams, structured data, documents,
+  logs); six adopted amendments.
+- CLAUDE.md: **grounding layer** definition (constraints on one end,
+  grounding data in the middle, verifiers and feedback on the other;
+  warehouse = governed truth, compiled files = agent-facing form).
+- CLAUDE.md: the no-migrations convention is now an explicit standing
+  policy (owner decision, 2026-07-08) -- all warehouse data is disposable
+  test/research data; never build migration machinery -- plus the standard
+  schema-change recipe (edit DDL -> reset -> re-ingest -> recreate native
+  test rows).
+- `skill/reference/schema.md`: schema-change recipe note in Notes.
+
+### Changed
+
+- db.py: `_SCHEMA_VERSIONS` documented as a plain DDL changelog, NOT a
+  migration ledger; module docstring cites the policy. No behavior change.
 
 Quality pass over the Phase 0-3 code: a 4-angle cleanup review plus an 8-angle
 correctness review, findings applied.

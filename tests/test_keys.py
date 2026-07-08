@@ -1,18 +1,19 @@
 """Tests for deterministic surrogate key generation (keys.py).
 
-The key contract comes from the star-schema reference pattern:
-MD5 over pipe-joined natural key parts, NULL-safe via "-1" sentinel.
-Deterministic keys are what make transcript re-ingestion idempotent.
+The key contract comes from the star-schema reference pattern: sha256/32
+(SHA-256 hexdigest truncated to 32 chars) over pipe-joined natural key
+parts, NULL-safe via "-1" sentinel. Deterministic keys are what make
+transcript re-ingestion idempotent.
 """
 
-from freud_schema.keys import dimension_key, hash_diff
+from freud_schema.keys import KEY_ALGORITHM, dimension_key, hash_diff
 
 
 class TestDimensionKey:
     def test_deterministic(self):
         assert dimension_key("a", "b") == dimension_key("a", "b")
 
-    def test_is_md5_hex(self):
+    def test_is_sha256_32_hex(self):
         key = dimension_key("freud", "extraction")
         assert len(key) == 32
         assert all(c in "0123456789abcdef" for c in key)
@@ -34,12 +35,27 @@ class TestDimensionKey:
     def test_single_part(self):
         import hashlib
 
-        assert dimension_key("only") == hashlib.md5(b"only").hexdigest()
+        assert dimension_key("only") == hashlib.sha256(b"only").hexdigest()[:32]
 
     def test_pipe_join(self):
         import hashlib
 
-        assert dimension_key("a", "b") == hashlib.md5(b"a|b").hexdigest()
+        assert dimension_key("a", "b") == hashlib.sha256(b"a|b").hexdigest()[:32]
+
+    def test_golden_natural_key(self):
+        import hashlib
+
+        assert dimension_key("insurance", "extract") == (
+            hashlib.sha256(b"insurance|extract").hexdigest()[:32]
+        )
+
+    def test_golden_null_sentinel(self):
+        import hashlib
+
+        assert dimension_key(None) == hashlib.sha256(b"-1").hexdigest()[:32]
+
+    def test_key_algorithm_constant(self):
+        assert KEY_ALGORITHM == "sha256/32"
 
 
 class TestHashDiff:
@@ -58,7 +74,7 @@ class TestHashDiff:
         # field to a row must not change its content hash
         assert hash_diff(a=1, b=None) == hash_diff(a=1)
 
-    def test_is_md5_hex(self):
+    def test_is_sha256_32_hex(self):
         h = hash_diff(content="rule text", priority=10)
         assert len(h) == 32
         assert all(c in "0123456789abcdef" for c in h)

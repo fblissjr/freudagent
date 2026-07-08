@@ -10,10 +10,12 @@ Dimensional model (Kimball-style):
   fact_tool_use, fact_session_facets, fact_finding, fact_proposal.
 - 6 analytical views, meta_schema_version, meta_load_log.
 
-Key scheme: MD5 hash surrogate keys (keys.dimension_key), no sequences.
-Deterministic keys make transcript re-ingestion idempotent. Every fact
-carries a lineage envelope: record_source (CHECK-constrained allowlist)
-and etl_run_id (joins meta_load_log). created_at serves as inserted_at.
+Key scheme: sha256/32 hash surrogate keys (keys.dimension_key), no
+sequences. Deterministic keys make transcript re-ingestion idempotent.
+Every fact carries a lineage envelope: record_source (CHECK-constrained
+allowlist) and etl_run_id (joins meta_load_log). created_at serves as
+inserted_at. meta_key_algorithm records the active key scheme so a
+database self-describes it.
 
 Naming (decided 2026-07-07): etl_run_id for lineage, session_key for the
 harness session a row describes. session_id appears nowhere.
@@ -26,7 +28,8 @@ Fact tables carry denormalized dimension attributes at insert time,
 eliminating fact-to-fact joins. No FK constraints (DuckDB can't CASCADE
 anyway); existence validation lives in the store layer. Tables are
 created via CREATE TABLE IF NOT EXISTS; breaking changes go through
-reset_schema() -- no migration path, this is an experiment repo.
+reset_schema() + re-ingest -- no migration path, by explicit policy
+(see CLAUDE.md): research repo, disposable warehouse data.
 
 DDL is stored as lists of individual statements (not multi-statement
 strings) so there is no semicolon-splitting anywhere. Semicolons only
@@ -40,6 +43,7 @@ from pathlib import Path
 
 import duckdb
 
+from freud_schema.keys import KEY_ALGORITHM, dimension_key
 from freud_schema.tables import (
     AgentRole,
     CorrectionType,
@@ -90,7 +94,8 @@ def _scd2_cols() -> str:
 
 
 def _lineage_cols() -> str:
-    return f"""    record_source VARCHAR NOT NULL DEFAULT 'native',
+    return f"""    tenant_key VARCHAR,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
     etl_run_id VARCHAR,
     created_at TIMESTAMP DEFAULT current_timestamp,
     {_check_in('record_source', RecordSource)}"""
@@ -113,6 +118,10 @@ def _build_tables_ddl() -> list[str]:
     applied_at TIMESTAMP DEFAULT current_timestamp,
     description VARCHAR
 )""",
+        """CREATE TABLE IF NOT EXISTS meta_key_algorithm (
+    algorithm VARCHAR NOT NULL,
+    recorded_at TIMESTAMP DEFAULT current_timestamp
+)""",
         f"""CREATE TABLE IF NOT EXISTS meta_load_log (
     etl_run_id VARCHAR NOT NULL,
     operation VARCHAR NOT NULL,
@@ -130,6 +139,7 @@ def _build_tables_ddl() -> list[str]:
         # -- SCD Type 2 dimensions --
         f"""CREATE TABLE IF NOT EXISTS dim_skill (
     skill_key VARCHAR NOT NULL,
+    tenant_id VARCHAR NOT NULL DEFAULT 'default',
     domain VARCHAR NOT NULL,
     task_type VARCHAR NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
@@ -145,6 +155,7 @@ def _build_tables_ddl() -> list[str]:
 )""",
         f"""CREATE TABLE IF NOT EXISTS dim_source (
     source_key VARCHAR NOT NULL,
+    tenant_id VARCHAR NOT NULL DEFAULT 'default',
     content_path VARCHAR NOT NULL,
     media_type VARCHAR NOT NULL,
     metadata JSON,
@@ -156,6 +167,7 @@ def _build_tables_ddl() -> list[str]:
 )""",
         f"""CREATE TABLE IF NOT EXISTS dim_rule (
     rule_key VARCHAR NOT NULL,
+    tenant_id VARCHAR NOT NULL DEFAULT 'default',
     name VARCHAR NOT NULL,
     scope VARCHAR NOT NULL DEFAULT 'global',
     domain VARCHAR,
@@ -168,6 +180,7 @@ def _build_tables_ddl() -> list[str]:
 )""",
         f"""CREATE TABLE IF NOT EXISTS dim_sampling_config (
     config_key VARCHAR NOT NULL,
+    tenant_id VARCHAR NOT NULL DEFAULT 'default',
     domain VARCHAR,
     task_type VARCHAR,
     strategy VARCHAR NOT NULL,
@@ -179,6 +192,14 @@ def _build_tables_ddl() -> list[str]:
     {_check_in('status', RuleStatus)}
 )""",
         # -- Registry dimensions (append-only, no SCD-2) --
+        f"""CREATE TABLE IF NOT EXISTS dim_tenant (
+    tenant_key VARCHAR NOT NULL,
+    tenant_id VARCHAR NOT NULL,
+    display_name VARCHAR,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('record_source', RecordSource)}
+)""",
         f"""CREATE TABLE IF NOT EXISTS dim_project (
     project_key VARCHAR NOT NULL,
     project_path VARCHAR NOT NULL,
@@ -497,6 +518,8 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_dim_rule_key_current ON dim_rule(rule_key, is_current)",
     # dim_project
     "CREATE INDEX IF NOT EXISTS idx_dim_project_path ON dim_project(project_path)",
+    # dim_tenant
+    "CREATE INDEX IF NOT EXISTS idx_dim_tenant_id ON dim_tenant(tenant_id)",
     # fact_session
     "CREATE INDEX IF NOT EXISTS idx_fact_session_parent ON fact_session(parent_session_key)",
     "CREATE INDEX IF NOT EXISTS idx_fact_session_skill ON fact_session(skill_key)",
@@ -539,6 +562,9 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_meta_load_log_run ON meta_load_log(etl_run_id)",
 ]
 
+# A plain changelog of what the current DDL is -- bump on breaking change.
+# NOT a migration ledger: there is no migration path by explicit policy
+# (see CLAUDE.md); existing databases are reset_schema()'d and re-ingested.
 _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (1, "Initial 6-table schema"),
     (2, "10-table schema: traces, trace_feedback, sampling_configs + indexes + cascades"),
@@ -547,6 +573,8 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
         "fact_message/tool_use/facets/finding/proposal, meta_load_log"),
     (5, "v0.19 couch: project_key conformed onto fact_message/fact_tool_use, "
         "4 SQL finding views"),
+    (6, "v0.23 M2+M3: sha256/32 keys, dim_tenant registry, tenant-scoped "
+        "natural keys, meta_key_algorithm"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it
@@ -558,9 +586,9 @@ ALL_TABLES: tuple[str, ...] = (
     "fact_tool_use", "fact_message",
     "fact_trace_feedback", "fact_feedback", "fact_trace",
     "fact_extraction", "fact_session",
-    "dim_finding_type", "dim_facet_type", "dim_project",
+    "dim_finding_type", "dim_facet_type", "dim_project", "dim_tenant",
     "dim_source", "dim_skill", "dim_rule", "dim_sampling_config",
-    "meta_load_log", "meta_schema_version",
+    "meta_load_log", "meta_schema_version", "meta_key_algorithm",
 )
 
 ALL_VIEWS: tuple[str, ...] = (
@@ -614,6 +642,19 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
                WHERE NOT EXISTS (SELECT 1 FROM meta_schema_version WHERE version = ?)""",
             [version, description, version],
         )
+    con.execute(
+        """INSERT INTO meta_key_algorithm (algorithm)
+           SELECT ? WHERE NOT EXISTS (SELECT 1 FROM meta_key_algorithm)""",
+        [KEY_ALGORITHM],
+    )
+    default_tenant_key = dimension_key("default")
+    con.execute(
+        """INSERT INTO dim_tenant (tenant_key, tenant_id, display_name, record_source)
+           SELECT ?, ?, ?, ?
+           WHERE NOT EXISTS (SELECT 1 FROM dim_tenant WHERE tenant_id = ?)""",
+        [default_tenant_key, "default", "Default tenant", RecordSource.NATIVE.value,
+         "default"],
+    )
 
 
 def get_schema_version(con: duckdb.DuckDBPyConnection) -> int:

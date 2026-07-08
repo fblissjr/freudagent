@@ -65,8 +65,9 @@ def compile_rules(
     store: ExperimentStore,
     out_dir: str | Path,
     scope: RuleScope | None = None,
+    tenant_id: str = "default",
 ) -> dict:
-    """Render every current active rule to <out_dir>/<name>.md.
+    """Render every current active rule for one tenant to <out_dir>/<name>.md.
 
     Returns {written, removed, blocked}: blocked entries are
     {"file", "leaks"} dicts from the fail-closed privacy gate.
@@ -76,6 +77,7 @@ def compile_rules(
 
     rules = [r for r in store.list_rules()
              if r.status == RuleStatus.ACTIVE
+             and r.tenant_id == tenant_id
              and (scope is None or r.scope == scope)]
 
     written: list[str] = []

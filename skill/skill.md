@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.21.0
+version: 0.23.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,7 +37,7 @@ scope:
 
 # FreudAgent Data Layer
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness
@@ -60,7 +60,9 @@ FreudAgent handles data.
 ## CLI Reference
 
 All commands use `freud-schema` (or `uv run freud-schema`). The `--db` flag is global
-(before the subcommand) and defaults to `data/freudagent.duckdb`.
+(before the subcommand) and defaults to `data/freudagent.duckdb`. `--tenant` is also
+global and defaults to `default`; it scopes the four tenant-keyed dims (skills, rules,
+sources, sampling configs) and `compile` -- omitting it preserves single-tenant behavior.
 
 > **If DuckDB MCP is available (Claude Code sessions):** Prefer `mcp__duckdb__execute_query`
 > over CLI commands for all database operations. DuckDB is single-process -- the MCP server
@@ -68,7 +70,7 @@ All commands use `freud-schema` (or `uv run freud-schema`). The `--db` flag is g
 > CLI commands that don't open a connection (corpus queries, archetype/preset commands,
 > `db ddl`) still work.
 
-Keys are MD5 hashes (`keys.dimension_key()`), not integers -- every command that
+Keys are sha256/32 hashes (`keys.dimension_key()`), not integers -- every command that
 takes an entity reference (skill, source, rule, extraction, feedback, session,
 trace) accepts a full key or a unique prefix, git-short-hash style, resolved via
 `store.resolve_key()`. An ambiguous or non-matching prefix exits with an error.

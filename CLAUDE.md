@@ -7,14 +7,21 @@ prompt composition. The harness orchestrates. FreudAgent provides data.
 Mostly a joke repo. But the thesis is serious: agents are trees, not workflows.
 The harness is the moat. Behavior comes from data (skills, rules, archetypes), not code.
 
+The data FreudAgent provides is the **grounding layer**: constraints on one end
+(rules, activation conditions, policies), grounding data in the middle (validated
+knowledge, evidence, provenance), and verifiers and feedback on the other (eval
+gates, corrections, usage signals). The warehouse is its governed source of truth;
+compiled files are its agent-facing form.
+
 ## Project Structure
 
 ```
 src/freud_schema/
   cli.py             - CLI interface (freud-schema)
-  keys.py            - Deterministic MD5 surrogate keys: dimension_key(), hash_diff()
-  db.py              - DuckDB schema: 4 SCD-2 dims + 3 registries + 10 facts, 10 views,
-                       meta_load_log, CHECK constraints, indexes. No sequences.
+  keys.py            - Deterministic sha256/32 surrogate keys: dimension_key(), hash_diff()
+  db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 4
+                       registries (incl. dim_tenant) + 10 facts, 10 views, meta_load_log,
+                       meta_key_algorithm, CHECK constraints, indexes. No sequences.
   tables.py          - Pydantic models + 20 enum classes (single source of truth)
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
@@ -126,9 +133,11 @@ Schema docs: `.claude/skills/db-query.md`
 - All DB access through `ExperimentStore` methods -- never `store.con.execute` directly
 - Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
 - All SQL uses parameterized enum values (no hardcoded string literals)
-- Keys: MD5 hash surrogates via `keys.dimension_key()`. Entity keys from natural keys
-  (skill = domain|task_type, rule = name, source = content_path). Ingested facts get
-  deterministic keys (idempotent re-ingest); native facts get uuid-salted keys
+- Keys: SHA-256/32 hash surrogates via `keys.dimension_key()` (sha256 hexdigest truncated
+  to 32 chars; `keys.KEY_ALGORITHM` names the scheme, recorded in `meta_key_algorithm`).
+  Entity keys from natural keys, tenant-leading on the four SCD-2 dims (skill =
+  tenant|domain|task_type, rule = tenant|name, source = tenant|content_path). Ingested
+  facts get deterministic keys (idempotent re-ingest); native facts get uuid-salted keys
 - Naming: `etl_run_id` = lineage (joins `meta_load_log`); `session_key` = harness session.
   `session_id` is banned from DDL
 - SCD-2 dims: changes close the current row and insert a new one; rows never mutate.
@@ -145,7 +154,18 @@ Schema docs: `.claude/skills/db-query.md`
 - Reference keys via the named recipes (`session_key_for`, `message_key_for`) -- never
   re-derive dimension_key formulas at call sites
 - After `store.insert_*()`, use `model.model_copy(update={"<table>_key": new_key})` instead of re-fetching
-- No migration path -- breaking changes use `reset_schema()` (experiment repo, no legacy data)
+- No migration path, by explicit policy (owner decision, 2026-07-08): this is a research
+  repo, never prod. All warehouse data is disposable test/research data -- breaking schema
+  changes use `reset_schema()` + re-ingest (deterministic keys make re-ingest idempotent).
+  Do NOT build migration machinery or data-preservation paths. Git history of code and
+  git-tracked artifacts is the only history that matters. If this ever changes, the owner
+  will say so explicitly.
+- Standard schema-change recipe: edit DDL in db.py (register new tables in `ALL_TABLES`
+  and the `reset_schema()` drop list, new views in `ALL_VIEWS`, bump `_SCHEMA_VERSIONS`
+  on breaking change) -> reset (`db reset` from the CLI, or `reset_schema()`'s DDL via
+  `execute_query` when the MCP server holds the lock) -> `ingest transcripts` ->
+  `couch run` -> recreate whatever native test rows (skills/rules/feedback/proposals)
+  the current experiment needs
 - New tables must be added to `reset_schema()` drop list (order matters: dependents first)
 - DDL stored as `list[str]` (one statement per element, no semicolon splitting)
 
