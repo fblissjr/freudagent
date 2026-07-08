@@ -1,10 +1,10 @@
 # FreudAgent Data Shapes
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 When generating A2UI surfaces for FreudAgent, your data model will contain these entity types.
 All tables use a dimensional model (dim_/fact_ naming). Fact tables carry denormalized
-dimension attributes -- no joins needed for display. Keys are MD5 hash strings
+dimension attributes -- no joins needed for display. Keys are sha256/32 hash strings
 (`keys.dimension_key()`), not integers -- render them truncated (e.g. first 8 chars)
 the way the CLI does, never as a numeric id.
 
@@ -14,7 +14,7 @@ An extraction is a structured output from an agent run (from `fact_extraction`).
 
 | Field | Type | Notes |
 |-------|------|-------|
-| extraction_key | string | Primary key (MD5 hash) |
+| extraction_key | string | Primary key (sha256/32 hash) |
 | source_key | string | Which source was processed (ref dim_source) |
 | skill_key | string | Which skill was used (ref dim_skill) |
 | session_key | string | Which execution produced this (ref fact_session) |
@@ -40,7 +40,7 @@ run or an ingested transcript, distinguished by `record_source`.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| session_key | string | Primary key (MD5 hash) |
+| session_key | string | Primary key (sha256/32 hash) |
 | native_session_id | string or null | Claude Code session uuid for ingested transcripts; store-generated uuid for native runs |
 | project_key | string or null | Which project this session belongs to (ref dim_project) |
 | task_description | string or null | What the agent was asked to do (nullable -- ingested transcripts may not have one) |
@@ -67,7 +67,7 @@ A reasoning trace node within a session (from `fact_trace`).
 
 | Field | Type | Notes |
 |-------|------|-------|
-| trace_key | string | Primary key (MD5 hash) |
+| trace_key | string | Primary key (sha256/32 hash) |
 | session_key | string | Parent session |
 | parent_trace_key | string or null | Tree structure (null for top-level) |
 | trace_type | string | decision_point, path_taken, path_discarded, insight, dead_end, subagent_spawn, tool_call, conclusion |
@@ -91,7 +91,7 @@ Human feedback on a specific trace node (from `fact_trace_feedback`).
 
 | Field | Type | Notes |
 |-------|------|-------|
-| trace_feedback_key | string | Primary key (MD5 hash) |
+| trace_feedback_key | string | Primary key (sha256/32 hash) |
 | trace_key | string | Which trace node |
 | session_key | string | Which session |
 | feedback_type | string | path_correction, positive_signal, dead_end_confirmation, reasoning_error |
@@ -112,7 +112,7 @@ grain -- full detail, not a session-level summary.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| message_key | string | Primary key (MD5 hash) |
+| message_key | string | Primary key (sha256/32 hash) |
 | session_key | string | Parent session |
 | role | string | "user" or "assistant" |
 | entry_uuid | string or null | Source transcript's own entry id |
@@ -136,7 +136,7 @@ One tool_use content block, joined to its tool_result where present (from
 
 | Field | Type | Notes |
 |-------|------|-------|
-| tool_use_key | string | Primary key (MD5 hash) |
+| tool_use_key | string | Primary key (sha256/32 hash) |
 | session_key | string | Parent session |
 | message_key | string or null | The message this tool_use block belongs to |
 | tool_use_id | string or null | Provider's tool_use id (joins its tool_result) |
@@ -154,7 +154,7 @@ EAV-shaped). Registry-validated against `dim_facet_type`.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| facet_row_key | string | Primary key (MD5 hash) |
+| facet_row_key | string | Primary key (sha256/32 hash) |
 | session_key | string | |
 | facet_type_key | string or null | Denormalized dim_facet_type reference |
 | facet_id | string | e.g., "verbosity", "hedging_rate" |
@@ -173,7 +173,7 @@ Append-only -- re-running Analyze produces new rows.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| finding_key | string | Primary key (MD5 hash) |
+| finding_key | string | Primary key (sha256/32 hash) |
 | finding_type | string | Open vocabulary -- see FindingType below |
 | finding_type_key | string | Denormalized dim_finding_type reference |
 | scope | string | "project" or "global" |
@@ -190,7 +190,7 @@ until a human approves or rejects.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| proposal_key | string | Primary key (MD5 hash) |
+| proposal_key | string | Primary key (sha256/32 hash) |
 | target_dimension | string | "dim_skill", "dim_rule", or "dim_sampling_config" |
 | target_key | string or null | Entity key of the dim row to evolve; null for new entities |
 | target_natural_key | object or null | Natural key parts, for proposals targeting a not-yet-existing entity |
@@ -209,10 +209,21 @@ queries a group-by instead of a cross-database merge.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| project_key | string | Primary key (MD5 hash) |
+| project_key | string | Primary key (sha256/32 hash) |
 | project_path | string | Filesystem path identifying the project |
 | project_name | string or null | Human-readable label |
 | first_seen_at | string or null | ISO datetime |
+
+## Tenant
+
+A conformed tenant dimension (from `dim_tenant`) -- what scopes skills, rules,
+sources, and sampling configs to a namespace instead of a single global one.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| tenant_key | string | Primary key (sha256/32 hash) |
+| tenant_id | string | e.g., "default", "team-a" |
+| display_name | string or null | Human-readable label |
 
 ## FacetType
 
@@ -221,7 +232,7 @@ Registry row for a behavioral facet (from `dim_facet_type`). Bumping
 
 | Field | Type | Notes |
 |-------|------|-------|
-| facet_type_key | string | Primary key (MD5 hash) |
+| facet_type_key | string | Primary key (sha256/32 hash) |
 | facet_id | string | |
 | tier | integer | Facet grouping tier |
 | method | string | "computed", "regex", "llm", or "cluster" |
@@ -237,7 +248,7 @@ finding types are rows here, never enum edits or DDL changes.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| finding_type_key | string | Primary key (MD5 hash) |
+| finding_type_key | string | Primary key (sha256/32 hash) |
 | finding_type | string | Open vocabulary |
 | description | string or null | |
 | detection_method | string | "sql", "llm", or "hybrid" |
@@ -248,7 +259,8 @@ A skill is a declarative instruction set loaded at runtime (from `dim_skill`).
 
 | Field | Type | Notes |
 |-------|------|-------|
-| skill_key | string | Primary key (MD5 hash) |
+| skill_key | string | Primary key (sha256/32 hash) |
+| tenant_id | string | Scopes identity, default "default" (ref dim_tenant) |
 | domain | string | Domain name (e.g., "arxiv") |
 | task_type | string | Task category (e.g., "extraction") |
 | version | integer | Skill version |

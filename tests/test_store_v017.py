@@ -43,7 +43,7 @@ def _skill(**over) -> Skill:
 class TestScd2Skills:
     def test_insert_returns_entity_key(self, store):
         key = store.insert_skill(_skill())
-        assert key == dimension_key("freud", "extraction")
+        assert key == dimension_key("default", "freud", "extraction")
 
     def test_new_version_closes_prior_row(self, store):
         key = store.insert_skill(_skill())
@@ -126,7 +126,7 @@ class TestScd2SourcesAndRules:
 
     def test_rule_keyed_by_name_and_evolves(self, store):
         key = store.insert_rule(Rule(name="no-emoji", content="No emojis."))
-        assert key == dimension_key("no-emoji")
+        assert key == dimension_key("default", "no-emoji")
         store.insert_rule(Rule(name="no-emoji", content="Absolutely no emojis."))
         rows = store.con.execute(
             "SELECT COUNT(*) FROM dim_rule WHERE rule_key = ?", [key]).fetchone()

@@ -18,9 +18,10 @@ compiled files are its agent-facing form.
 ```
 src/freud_schema/
   cli.py             - CLI interface (freud-schema)
-  keys.py            - Deterministic MD5 surrogate keys: dimension_key(), hash_diff()
-  db.py              - DuckDB schema: 4 SCD-2 dims + 3 registries + 10 facts, 10 views,
-                       meta_load_log, CHECK constraints, indexes. No sequences.
+  keys.py            - Deterministic sha256/32 surrogate keys: dimension_key(), hash_diff()
+  db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 4
+                       registries (incl. dim_tenant) + 10 facts, 10 views, meta_load_log,
+                       meta_key_algorithm, CHECK constraints, indexes. No sequences.
   tables.py          - Pydantic models + 20 enum classes (single source of truth)
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
@@ -132,9 +133,11 @@ Schema docs: `.claude/skills/db-query.md`
 - All DB access through `ExperimentStore` methods -- never `store.con.execute` directly
 - Store uses `cursor.description` for column-name-keyed dicts (no positional indexing)
 - All SQL uses parameterized enum values (no hardcoded string literals)
-- Keys: MD5 hash surrogates via `keys.dimension_key()`. Entity keys from natural keys
-  (skill = domain|task_type, rule = name, source = content_path). Ingested facts get
-  deterministic keys (idempotent re-ingest); native facts get uuid-salted keys
+- Keys: SHA-256/32 hash surrogates via `keys.dimension_key()` (sha256 hexdigest truncated
+  to 32 chars; `keys.KEY_ALGORITHM` names the scheme, recorded in `meta_key_algorithm`).
+  Entity keys from natural keys, tenant-leading on the four SCD-2 dims (skill =
+  tenant|domain|task_type, rule = tenant|name, source = tenant|content_path). Ingested
+  facts get deterministic keys (idempotent re-ingest); native facts get uuid-salted keys
 - Naming: `etl_run_id` = lineage (joins `meta_load_log`); `session_key` = harness session.
   `session_id` is banned from DDL
 - SCD-2 dims: changes close the current row and insert a new one; rows never mutate.

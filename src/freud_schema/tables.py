@@ -1,7 +1,8 @@
 """Pydantic models for the meta-harness dimensional schema (v0.17).
 
-Models mirror the DuckDB tables in db.py. Key scheme: MD5 hash surrogate
-keys (keys.dimension_key) everywhere -- no sequences, no integer ids.
+Models mirror the DuckDB tables in db.py. Key scheme: sha256/32 hash
+surrogate keys (keys.dimension_key) everywhere -- no sequences, no
+integer ids.
 Dimensions are SCD Type 2 (effective_from/effective_to/is_current/
 hash_diff); registry dimensions (dim_project, dim_facet_type,
 dim_finding_type) are append-only without SCD-2. Facts are append-only
@@ -177,6 +178,7 @@ class Skill(BaseModel):
     """
 
     skill_key: str | None = None
+    tenant_id: str = "default"
     domain: str
     task_type: str
     version: int = 1
@@ -205,6 +207,7 @@ class Source(BaseModel):
     """
 
     source_key: str | None = None
+    tenant_id: str = "default"
     content_path: str = Field(description="File path or object store reference")
     media_type: str = Field(description="MIME type, e.g. application/pdf")
     metadata: dict | None = None
@@ -229,6 +232,7 @@ class Rule(BaseModel):
     """
 
     rule_key: str | None = None
+    tenant_id: str = "default"
     name: str = Field(description="Stable identity; compile target filename")
     scope: RuleScope = RuleScope.GLOBAL
     domain: str | None = None
@@ -251,6 +255,7 @@ class SamplingConfig(BaseModel):
     """
 
     config_key: str | None = None
+    tenant_id: str = "default"
     domain: str | None = None
     task_type: str | None = None
     strategy: SamplingStrategy
@@ -269,6 +274,21 @@ class SamplingConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Registry dimensions (append-only, no SCD-2)
 # ---------------------------------------------------------------------------
+
+
+class Tenant(BaseModel):
+    """A conformed tenant dimension -- entity identity stops being
+    single-namespace once the four SCD-2 dims key off (tenant_id, ...).
+
+    Key: dimension_key(tenant_id). Append-only, like Project: tenant
+    identity doesn't evolve shape over time the way skills/rules do.
+    """
+
+    tenant_key: str | None = None
+    tenant_id: str
+    display_name: str | None = None
+    record_source: RecordSource = RecordSource.NATIVE
+    created_at: datetime | None = None
 
 
 class Project(BaseModel):
@@ -364,6 +384,7 @@ class Session(BaseModel):
     skill_task_type: str | None = None
     skill_version: int | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.NATIVE
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -395,6 +416,7 @@ class Message(BaseModel):
     is_meta: bool = False
     is_sidechain: bool = False
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.TRANSCRIPT_INGEST
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -423,6 +445,7 @@ class ToolUse(BaseModel):
     sequence_num: int = 0
     occurred_at: datetime | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.TRANSCRIPT_INGEST
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -446,6 +469,7 @@ class SessionFacet(BaseModel):
     is_fallback: bool = False
     extraction_metadata: dict | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.DERIVED
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -470,6 +494,7 @@ class Finding(BaseModel):
                                      "of paths/usernames (compile is fail-closed)")
     detected_at: datetime | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.DERIVED
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -495,6 +520,7 @@ class Proposal(BaseModel):
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.DERIVED
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -520,6 +546,7 @@ class Extraction(BaseModel):
     skill_task_type: str | None = None
     skill_version: int | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.NATIVE
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -544,6 +571,7 @@ class Feedback(BaseModel):
     source_key: str | None = None
     source_path: str | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.NATIVE
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -572,6 +600,7 @@ class Trace(BaseModel):
     skill_domain: str | None = None
     skill_task_type: str | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.NATIVE
     etl_run_id: str | None = None
     created_at: datetime | None = None
@@ -598,6 +627,7 @@ class TraceFeedback(BaseModel):
     skill_domain: str | None = None
     skill_task_type: str | None = None
     # Lineage
+    tenant_key: str | None = None
     record_source: RecordSource = RecordSource.NATIVE
     etl_run_id: str | None = None
     created_at: datetime | None = None

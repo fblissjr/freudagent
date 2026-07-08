@@ -1,6 +1,6 @@
 """CRUD operations and retrieval queries for the meta-harness (v0.17).
 
-Dimensional model access layer. Key scheme: MD5 hash surrogate keys
+Dimensional model access layer. Key scheme: sha256/32 hash surrogate keys
 (keys.dimension_key). Key generation policy:
 
 - SCD-2 dimensions: entity key from natural key parts (e.g. skill_key =
@@ -64,6 +64,7 @@ from freud_schema.tables import (
     Source,
     SourceStatus,
     TargetDimension,
+    Tenant,
     ToolUse,
     Trace,
     TraceFeedback,
@@ -107,6 +108,7 @@ _KEY_COLUMNS: dict[str, str] = {
     "dim_rule": "rule_key",
     "dim_sampling_config": "config_key",
     "dim_project": "project_key",
+    "dim_tenant": "tenant_key",
     "dim_facet_type": "facet_type_key",
     "dim_finding_type": "finding_type_key",
     "fact_session": "session_key",
@@ -121,6 +123,12 @@ _KEY_COLUMNS: dict[str, str] = {
     "fact_proposal": "proposal_key",
 }
 
+# The four SCD-2 dims whose natural key now leads with tenant_id.
+# resolve_key() scopes prefix resolution to a tenant only for these.
+_TENANT_SCOPED_DIMS: frozenset[str] = frozenset(
+    {"dim_skill", "dim_rule", "dim_source", "dim_sampling_config"}
+)
+
 
 class ExperimentStore:
     """Data access layer for the meta-harness."""
@@ -128,6 +136,9 @@ class ExperimentStore:
     def __init__(self, con: duckdb.DuckDBPyConnection):
         self.con = con
         self._session_skill_cache: dict[str, dict] = {}
+        # Pure hash, no DB read -- the tenant that fact rows fall back to
+        # when no skill/model tenant is available.
+        self._default_tenant_key = dimension_key("default")
         init_schema(con)
 
     def close(self) -> None:
@@ -209,12 +220,16 @@ class ExperimentStore:
         if not self._key_exists(table, key):
             raise ValueError(f"{label} {key} not found")
 
-    def resolve_key(self, table: str, prefix: str) -> str:
+    def resolve_key(self, table: str, prefix: str, tenant_id: str | None = None) -> str:
         """Resolve a key prefix to a full key, git-short-hash style.
 
         Raises ValueError if the prefix matches nothing or more than one
         key. The key column is derived from the schema's own table->key
         mapping, never interpolated from caller strings.
+
+        tenant_id, when given, scopes resolution to that tenant -- but
+        only for the four tenant-keyed SCD-2 dims (_TENANT_SCOPED_DIMS);
+        every other table ignores the param, preserving existing callers.
         """
         key_col = _KEY_COLUMNS.get(table)
         if key_col is None:
@@ -222,11 +237,14 @@ class ExperimentStore:
         # Escape LIKE metacharacters: a prefix containing % or _ must match
         # literally, not as a wildcard (keys are hex, but input is user-typed).
         escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        rows = self.con.execute(
-            f"SELECT DISTINCT {key_col} FROM {table} "
-            f"WHERE {key_col} LIKE ? ESCAPE '\\' LIMIT 2",
-            [escaped + "%"],
-        ).fetchall()
+        query = (f"SELECT DISTINCT {key_col} FROM {table} "
+                 f"WHERE {key_col} LIKE ? ESCAPE '\\'")
+        params: list = [escaped + "%"]
+        if tenant_id is not None and table in _TENANT_SCOPED_DIMS:
+            query += " AND tenant_id = ?"
+            params.append(tenant_id)
+        query += " LIMIT 2"
+        rows = self.con.execute(query, params).fetchall()
         if not rows:
             raise ValueError(f"No {table} match for key prefix '{prefix}'")
         if len(rows) > 1:
@@ -269,18 +287,22 @@ class ExperimentStore:
         domain: str | None = None,
         task_type: str | None = None,
         version: int | None = None,
-    ) -> tuple[str | None, str | None, int | None]:
-        """Resolve skill domain/task_type/version from the current row.
+    ) -> tuple[str | None, str | None, int | None, str | None]:
+        """Resolve skill domain/task_type/version/tenant_key from the
+        current row.
 
         Validates existence: raises ValueError if skill_key has no row.
-        Skips the fetch if domain is already provided (caller pre-filled).
+        Skips the fetch if domain is already provided (caller pre-filled);
+        tenant_key is None in that case -- the caller falls back to its
+        own model.tenant_key or the default tenant.
         """
         if domain is not None:
-            return domain, task_type, version
+            return domain, task_type, version, None
         skill = self.get_skill(skill_key)
         if skill is None:
             raise ValueError(f"Skill {skill_key} not found")
-        return skill.domain, skill.task_type, skill.version
+        return (skill.domain, skill.task_type, skill.version,
+                self.tenant_key_for(skill.tenant_id))
 
     # -------------------------------------------------------------------
     # Internal: session skill attribute cache (for bulk trace inserts)
@@ -291,7 +313,7 @@ class ExperimentStore:
         if session_key in self._session_skill_cache:
             return self._session_skill_cache[session_key]
         d = self._fetchone(
-            "SELECT skill_key, skill_domain, skill_task_type "
+            "SELECT skill_key, skill_domain, skill_task_type, tenant_key "
             "FROM fact_session WHERE session_key = ?",
             [session_key],
         )
@@ -308,12 +330,12 @@ class ExperimentStore:
         Both version bumps (insert_skill) and status evolutions delegate
         here so the column list and hash fields cannot drift apart."""
         self.con.execute(
-            """INSERT INTO dim_skill (skill_key, domain, task_type, version, content,
-               metadata, parent_skill_key, status, origin, activation_conditions,
+            """INSERT INTO dim_skill (skill_key, tenant_id, domain, task_type, version,
+               content, metadata, parent_skill_key, status, origin, activation_conditions,
                hash_diff, record_source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, skill.domain, skill.task_type, skill.version, skill.content,
-             _json(skill.metadata), skill.parent_skill_key, skill.status,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, skill.tenant_id, skill.domain, skill.task_type, skill.version,
+             skill.content, _json(skill.metadata), skill.parent_skill_key, skill.status,
              skill.origin, _json(skill.activation_conditions),
              hash_diff(content=skill.content, status=skill.status.value,
                        version=skill.version, origin=skill.origin.value,
@@ -324,14 +346,14 @@ class ExperimentStore:
         )
 
     def insert_skill(self, skill: Skill) -> str:
-        """Insert a new skill version. Entity key: (domain, task_type).
+        """Insert a new skill version. Entity key: (tenant_id, domain, task_type).
 
         If a current row exists for the entity, the new version must
         exceed it; the current row is closed and the new one becomes
         current. Status changes without a version bump go through
         activate_skill/deprecate_skill instead.
         """
-        key = dimension_key(skill.domain, skill.task_type)
+        key = dimension_key(skill.tenant_id, skill.domain, skill.task_type)
         current = self._current_row("dim_skill", key)
         if current is not None and skill.version <= current["version"]:
             raise ValueError(
@@ -340,6 +362,7 @@ class ExperimentStore:
             )
         if current is not None:
             self._close_current("dim_skill", key)
+        self.ensure_tenant(Tenant(tenant_id=skill.tenant_id))
         self._write_skill_row(key, skill)
         return key
 
@@ -355,9 +378,11 @@ class ExperimentStore:
             )
         return Skill(**d) if d else None
 
-    def get_active_skill(self, domain: str, task_type: str) -> Skill | None:
-        """Find the current skill for a domain + task_type, if active."""
-        skill = self.get_skill(dimension_key(domain, task_type))
+    def get_active_skill(
+        self, domain: str, task_type: str, tenant_id: str = "default",
+    ) -> Skill | None:
+        """Find the current skill for a tenant + domain + task_type, if active."""
+        skill = self.get_skill(dimension_key(tenant_id, domain, task_type))
         if skill is not None and skill.status == SkillStatus.ACTIVE:
             return skill
         return None
@@ -421,8 +446,19 @@ class ExperimentStore:
         source_session_keys: list[str],
         source_trace_keys: list[str],
     ) -> str:
-        """Insert a data-derived skill with provenance tracking."""
+        """Insert a data-derived skill with provenance tracking.
+
+        Inherits the parent skill's tenant_id (a derived skill lives in
+        whatever tenant produced it, not whatever default the caller
+        happened to construct the model with).
+        """
+        tenant_id = skill.tenant_id
+        if skill.parent_skill_key:
+            parent = self.get_skill(skill.parent_skill_key)
+            if parent is not None:
+                tenant_id = parent.tenant_id
         skill = skill.model_copy(update={
+            "tenant_id": tenant_id,
             "origin": SkillOrigin.DATA_DERIVED,
             "record_source": RecordSource.DERIVED,
             "metadata": {
@@ -440,12 +476,12 @@ class ExperimentStore:
     # -------------------------------------------------------------------
 
     def insert_source(self, source: Source) -> str:
-        """Register a source. Entity key: content_path.
+        """Register a source. Entity key: (tenant_id, content_path).
 
         Idempotent: re-adding an identical source is a no-op; a changed
         one (new hash, status, metadata) evolves the SCD-2 row.
         """
-        key = dimension_key(source.content_path)
+        key = dimension_key(source.tenant_id, source.content_path)
         new_hash = hash_diff(
             content_path=source.content_path, media_type=source.media_type,
             metadata=_json(source.metadata), source_hash=source.source_hash,
@@ -453,13 +489,14 @@ class ExperimentStore:
         )
         if self._scd2_unchanged_or_close("dim_source", key, new_hash):
             return key
+        self.ensure_tenant(Tenant(tenant_id=source.tenant_id))
         self.con.execute(
-            """INSERT INTO dim_source (source_key, content_path, media_type, metadata,
-               source_hash, status, superseded_by_key, hash_diff, record_source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, source.content_path, source.media_type, _json(source.metadata),
-             source.source_hash, source.status, source.superseded_by_key,
-             new_hash, source.record_source],
+            """INSERT INTO dim_source (source_key, tenant_id, content_path, media_type,
+               metadata, source_hash, status, superseded_by_key, hash_diff, record_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, source.tenant_id, source.content_path, source.media_type,
+             _json(source.metadata), source.source_hash, source.status,
+             source.superseded_by_key, new_hash, source.record_source],
         )
         return key
 
@@ -495,20 +532,22 @@ class ExperimentStore:
     # -------------------------------------------------------------------
 
     def insert_rule(self, rule: Rule) -> str:
-        """Insert or evolve a rule. Entity key: name (which is also the
-        compile target filename). Identical re-adds are no-ops."""
-        key = dimension_key(rule.name)
+        """Insert or evolve a rule. Entity key: (tenant_id, name) -- name
+        also doubles as the compile target filename. Identical re-adds
+        are no-ops."""
+        key = dimension_key(rule.tenant_id, rule.name)
         new_hash = hash_diff(
             name=rule.name, scope=rule.scope.value, domain=rule.domain,
             priority=rule.priority, content=rule.content, status=rule.status.value,
         )
         if self._scd2_unchanged_or_close("dim_rule", key, new_hash):
             return key
+        self.ensure_tenant(Tenant(tenant_id=rule.tenant_id))
         self.con.execute(
-            """INSERT INTO dim_rule (rule_key, name, scope, domain, priority,
+            """INSERT INTO dim_rule (rule_key, tenant_id, name, scope, domain, priority,
                content, status, hash_diff, record_source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, rule.name, rule.scope, rule.domain, rule.priority,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, rule.tenant_id, rule.name, rule.scope, rule.domain, rule.priority,
              rule.content, rule.status, new_hash, rule.record_source],
         )
         return key
@@ -517,10 +556,11 @@ class ExperimentStore:
         d = self._current_row("dim_rule", rule_key)
         return Rule(**d) if d else None
 
-    def get_rules(self, domain: str | None = None) -> list[Rule]:
-        """Load current active rules: global + domain-specific, by priority."""
-        query = "SELECT * FROM dim_rule WHERE status = ? AND is_current"
-        params: list = [RuleStatus.ACTIVE]
+    def get_rules(self, domain: str | None = None, tenant_id: str = "default") -> list[Rule]:
+        """Load current active rules for a tenant: global + domain-specific,
+        by priority."""
+        query = "SELECT * FROM dim_rule WHERE status = ? AND is_current AND tenant_id = ?"
+        params: list = [RuleStatus.ACTIVE, tenant_id]
         if domain:
             query += " AND (scope = ? OR domain = ?)"
             params.extend([RuleScope.GLOBAL, domain])
@@ -542,8 +582,9 @@ class ExperimentStore:
     # -------------------------------------------------------------------
 
     def insert_sampling_config(self, config: SamplingConfig) -> str:
-        """Insert or evolve a sampling config. Entity key: (domain, task_type)."""
-        key = dimension_key(config.domain, config.task_type)
+        """Insert or evolve a sampling config. Entity key:
+        (tenant_id, domain, task_type)."""
+        key = dimension_key(config.tenant_id, config.domain, config.task_type)
         new_hash = hash_diff(
             domain=config.domain, task_type=config.task_type,
             strategy=config.strategy.value, parameters=_json(config.parameters),
@@ -551,11 +592,12 @@ class ExperimentStore:
         )
         if self._scd2_unchanged_or_close("dim_sampling_config", key, new_hash):
             return key
+        self.ensure_tenant(Tenant(tenant_id=config.tenant_id))
         self.con.execute(
-            """INSERT INTO dim_sampling_config (config_key, domain, task_type,
+            """INSERT INTO dim_sampling_config (config_key, tenant_id, domain, task_type,
                strategy, parameters, max_samples, status, hash_diff, record_source)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, config.domain, config.task_type, config.strategy,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, config.tenant_id, config.domain, config.task_type, config.strategy,
              _json(config.parameters), config.max_samples, config.status,
              new_hash, config.record_source],
         )
@@ -565,17 +607,19 @@ class ExperimentStore:
         self,
         domain: str | None = None,
         task_type: str | None = None,
+        tenant_id: str = "default",
     ) -> SamplingConfig | None:
-        """Find the best-matching current active sampling config.
+        """Find the best-matching current active sampling config for a tenant.
         Priority: exact domain+task_type > domain-only > global (NULL domain).
         """
         d = self._fetchone(
             """SELECT * FROM dim_sampling_config WHERE status = ? AND is_current
+               AND tenant_id = ?
                AND (domain = ? OR domain IS NULL)
                AND (task_type = ? OR task_type IS NULL)
                ORDER BY (domain IS NOT NULL)::int + (task_type IS NOT NULL)::int DESC
                LIMIT 1""",
-            [RuleStatus.ACTIVE, domain, task_type],
+            [RuleStatus.ACTIVE, tenant_id, domain, task_type],
         )
         return SamplingConfig(**d) if d else None
 
@@ -589,6 +633,33 @@ class ExperimentStore:
     # -------------------------------------------------------------------
     # Registry dimensions (append-only)
     # -------------------------------------------------------------------
+
+    @staticmethod
+    def tenant_key_for(tenant_id: str) -> str:
+        """The tenant-key recipe, named -- consumers that must reference a
+        tenant without an ensure_tenant round trip use this instead of
+        re-deriving the formula."""
+        return dimension_key(tenant_id)
+
+    def ensure_tenant(self, tenant: Tenant) -> str:
+        """Register a tenant if unseen; idempotent. Key: tenant_id."""
+        key = self.tenant_key_for(tenant.tenant_id)
+        if not self._key_exists("dim_tenant", key):
+            self.con.execute(
+                """INSERT INTO dim_tenant (tenant_key, tenant_id, display_name,
+                   record_source) VALUES (?, ?, ?, ?)""",
+                [key, tenant.tenant_id, tenant.display_name, tenant.record_source],
+            )
+        return key
+
+    def get_tenant(self, tenant_key: str) -> Tenant | None:
+        d = self._fetchone(
+            "SELECT * FROM dim_tenant WHERE tenant_key = ?", [tenant_key])
+        return Tenant(**d) if d else None
+
+    def list_tenants(self) -> list[Tenant]:
+        return [Tenant(**d) for d in self._fetchall(
+            "SELECT * FROM dim_tenant ORDER BY tenant_id")]
 
     def ensure_project(self, project: Project) -> str:
         """Register a project if unseen; idempotent. Key: project_path."""
@@ -694,24 +765,28 @@ class ExperimentStore:
         skill_domain = session.skill_domain
         skill_task_type = session.skill_task_type
         skill_version = session.skill_version
+        skill_tenant_key = None
         if session.skill_key is not None:
-            skill_domain, skill_task_type, skill_version = self._resolve_skill_attrs(
-                session.skill_key, skill_domain, skill_task_type, skill_version,
+            skill_domain, skill_task_type, skill_version, skill_tenant_key = (
+                self._resolve_skill_attrs(
+                    session.skill_key, skill_domain, skill_task_type, skill_version,
+                )
             )
+        tenant_key = skill_tenant_key or session.tenant_key or self._default_tenant_key
         self.con.execute(
             """INSERT INTO fact_session (session_key, native_session_id, project_key,
                task_description, task_type, parent_session_key, agent_role,
                skill_key, skill_domain, skill_task_type, skill_version,
                context_loaded, model_used, token_usage, status,
-               sampled_session_keys, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               sampled_session_keys, tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, native_id, session.project_key,
              session.task_description, session.task_type,
              session.parent_session_key, session.agent_role,
              session.skill_key, skill_domain, skill_task_type, skill_version,
              _json(session.context_loaded), session.model_used,
              _json(session.token_usage), session.status,
-             _json(session.sampled_session_keys),
+             _json(session.sampled_session_keys), tenant_key,
              session.record_source, session.etl_run_id],
         )
         # Cache skill attrs for subsequent trace inserts
@@ -719,6 +794,7 @@ class ExperimentStore:
             "skill_key": session.skill_key,
             "skill_domain": skill_domain,
             "skill_task_type": skill_task_type,
+            "tenant_key": tenant_key,
         }
         return key
 
@@ -827,6 +903,7 @@ class ExperimentStore:
         skill_key = trace.skill_key
         skill_domain = trace.skill_domain
         skill_task_type = trace.skill_task_type
+        tenant_key = trace.tenant_key
         if skill_key is None:
             attrs = self._get_session_skill_attrs(trace.session_key)
             if attrs is None:
@@ -834,17 +911,21 @@ class ExperimentStore:
             skill_key = attrs.get("skill_key")
             skill_domain = attrs.get("skill_domain")
             skill_task_type = attrs.get("skill_task_type")
+            if tenant_key is None:
+                tenant_key = attrs.get("tenant_key")
+        tenant_key = tenant_key or self._default_tenant_key
         self.con.execute(
             """INSERT INTO fact_trace (trace_key, session_key, parent_trace_key,
                trace_type, depth, sequence_order, title, content, reasoning,
                alternatives, outcome, child_session_key, duration_ms,
-               skill_key, skill_domain, skill_task_type, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               skill_key, skill_domain, skill_task_type, tenant_key,
+               record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, trace.session_key, trace.parent_trace_key, trace.trace_type,
              trace.depth, trace.sequence_order, trace.title, trace.content,
              trace.reasoning, _json(trace.alternatives), _json(trace.outcome),
              trace.child_session_key, trace.duration_ms,
-             skill_key, skill_domain, skill_task_type,
+             skill_key, skill_domain, skill_task_type, tenant_key,
              trace.record_source, trace.etl_run_id],
         )
         return key
@@ -909,6 +990,7 @@ class ExperimentStore:
         skill_key = tf.skill_key
         skill_domain = tf.skill_domain
         skill_task_type = tf.skill_task_type
+        tenant_key = tf.tenant_key
         if trace_type is None:
             trace = self.get_trace(tf.trace_key)
             if trace is None:
@@ -918,17 +1000,20 @@ class ExperimentStore:
             skill_key = trace.skill_key
             skill_domain = trace.skill_domain
             skill_task_type = trace.skill_task_type
+            if tenant_key is None:
+                tenant_key = trace.tenant_key
+        tenant_key = tenant_key or self._default_tenant_key
         key = dimension_key(tf.trace_key, uuid4().hex)
         self.con.execute(
             """INSERT INTO fact_trace_feedback (trace_feedback_key, trace_key,
                session_key, feedback_type, content, correction, created_by,
                trace_type, trace_title, skill_key, skill_domain, skill_task_type,
-               record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, tf.trace_key, tf.session_key, tf.feedback_type,
              tf.content, _json(tf.correction), tf.created_by,
              trace_type, trace_title, skill_key, skill_domain, skill_task_type,
-             tf.record_source, tf.etl_run_id],
+             tenant_key, tf.record_source, tf.etl_run_id],
         )
         return key
 
@@ -992,10 +1077,13 @@ class ExperimentStore:
             source_path = source.content_path
             source_media_type = source.media_type
         # Denormalize skill attributes (validates existence as side effect)
-        skill_domain, skill_task_type, skill_version = self._resolve_skill_attrs(
-            extraction.skill_key, extraction.skill_domain,
-            extraction.skill_task_type, extraction.skill_version,
+        skill_domain, skill_task_type, skill_version, skill_tenant_key = (
+            self._resolve_skill_attrs(
+                extraction.skill_key, extraction.skill_domain,
+                extraction.skill_task_type, extraction.skill_version,
+            )
         )
+        tenant_key = skill_tenant_key or extraction.tenant_key or self._default_tenant_key
         # uuid-salted: native event, intrinsically unique, never re-ingested
         key = dimension_key(extraction.session_key, extraction.source_key,
                             uuid4().hex)
@@ -1003,13 +1091,13 @@ class ExperimentStore:
             """INSERT INTO fact_extraction (extraction_key, session_key, output,
                confidence, validation_status, source_key, source_path,
                source_media_type, skill_key, skill_domain, skill_task_type,
-               skill_version, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               skill_version, tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, extraction.session_key, _json(extraction.output),
              extraction.confidence, extraction.validation_status,
              extraction.source_key, source_path, source_media_type,
              extraction.skill_key, skill_domain, skill_task_type, skill_version,
-             extraction.record_source, extraction.etl_run_id],
+             tenant_key, extraction.record_source, extraction.etl_run_id],
         )
         return key
 
@@ -1082,9 +1170,12 @@ class ExperimentStore:
 
     def insert_feedback(self, fb: Feedback) -> str:
         # Denormalize skill attributes (validates existence as side effect)
-        skill_domain, skill_task_type, skill_version = self._resolve_skill_attrs(
-            fb.skill_key, fb.skill_domain, fb.skill_task_type, fb.skill_version,
+        skill_domain, skill_task_type, skill_version, skill_tenant_key = (
+            self._resolve_skill_attrs(
+                fb.skill_key, fb.skill_domain, fb.skill_task_type, fb.skill_version,
+            )
         )
+        tenant_key = skill_tenant_key or fb.tenant_key or self._default_tenant_key
         # Denormalize source attributes from extraction (validates existence)
         source_key = fb.source_key
         source_path = fb.source_path
@@ -1104,12 +1195,12 @@ class ExperimentStore:
             """INSERT INTO fact_feedback (feedback_key, extraction_key, session_key,
                correction, correction_type, notes, created_by,
                skill_key, skill_domain, skill_task_type, skill_version,
-               source_key, source_path, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               source_key, source_path, tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, fb.extraction_key, fb.session_key,
              _json(fb.correction), fb.correction_type, fb.notes, fb.created_by,
              fb.skill_key, skill_domain, skill_task_type, skill_version,
-             source_key, source_path, fb.record_source, fb.etl_run_id],
+             source_key, source_path, tenant_key, fb.record_source, fb.etl_run_id],
         )
         return key
 
@@ -1250,15 +1341,17 @@ class ExperimentStore:
                 key, m.session_key, m.project_key, m.role, m.entry_uuid,
                 m.parent_uuid, m.sequence_num, m.occurred_at, m.content_text,
                 m.has_thinking, m.stop_reason, m.input_tokens, m.output_tokens,
-                m.is_meta, m.is_sidechain, m.record_source, m.etl_run_id,
+                m.is_meta, m.is_sidechain, m.tenant_key or self._default_tenant_key,
+                m.record_source, m.etl_run_id,
             ])
         if params:
             self.con.executemany(
                 """INSERT INTO fact_message (message_key, session_key, project_key,
                    role, entry_uuid, parent_uuid, sequence_num, occurred_at,
                    content_text, has_thinking, stop_reason, input_tokens,
-                   output_tokens, is_meta, is_sidechain, record_source, etl_run_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   output_tokens, is_meta, is_sidechain, tenant_key,
+                   record_source, etl_run_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 params,
             )
         return key_map
@@ -1280,14 +1373,16 @@ class ExperimentStore:
                 key, tu.session_key, tu.project_key, tu.message_key,
                 tu.tool_use_id, tu.tool_name, _json(tu.tool_input), tu.is_error,
                 tu.result_text, tu.sequence_num, tu.occurred_at,
+                tu.tenant_key or self._default_tenant_key,
                 tu.record_source, tu.etl_run_id,
             ])
         if params:
             self.con.executemany(
                 """INSERT INTO fact_tool_use (tool_use_key, session_key, project_key,
                    message_key, tool_use_id, tool_name, tool_input, is_error,
-                   result_text, sequence_num, occurred_at, record_source, etl_run_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   result_text, sequence_num, occurred_at, tenant_key,
+                   record_source, etl_run_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 params,
             )
         return len(params)
@@ -1311,13 +1406,14 @@ class ExperimentStore:
             """INSERT INTO fact_session_facets (facet_row_key, session_key,
                facet_type_key, facet_id, prompt_version, value_text, value_numeric,
                value_bool, value_json, is_fallback, extraction_metadata,
-               record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, facet.session_key, facet_type_key, facet.facet_id,
              facet.prompt_version, facet.value_text, facet.value_numeric,
              facet.value_bool, _json(facet.value_json), facet.is_fallback,
-             _json(facet.extraction_metadata), facet.record_source,
-             facet.etl_run_id],
+             _json(facet.extraction_metadata),
+             facet.tenant_key or self._default_tenant_key,
+             facet.record_source, facet.etl_run_id],
         )
         return key
 
@@ -1349,11 +1445,12 @@ class ExperimentStore:
         self.con.execute(
             """INSERT INTO fact_finding (finding_key, finding_type, finding_type_key,
                scope, project_key, evidence_session_keys, occurrence_count, summary,
-               record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, finding.finding_type, ft.finding_type_key, finding.scope,
              finding.project_key, _json(finding.evidence_session_keys),
              finding.occurrence_count, finding.summary,
+             finding.tenant_key or self._default_tenant_key,
              finding.record_source, finding.etl_run_id],
         )
         return key
@@ -1395,12 +1492,13 @@ class ExperimentStore:
         self.con.execute(
             """INSERT INTO fact_proposal (proposal_key, target_dimension, target_key,
                target_natural_key, proposed_content, proposed_version, status,
-               evidence_finding_keys, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               evidence_finding_keys, tenant_key, record_source, etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, proposal.target_dimension, proposal.target_key,
              _json(proposal.target_natural_key), proposal.proposed_content,
              proposal.proposed_version, proposal.status,
              _json(proposal.evidence_finding_keys),
+             proposal.tenant_key or self._default_tenant_key,
              proposal.record_source, proposal.etl_run_id],
         )
         return key
@@ -1448,12 +1546,14 @@ class ExperimentStore:
         if p.status != ProposalStatus.PENDING:
             raise ValueError(f"Proposal {proposal_key} is not pending ({p.status.value})")
         nk = p.target_natural_key or {}
+        tenant_id = nk.get("tenant_id", "default")
 
         if p.target_dimension == TargetDimension.DIM_RULE:
             if not nk.get("name"):
                 raise ValueError("Rule proposal requires target_natural_key.name")
             result_key = self.insert_rule(Rule(
                 name=nk["name"],
+                tenant_id=tenant_id,
                 scope=RuleScope(nk.get("scope", RuleScope.GLOBAL.value)),
                 domain=nk.get("domain"),
                 priority=nk.get("priority", 0),
@@ -1465,10 +1565,11 @@ class ExperimentStore:
             if not nk.get("domain") or not nk.get("task_type"):
                 raise ValueError(
                     "Skill proposal requires target_natural_key.domain and .task_type")
-            current = self.get_skill(dimension_key(nk["domain"], nk["task_type"]))
+            current = self.get_skill(dimension_key(tenant_id, nk["domain"], nk["task_type"]))
             version = p.proposed_version or (current.version + 1 if current else 1)
             result_key = self.insert_skill(Skill(
                 domain=nk["domain"], task_type=nk["task_type"], version=version,
+                tenant_id=tenant_id,
                 content=p.proposed_content, status=SkillStatus.ACTIVE,
                 origin=SkillOrigin.DATA_DERIVED,
                 record_source=RecordSource.DERIVED,
@@ -1481,6 +1582,7 @@ class ExperimentStore:
                     "with a strategy field")
             result_key = self.insert_sampling_config(SamplingConfig(
                 domain=nk.get("domain"), task_type=nk.get("task_type"),
+                tenant_id=tenant_id,
                 strategy=SamplingStrategy(cfg["strategy"]),
                 parameters=cfg.get("parameters", {}),
                 max_samples=cfg.get("max_samples", 3),

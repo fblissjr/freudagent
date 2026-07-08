@@ -35,13 +35,13 @@ def _columns(con, table: str) -> set[str]:
 
 
 DIMS = {"dim_skill", "dim_source", "dim_rule", "dim_sampling_config"}
-REGISTRIES = {"dim_project", "dim_facet_type", "dim_finding_type"}
+REGISTRIES = {"dim_project", "dim_tenant", "dim_facet_type", "dim_finding_type"}
 FACTS = {
     "fact_session", "fact_trace", "fact_extraction", "fact_feedback",
     "fact_trace_feedback", "fact_message", "fact_tool_use",
     "fact_session_facets", "fact_finding", "fact_proposal",
 }
-META = {"meta_schema_version", "meta_load_log"}
+META = {"meta_schema_version", "meta_load_log", "meta_key_algorithm"}
 
 
 class TestTableInventory:

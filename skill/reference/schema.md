@@ -1,6 +1,6 @@
 # DuckDB Schema Reference
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 Full schema for the FreudAgent experiment harness (v0.17.0 meta-harness model).
 Use the `duckdb` MCP tools for ad-hoc queries. See `.claude/skills/db-query.md`
@@ -12,17 +12,21 @@ for common query patterns and enum values.
   the store layer via `_require()` (or a denormalization fetch that validates as a
   side effect). Orphaned keys are impossible in practice because all writes go
   through `ExperimentStore`.
-- **MD5 hash surrogate keys, no sequences.** Every key is `keys.dimension_key(...)`
-  -- an MD5 hex hash of pipe-joined natural-key parts (`None` maps to a `"-1"`
-  sentinel). Keys are deterministic: any consumer can compute a row's key without
-  a lookup. This is what makes transcript re-ingestion idempotent -- re-ingesting
-  the same file recomputes the same keys and skips rows that already exist.
+- **sha256/32 hash surrogate keys, no sequences.** Every key is
+  `keys.dimension_key(...)` -- a SHA-256 hex hash of pipe-joined natural-key
+  parts, truncated to 32 chars (`None` maps to a `"-1"` sentinel; same length
+  as the MD5 hex scheme it replaced in v0.23). Keys are deterministic: any
+  consumer can compute a row's key without a lookup. This is what makes
+  transcript re-ingestion idempotent -- re-ingesting the same file recomputes
+  the same keys and skips rows that already exist. `meta_key_algorithm`
+  records the active scheme (`sha256/32`) so a database self-describes it.
 - **SCD Type 2 on the four core dimensions** (`dim_skill`, `dim_source`, `dim_rule`,
   `dim_sampling_config`). An attribute change closes the current row
   (`effective_to`, `is_current = false`) and inserts a new current row. Rows never
   mutate. `updated_at` does not exist -- `effective_from`/`effective_to` carry that
-  information.
-- **Registry dimensions, no SCD-2** (`dim_project`, `dim_facet_type`,
+  information. Since v0.23 (M3) their natural keys lead with `tenant_id`, so two
+  tenants can hold the "same" entity without collision.
+- **Registry dimensions, no SCD-2** (`dim_project`, `dim_tenant`, `dim_facet_type`,
   `dim_finding_type`). Append-only reference data whose identity doesn't evolve
   the way a skill's or rule's content does.
 - **Lineage envelope on every fact table**: `record_source` (CHECK-constrained
@@ -34,17 +38,21 @@ for common query patterns and enum values.
 
 ## Key Scheme
 
-Every key is `dimension_key(*parts)` -- MD5 hex of the pipe-joined parts. This
-table is the natural-key recipe per entity (see `insert_*` methods in `store.py`
-for the authoritative source):
+Every key is `dimension_key(*parts)` -- SHA-256 hex of the pipe-joined parts,
+truncated to 32 chars (`keys.KEY_ALGORITHM = "sha256/32"`). This table is the
+natural-key recipe per entity (see `insert_*` methods in `store.py` for the
+authoritative source). The four core SCD-2 dims lead with `tenant_id` (v0.23,
+M3) -- a tenant scopes identity, so `dim_skill` for `("team-a", "x", "y")` and
+`("team-b", "x", "y")` are different rows:
 
 | Table | Natural key | Notes |
 |-------|-------------|-------|
-| `dim_skill` | `(domain, task_type)` | All SCD-2 versions of a skill share this key |
-| `dim_source` | `(content_path,)` | |
-| `dim_rule` | `(name,)` | `name` is also the compile target filename |
-| `dim_sampling_config` | `(domain, task_type)` | NULL-safe (global configs have both NULL) |
+| `dim_skill` | `(tenant_id, domain, task_type)` | All SCD-2 versions of a skill share this key |
+| `dim_source` | `(tenant_id, content_path)` | |
+| `dim_rule` | `(tenant_id, name)` | `name` is also the compile target filename |
+| `dim_sampling_config` | `(tenant_id, domain, task_type)` | NULL-safe (global configs have both NULL) |
 | `dim_project` | `(project_path,)` | |
+| `dim_tenant` | `(tenant_id,)` | Not itself tenant-scoped -- it's the tenant registry |
 | `dim_facet_type` | `(facet_id, prompt_version)` | Bumping the prompt version adds a row, never overwrites |
 | `dim_finding_type` | `(finding_type,)` | |
 | `fact_session` | `(record_source, native_session_id)` | Re-ingesting the same transcript resolves to the same key |
@@ -59,8 +67,9 @@ for the authoritative source):
 | `fact_proposal` | `(target_dimension, target_key, uuid4())` | uuid-salted |
 
 Writing raw SQL (MCP tools, not the store layer)? Replicate `dimension_key()` with
-DuckDB's `md5()`: `md5(part1 || '|' || part2 || ...)`, substituting `'-1'` for any
-NULL part. Verified equivalent to `keys.dimension_key()` for the same inputs.
+DuckDB's `sha256()`: `substring(sha256(part1 || '|' || part2 || ...), 1, 32)`,
+substituting `'-1'` for any NULL part. Verified equivalent to
+`keys.dimension_key()` for the same inputs.
 
 ## SCD-2 Columns (dim_skill, dim_source, dim_rule, dim_sampling_config)
 
@@ -82,6 +91,7 @@ Query current state with `WHERE is_current`; query history with
 
 | Column | Type | Notes |
 |--------|------|-------|
+| tenant_key | VARCHAR | Denormalized `dim_tenant` reference (fact tables only, since v0.23/M3). Resolved from the linked skill's tenant when a skill is denormalized onto the fact, else from the model's own `tenant_key` or the default tenant |
 | record_source | VARCHAR | `native`, `transcript_ingest`, `history_jsonl`, `derived` |
 | etl_run_id | VARCHAR | Joins `meta_load_log`; NULL for rows not part of a tracked run. Registry dimensions and `meta_load_log` itself have `record_source` but no `etl_run_id`. |
 | created_at | TIMESTAMP | Row insert time |
@@ -89,11 +99,12 @@ Query current state with `WHERE is_current`; query history with
 ## Dimension Tables (SCD Type 2)
 
 ### dim_skill
-Declarative instructions loaded at runtime. Entity key: `(domain, task_type)`.
+Declarative instructions loaded at runtime. Entity key: `(tenant_id, domain, task_type)`.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| skill_key | VARCHAR | `dimension_key(domain, task_type)` |
+| skill_key | VARCHAR | `dimension_key(tenant_id, domain, task_type)` |
+| tenant_id | VARCHAR DEFAULT 'default' | Scopes identity (v0.23/M3) -- two tenants can hold the same (domain, task_type) |
 | domain | VARCHAR NOT NULL | e.g., "insurance", "arxiv" |
 | task_type | VARCHAR NOT NULL | e.g., "extraction", "validation" |
 | version | INTEGER DEFAULT 1 | Monotonic per entity -- a new insert must exceed the current version |
@@ -109,11 +120,12 @@ Status changes (activate/deprecate) are SCD-2 evolutions, not in-place updates -
 they close the current row and insert a copy with the new status.
 
 ### dim_source
-Raw artifacts to process. Entity key: `(content_path,)`.
+Raw artifacts to process. Entity key: `(tenant_id, content_path)`.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| source_key | VARCHAR | `dimension_key(content_path)` |
+| source_key | VARCHAR | `dimension_key(tenant_id, content_path)` |
+| tenant_id | VARCHAR DEFAULT 'default' | Scopes identity (v0.23/M3) |
 | content_path | VARCHAR NOT NULL | File path or object store reference |
 | media_type | VARCHAR NOT NULL | MIME type (application/pdf, text/plain) |
 | metadata | JSON | Optional domain metadata |
@@ -126,11 +138,12 @@ Raw artifacts to process. Entity key: `(content_path,)`.
 a no-op; a changed one evolves the SCD-2 row.
 
 ### dim_rule
-Constraints applied globally or per-domain, priority-ordered. Entity key: `(name,)`.
+Constraints applied globally or per-domain, priority-ordered. Entity key: `(tenant_id, name)`.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| rule_key | VARCHAR | `dimension_key(name)` |
+| rule_key | VARCHAR | `dimension_key(tenant_id, name)` |
+| tenant_id | VARCHAR DEFAULT 'default' | Scopes identity (v0.23/M3); `compile_rules()` compiles one tenant's rules per run |
 | name | VARCHAR NOT NULL | Stable identity; also the compile target filename (`.claude/rules/<name>.md`) |
 | scope | VARCHAR | global, domain-specific |
 | domain | VARCHAR | NULL for global rules |
@@ -144,12 +157,13 @@ beyond their row id, which made deterministic keying impossible. `rule add` now
 requires `--name`.
 
 ### dim_sampling_config
-Prior run sampling settings for pattern detection. Entity key: `(domain, task_type)`,
-NULL-safe.
+Prior run sampling settings for pattern detection. Entity key:
+`(tenant_id, domain, task_type)`, NULL-safe.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| config_key | VARCHAR | `dimension_key(domain, task_type)` |
+| config_key | VARCHAR | `dimension_key(tenant_id, domain, task_type)` |
+| tenant_id | VARCHAR DEFAULT 'default' | Scopes identity (v0.23/M3) |
 | domain | VARCHAR | Skill domain (NULL for global configs) |
 | task_type | VARCHAR | Skill task type (NULL for global configs) |
 | strategy | VARCHAR | recent, random, stratified_outcome, stratified_feedback, high_feedback |
@@ -173,6 +187,19 @@ instead of a cross-database merge. Entity key: `(project_path,)`.
 | project_path | VARCHAR NOT NULL | Filesystem path identifying the project |
 | project_name | VARCHAR | Human-readable label |
 | first_seen_at | TIMESTAMP | When this project was first registered |
+| record_source | VARCHAR | Lineage |
+| created_at | TIMESTAMP | |
+
+### dim_tenant
+Conformed tenant dimension (v0.23/M3) -- what makes the four core SCD-2 dims
+tenant-scoped instead of single-namespace. Entity key: `(tenant_id,)`.
+Seeded with a `default` tenant at `init_schema()`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| tenant_key | VARCHAR | `dimension_key(tenant_id)` |
+| tenant_id | VARCHAR NOT NULL | e.g., "default", "team-a" |
+| display_name | VARCHAR | Human-readable label |
 | record_source | VARCHAR | Lineage |
 | created_at | TIMESTAMP | |
 
@@ -484,8 +511,9 @@ CHECK constraint -- see the "Registry Dimensions" section above for why.
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Schema version tracking (version, description). Seeded on `db init`. Currently version 4. |
+| `meta_schema_version` | Schema version tracking (version, description). Seeded on `db init`. Currently version 6. |
 | `meta_load_log` | One row per ingest/compile run. `start_load_run()` opens a row and returns `etl_run_id`; `complete_load_run()` closes it with row counts and an optional error. |
+| `meta_key_algorithm` | Single-row self-description of the active key scheme (`algorithm`, `recorded_at`). Seeded with `keys.KEY_ALGORITHM` (`sha256/32`) on `db init`. |
 
 ## Common Queries
 

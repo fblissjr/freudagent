@@ -15,9 +15,10 @@ def assemble_runner_context(
 ) -> tuple[str, str]:
 ```
 
-`skill_key` and `source_keys` are MD5 hash keys (`keys.dimension_key()`), not
+`skill_key` and `source_keys` are sha256/32 hash keys (`keys.dimension_key()`), not
 integers -- the v0.17.0 key migration renamed every id-shaped parameter and
-column in the schema.
+column in the schema (the hash algorithm itself moved from MD5 to sha256/32 in
+v0.23, same 32-char length, no further parameter/column changes).
 
 ## Layer Stack
 
@@ -52,7 +53,7 @@ Example: "Extract policy number, effective date, and named insureds from insuran
 References to the raw artifacts to process, rendered as source tags:
 `<source id="a1b2c3..." type="application/pdf" path="/data/policy.pdf" />`
 
-`id` is the source's MD5 hash key (`source_key`), not a sequence number --
+`id` is the source's sha256/32 hash key (`source_key`), not a sequence number --
 `parse_source_tags()` accepts any non-empty id string, not just digits.
 
 The RLM provider resolves these tags into actual file content. Other providers

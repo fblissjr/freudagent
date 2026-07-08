@@ -165,7 +165,7 @@ def test_check_constraint_rejects_invalid_insert(store):
 def test_insert_and_get_skill(store):
     skill = Skill(domain="arxiv", task_type="extraction", content="Extract papers")
     skill_key = store.insert_skill(skill)
-    assert skill_key == dimension_key("arxiv", "extraction")
+    assert skill_key == dimension_key("default", "arxiv", "extraction")
     fetched = store.get_skill(skill_key)
     assert fetched is not None
     assert fetched.domain == "arxiv"
@@ -236,7 +236,7 @@ def test_get_active_sub_skills(store):
 def test_insert_and_get_source(store):
     source = Source(content_path="/tmp/test.pdf", media_type="application/pdf")
     source_key = store.insert_source(source)
-    assert source_key == dimension_key("/tmp/test.pdf")
+    assert source_key == dimension_key("default", "/tmp/test.pdf")
     fetched = store.get_source(source_key)
     assert fetched.content_path == "/tmp/test.pdf"
 
@@ -902,7 +902,7 @@ def test_cli_skill_deprecate(tmp_path):
     from freud_schema.cli import main
     db = str(tmp_path / "test.duckdb")
     main(["--db", db, "skill", "add", "--domain", "d", "--task-type", "t", "--content", "c"])
-    skill_key = dimension_key("d", "t")
+    skill_key = dimension_key("default", "d", "t")
     main(["--db", db, "skill", "deprecate", skill_key[:8]])
 
 
@@ -954,8 +954,8 @@ def test_cli_feedback_add(tmp_path):
     # Insert a session and extraction via store (CLI doesn't expose session/extraction add)
     from freud_schema.db import connect
     from freud_schema.store import ExperimentStore
-    skill_key = dimension_key("d", "t")
-    source_key = dimension_key("/f")
+    skill_key = dimension_key("default", "d", "t")
+    source_key = dimension_key("default", "/f")
     with ExperimentStore(connect(db)) as store:
         session_key = store.insert_session(Session(task_description="t", task_type="t"))
         extraction_key = store.insert_extraction(Extraction(
