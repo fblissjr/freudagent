@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.21.0
+version: 0.22.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,7 +37,7 @@ scope:
 
 # FreudAgent Data Layer
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness

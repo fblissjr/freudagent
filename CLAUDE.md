@@ -157,6 +157,12 @@ Schema docs: `.claude/skills/db-query.md`
   Do NOT build migration machinery or data-preservation paths. Git history of code and
   git-tracked artifacts is the only history that matters. If this ever changes, the owner
   will say so explicitly.
+- Standard schema-change recipe: edit DDL in db.py (register new tables in `ALL_TABLES`
+  and the `reset_schema()` drop list, new views in `ALL_VIEWS`, bump `_SCHEMA_VERSIONS`
+  on breaking change) -> reset (`db reset` from the CLI, or `reset_schema()`'s DDL via
+  `execute_query` when the MCP server holds the lock) -> `ingest transcripts` ->
+  `couch run` -> recreate whatever native test rows (skills/rules/feedback/proposals)
+  the current experiment needs
 - New tables must be added to `reset_schema()` drop list (order matters: dependents first)
 - DDL stored as `list[str]` (one statement per element, no semicolon splitting)
 

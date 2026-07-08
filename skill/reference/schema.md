@@ -549,3 +549,6 @@ FROM meta_load_log ORDER BY started_at DESC LIMIT 10;
 - For a fresh schema: `freud-schema db reset`
 - CLI commands that take a key argument accept a full key or a unique prefix
   (git-short-hash style), resolved via `store.resolve_key()`
+- Schema changes never migrate data (explicit policy -- see CLAUDE.md): edit the DDL in
+  db.py, reset, re-ingest. Deterministic keys make re-ingest idempotent; native rows
+  (skills, rules, feedback, proposals) are disposable test data, recreated as needed

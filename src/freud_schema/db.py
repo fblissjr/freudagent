@@ -26,7 +26,8 @@ Fact tables carry denormalized dimension attributes at insert time,
 eliminating fact-to-fact joins. No FK constraints (DuckDB can't CASCADE
 anyway); existence validation lives in the store layer. Tables are
 created via CREATE TABLE IF NOT EXISTS; breaking changes go through
-reset_schema() -- no migration path, this is an experiment repo.
+reset_schema() + re-ingest -- no migration path, by explicit policy
+(see CLAUDE.md): research repo, disposable warehouse data.
 
 DDL is stored as lists of individual statements (not multi-statement
 strings) so there is no semicolon-splitting anywhere. Semicolons only
@@ -539,6 +540,9 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_meta_load_log_run ON meta_load_log(etl_run_id)",
 ]
 
+# A plain changelog of what the current DDL is -- bump on breaking change.
+# NOT a migration ledger: there is no migration path by explicit policy
+# (see CLAUDE.md); existing databases are reset_schema()'d and re-ingested.
 _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (1, "Initial 6-table schema"),
     (2, "10-table schema: traces, trace_feedback, sampling_configs + indexes + cascades"),
