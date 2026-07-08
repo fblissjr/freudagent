@@ -344,9 +344,11 @@ visual surfaces over the store.
 - **Phase 2 before scale**: a warehouse that was ever dirty stays a
   liability. Redaction retrofits require reprocessing everything ingested
   before it.
-- **Phase 3 and 4 in parallel after 1–2**: retrieval serves consumers;
-  lifecycle serves maintainers. They share no schema surface and can proceed
-  independently.
+- **Phase 3 after Phase 1; Phase 4 after Phases 1–2**: retrieval serves
+  consumers and needs only the substrate; lifecycle serves maintainers and
+  additionally needs Phase 2's ingest and identity work. They proceed
+  independently — the one touchpoint is that retrieval's corpus adds
+  Phase 4's cases after that table exists.
 - **Phase 5 before scaling approvals**: the verification gate is what makes
   a larger reviewer pool safe. Adding reviewers before adding regression
   detection scales drift, not quality.

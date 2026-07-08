@@ -62,8 +62,9 @@ restated here because several milestones are large enough to tempt shortcuts.
 | M14 | Serving layer + widened feedback | 6 | L | M8, M10, M13 |
 
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
-work). The order within tracks matters; tracks C (M8–M10) and D (M11–M12)
-can run in parallel after the substrate track lands.
+work). The order within tracks matters. Track C (M8–M10) can start once the
+substrate track lands; Track D additionally needs M5 and M7 from Track B
+(see the dependency column). The two tracks then proceed in parallel.
 
 Rationale for the two counterintuitive orderings, from the roadmap: M1
 (migrations) precedes everything because every later milestone alters schema
@@ -132,10 +133,12 @@ decays fastest).
   current active `dim_source` whose `content_path` exists, recompute the
   content hash and compare to `source_hash`; emit a `stale_source` finding
   (evidence: the source key, summary built from path basename + age only —
-  privacy rules apply). Registered in the deterministic layer of
-  `SQL_FINDING_TYPES`-style registry seeding. Because hashing reads the
-  filesystem rather than the warehouse, it runs in `run_couch()` but is
-  skippable via parameter for warehouse-only runs.
+  privacy rules apply). Registered with `detection_method = hybrid` — the
+  existing enum member fits: the detector reads both the warehouse
+  (registered sources) and the filesystem (current bytes), so it is neither
+  pure SQL nor LLM, and a `stale_source` finding is not reproducible from
+  the warehouse alone. Because hashing reads the filesystem, it runs in
+  `run_couch()` but is skippable via parameter for warehouse-only runs.
 - `source add` gains `--hash` (compute and store `source_hash` at
   registration) so the detector has a baseline; tutorial uses it.
 
@@ -156,8 +159,12 @@ make the algorithm itself versioned so this never has to be a crisis again.
   or prefix-resolution changes. Add module constant `KEY_ALGORITHM =
   "sha256/32"` and record it in a new `meta_key_algorithm` single-row table
   (created by the M1 migration) so a database self-describes its key scheme.
-- Rekey migration (`data_fn`): recompute every key from natural keys stored
-  on the rows themselves, in dependency order:
+- Rekey migration (`data_fn`), shipped as **one combined pass with M3's
+  tenancy component** — two consecutive full-warehouse rekeys would double
+  the cross-reference risk for no benefit, and tenancy is known up front,
+  so the single migration computes SHA-256 keys with the tenant component
+  already in the natural key. It recomputes every key from natural keys
+  stored on the rows themselves, in dependency order:
   - dims: skill (`domain|task_type`), rule (`name`), source (`content_path`),
     sampling config, project (`project_path`), facet/finding types.
   - facts: sessions (`record_source|native_session_id` via
@@ -196,8 +203,9 @@ collision, and conflicting knowledge is handled by scoping.
   Migration seeds the `default` tenant and backfills every existing row.
 - Natural keys grow a leading tenant component: skill =
   `tenant|domain|task_type`, rule = `tenant|name`, source =
-  `tenant|content_path`. This is a second rekey — which is why M3 rides
-  immediately behind M2 and reuses its old→new map machinery.
+  `tenant|content_path`. This is NOT a second rekey — the single combined
+  migration built in M2 computes SHA-256 keys with the tenant component
+  included in one pass, which is why M3 rides immediately behind M2.
 - Store: `ensure_tenant()`, tenant parameter (default `"default"`) threaded
   through `insert_*`, `get_active_skill`, `get_rules`, `resolve_key`
   (prefix resolution scopes to tenant), and the aggregate/query methods.
@@ -232,6 +240,12 @@ swappable behind the store layer.
   stays a single file so nothing breaks for the single-operator case).
   `ALL_TABLES` gains a store-affinity map used by `db status`, backup
   tooling, and retention.
+- Cross-store denormalization gets a defined protocol: `_resolve_skill_attrs`
+  reads `dim_skill` (knowledge store) during telemetry-fact inserts, so the
+  store resolves attributes on the knowledge connection **first**, then opens
+  the telemetry transaction and inserts. No cross-connection transaction is
+  attempted; a resolution failure aborts before any telemetry write, so
+  facts are never written with unresolved attributes.
 - Retention hooks: `store.prune_telemetry(before: datetime)` deletes
   telemetry facts older than a horizon, wrapped in `load_run` (knowledge
   tables are never pruned).
@@ -350,8 +364,11 @@ scoping becomes enforceable.
 - `tables.py`: `PrincipalKind` and `GrantAction` enums; models.
 - Store: `ensure_principal`, `add_grant`, `check_grant(principal, action,
   tenant, domain) -> bool`. Enforcement is **opt-in by configuration** — a
-  `meta_policy` row (`strict_identity: bool`, default false) so the
-  single-operator mode keeps working with free-text names. When strict:
+  `meta_policy` table keyed by `(tenant_key, policy_name)`, introduced here
+  with a single default-tenant row (`strict_identity`, default false) so the
+  single-operator mode keeps working with free-text names. M13 reuses the
+  same shape for per-tenant eval policy rows — the grain is per-tenant from
+  day one, no later migration. When strict:
   `approve_proposal`/`reject_proposal` require `reviewed_by` to resolve to a
   principal holding `approve` for the proposal's tenant; `update_validation`
   requires `validate`; violations raise before any write.
@@ -380,7 +397,8 @@ ranked query surface over every knowledge unit.
 **Changes**
 - New module `src/freud_schema/retrieval.py`:
   - **Unit registry**: what is retrievable = current active skills and rules,
-    validated extractions, open cases/findings — each contributing
+    validated extractions, and findings (open cases join the corpus as a
+    post-M11 wiring task — not an M8 dependency) — each contributing
     `(unit_key, unit_kind, tenant_key, domain, title, body)` via store
     queries (no new tables for the corpus; retrieval reads the dims/facts).
   - **Lexical index**: DuckDB FTS extension (`PRAGMA create_fts_index`) over
@@ -484,8 +502,9 @@ is the default human entry point.
 **Changes**
 - `tables.py`: `CaseStatus` enum (open | triaged | addressed | verified |
   closed) and `Case` model.
-- New table `fact_case` — an accumulating snapshot like `fact_session`
-  (the one existing precedent for in-place updates):
+- New table `fact_case` — an accumulating snapshot in the `fact_session`
+  pattern (facts stay append-only except accumulating snapshots and
+  review-state updates such as `fact_proposal`'s status fields):
   - `case_key = dimension_key(tenant_key, finding_type, scope, project_key,
     signature)` where `signature` is the finding's stable discriminator
     (e.g. tool name for retry loops) — new named recipe `case_key_for(...)`.
@@ -576,16 +595,21 @@ holdout inputs — that's where model calls live.
   - `fact_eval_result` (optional per-item detail): `eval_run_key`,
     `extraction_key`, `field_diffs JSON`, `matched BOOLEAN`.
 - Store:
-  - `build_holdout(skill_key, *, limit, exclude_feedback_sessions=True)` —
-    validated extractions + their source references, excluding items whose
-    corrections fed the candidate (no training-on-test).
+  - `build_holdout(skill_key, *, proposal_key, limit,
+    exclude_feedback_sessions=True)` — returns two splits. **Held-in** is
+    derived from the proposal's evidence chain (evidence findings → their
+    cases' evidence sessions → those sessions' validated extractions for the
+    target skill); **held-out** is general validated history. Both exclude
+    items whose corrections fed the candidate (no training-on-test), and an
+    empty held-in set fails the gate rather than passing vacuously.
   - `score_extraction(candidate_output, validated_output) -> FieldScore` —
     deterministic field-level comparison (exact / normalized / missing /
     spurious), pure function, unit-testable in isolation.
   - `start_eval_run` / `record_eval_result` / `complete_eval_run` (computes
     aggregate metrics, sets passed/failed against thresholds stored in
-    `metrics_policy` — a `dim_finding_type.parameters`-style JSON on a new
-    `meta_policy` row per tenant: minimum accuracy, maximum regression).
+    per-tenant `meta_policy` rows — the `(tenant_key, policy_name)` table
+    M7 introduces: minimum held-in improvement, maximum held-out
+    regression).
   - **The gate**: `approve_proposal` — when policy `require_eval` is on for
     the target dimension — requires a `passed` eval run referencing the
     proposal; otherwise raises before any write. Fail-closed like the
@@ -604,9 +628,11 @@ holdout inputs — that's where model calls live.
   the harness-side execution documented as a project skill recipe;
   `docs/tutorial-flywheel.md` extended with the gated approve.
 
-**Tests**: holdout excludes feedback-linked items; scoring function golden
-tests (every diff class); gate blocks approval without a passed run and
-admits with one; regression thresholds flip pass→fail; `v_flywheel_health`
+**Tests**: holdout excludes feedback-linked items; held-in membership
+derives from the proposal's evidence chain and an empty held-in split fails
+the gate; scoring function golden tests (every diff class); gate blocks
+approval without a passed run and admits with one; held-in improvement and
+held-out regression thresholds each flip pass→fail; `v_flywheel_health`
 numbers match hand computation on a fixture.
 
 **Done when**: the flywheel tutorial's approve step fails without an eval
@@ -698,7 +724,7 @@ These don't get milestone numbers; they get enforced at every milestone.
 
 | Risk | Where | Mitigation |
 |------|-------|------------|
-| Rekey migrations (M2, M3) corrupt cross-references | JSON key lists in findings/proposals/sessions | Old→new map built once, applied everywhere; migration test with deliberately cross-referenced fixture; refuse-to-rerun guard |
+| The combined M2+M3 rekey migration corrupts cross-references | JSON key lists in findings/proposals/sessions | Single pass (one rekey, not two); old→new map built once, applied everywhere; migration test with deliberately cross-referenced fixture; refuse-to-rerun guard |
 | Backend split (M4) stalls on dialect drift | Analytical views, JSON ops | Postgres scope limited to the knowledge store (small SQL surface); telemetry stays DuckDB; parameterized backend test matrix |
 | FTS/VSS extension availability varies by platform | M8 | Lexical index required, vector optional; brute-force cosine fallback; zero-extension test path in CI |
 | Eval gate (M13) creates approval friction that tempts bypass | Human workflow | Gate is per-tenant policy, off by default until holdout sets exist; `require_eval` turns on per dimension; auto-approve stays risk-capped |
@@ -710,33 +736,51 @@ These don't get milestone numbers; they get enforced at every milestone.
 A pre-execution research pass ([research-agent-data-representation.md](research-agent-data-representation.md))
 confirmed the architecture and produced six amendments. They modify the
 milestones above as follows; where an amendment conflicts with earlier text
-in this document, the amendment wins.
+in this document, the amendment wins. Paper-sourced details cited below are
+author-claimed (verified abstracts and author READMEs, not full texts) —
+see the research doc's sourcing note.
 
 1. **M11 — root-cause-typed findings.** `fact_finding`/`fact_case` gain
    `terminal_cause`, `causal_status`, and `mechanism` fields. SQL detectors
    leave them null (symptoms); the LLM analysis layer fills them (mechanisms).
-   Case signatures may incorporate mechanism once populated. Source:
+   Mechanism never enters the case signature — case identity is fixed at
+   detection time, and mechanism is an enrichment attribute on the
+   case/finding. Signature definitions change only by a deliberate version
+   bump in `dim_finding_type.parameters`, which opens new cases by design.
+   Source:
    Self-Harness (arXiv:2606.09498) failure-record structure — surface-identical
    failures can have different causal mechanisms.
-2. **M13 — two-sided eval gate.** `build_holdout` produces held-in (items
-   exhibiting the targeted weakness) and held-out (general validated
-   history) splits; `complete_eval_run` passes only on held-in improvement
-   AND held-out non-regression. Source: Self-Harness acceptance rule.
+2. **M13 — two-sided eval gate.** `build_holdout` produces held-in and
+   held-out splits; `complete_eval_run` passes only on held-in improvement
+   AND held-out non-regression. Held-in membership is derived, not
+   hand-tagged: proposal → evidence findings → their cases' evidence
+   sessions → those sessions' validated extractions for the target skill;
+   an empty held-in set fails the gate (fail-closed). M13's body reflects
+   this. Source: Self-Harness acceptance rule.
 3. **M12/M13 — typed evidence links.** Proposal evidence references become
-   `{key, claim_kind}` pairs — claim kinds (numerical, methodological,
-   conclusion) live in an open-vocabulary registry. The approval path
-   verifies each claim kind against its cited rows before the gate.
+   `{key, claim_kind}` pairs — claim kinds live in an open-vocabulary
+   registry seeded with four: **reference** (the cited row exists and
+   supports the statement — ScientistOne's citation claim adapted to
+   internal evidence), **numerical**, **methodological**, and
+   **conclusion**. The approval path verifies each claim kind against its
+   cited rows before the gate.
    Source: ScientistOne (arXiv:2605.26340) Chain-of-Evidence.
 4. **M9 — selection operators as data.** Activation conditions are the
    first step of an MCE-style ρ/F split (arXiv:2601.21557): skill content
    (ρ) and selection/retrieval/composition operators (F) both versioned,
-   both evolvable via proposals. M9's JSON contract gains an
-   `operators` field reserved for named, registry-validated operator
-   specs; full operator evolution is a post-M9 extension, but the schema
-   shape is decided now.
-5. **M8 — retrieval priority reordered.** Required core = lexical search
-   plus structured-metadata ranking (status boosts, eval scores from M13,
-   usage signals from M14). Embeddings stay optional and move last in the
+   both evolvable via proposals. M9 reserves only the top-level `operators`
+   key name in the JSON contract, and M9's validator **rejects any use of
+   it** (fail-closed) until a later milestone defines the operator registry
+   and semantics — the name is reserved so skills never squat on it, but no
+   shape is guessed in advance.
+5. **M8 — retrieval priority reordered.** Required core at M8 ship time =
+   lexical search plus structured-metadata ranking over data that exists
+   then (current/active and validation-status boosts). Eval-score boosts
+   (M13) and usage-signal boosts (M14) wire into the same fusion when those
+   milestones land — each gains that integration task; they are later
+   enhancements to M8's ranking, not M8 dependencies, so the milestone
+   map's dependency column is unchanged and M14's "optional usage-signal
+   boost" is that task. Embeddings stay optional and move last in the
    fusion order. Rationale: both the meta-context literature and production
    harnesses select via structured metadata and agentic lexical search
    first; embeddings earn their place only for large fuzzy corpora.

@@ -51,10 +51,16 @@ Directly load-bearing claims for this project:
   self-improvement loop with "held-out tests, trace audits, and human review
   at decision points that matter" (challenge 5); humans "move up the stack,
   not be removed" (challenge 7).
-- One warning to internalize: STOP (Zelikman et al. 2023) showed recursive
-  improvement *degraded* with weaker base models. Flywheel-critical judgment
-  (weakness analysis, proposal drafting, eval interpretation) must stay on
-  the strongest model tier; only mechanical transforms delegate down.
+- One warning to internalize: per Weng's summary of STOP (Zelikman et al.,
+  COLM 2024), recursive improvement improved with GPT-4 but *degraded* with
+  weaker base models (GPT-3.5, Mixtral). Caveat: the original arXiv version
+  of STOP reports GPT-4-only experiments and we could not verify the
+  weaker-model result against a primary text (the same phenomenon is
+  independently reported by "Mind the Gap," arXiv:2412.02674) — the
+  directional lesson rests on converging evidence, not one confirmed
+  experiment. Flywheel-critical judgment (weakness analysis, proposal
+  drafting, eval interpretation) must stay on the strongest model tier;
+  only mechanical transforms delegate down.
 
 ### ACE — incremental structured entries beat document rewrites
 
@@ -244,10 +250,10 @@ niche for this use. Vision models are treated as *converters to text*, not a
 reason to keep knowledge in pixels.
 
 **Structured systems and APIs.** The strongest evidence of any category:
-semantic layers beat raw text-to-SQL decisively (dbt reports near-100%
-accuracy for covered queries via its semantic layer vs. 83% raw text-to-SQL;
-Spider 2.0 under agentic evaluation drops to ~21%, enterprise variants
-lower). The working pattern: governed metric/entity definitions exposed via
+semantic layers beat raw text-to-SQL decisively (dbt's own benchmark
+reports large per-model gains for covered queries via its semantic layer —
+pairs like 84%→100% — over raw text-to-SQL; Spider 2.0 under agentic
+evaluation drops to ~21%, enterprise variants lower). The working pattern: governed metric/entity definitions exposed via
 MCP; schema cards with column descriptions and sample values *as data*;
 access rules compiled before query execution. For agents: purpose-built
 query tools over raw SQL access; token-shaped results (CSV over JSON,
@@ -289,18 +295,23 @@ the Research-Review Amendments section; recorded here with their rationale.
    mechanisms. (Self-Harness failure-record structure.)
 2. **Two-sided eval gate** (M13): acceptance requires improvement on the
    held-in split (targeted weakness fixed) *and* non-regression on the
-   held-out split. (Self-Harness acceptance rule.)
+   held-out split; held-in membership derives from the proposal's evidence
+   chain, and an empty held-in set fails closed. (Self-Harness acceptance
+   rule.)
 3. **Typed evidence links** (M12/M13): evidence references carry a claim
-   kind (numerical / methodological / conclusion — registry, not enum) so
-   each is independently checkable before approval and compile.
+   kind (reference — cited row exists and supports the statement,
+   ScientistOne's citation claim adapted to internal evidence — plus
+   numerical / methodological / conclusion; registry, not enum) so each is
+   independently checkable before approval and compile.
    (ScientistOne Chain-of-Evidence.)
 4. **Selection operators as data** (M9): activation conditions grow toward
    MCE's ρ/F split — retrieval/selection/composition logic versioned and
    evolvable through the same proposal flywheel as content.
-5. **Retrieval priority reordered** (M8): structured-metadata ranking (eval
-   scores, usage signals, status boosts) and lexical search are the
-   required core; embeddings remain optional and last — matching both the
-   papers (structured-metadata selection) and production practice
+5. **Retrieval priority reordered** (M8): lexical search plus
+   structured-metadata ranking are the required core (status boosts at
+   ship time; eval-score and usage-signal boosts wire in when the eval and
+   serving milestones land); embeddings remain optional and last — matching
+   both the papers (structured-metadata selection) and production practice
    (agentic search first, embeddings for large fuzzy corpora only).
 6. **Substrate rule made explicit** (M5/M14): event-shaped ingest gains
    template-mining normalization (Drain-style signatures) as an adapter
