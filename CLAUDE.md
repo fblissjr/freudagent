@@ -7,6 +7,12 @@ prompt composition. The harness orchestrates. FreudAgent provides data.
 Mostly a joke repo. But the thesis is serious: agents are trees, not workflows.
 The harness is the moat. Behavior comes from data (skills, rules, archetypes), not code.
 
+The data FreudAgent provides is the **grounding layer**: constraints on one end
+(rules, activation conditions, policies), grounding data in the middle (validated
+knowledge, evidence, provenance), and verifiers and feedback on the other (eval
+gates, corrections, usage signals). The warehouse is its governed source of truth;
+compiled files are its agent-facing form.
+
 ## Project Structure
 
 ```

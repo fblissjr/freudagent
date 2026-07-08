@@ -10,7 +10,10 @@ appear, what the CLI grows, and what "done" means for each milestone.
 The target, restated once: a system that cold-starts a knowledge base from an
 empty warehouse, then compounds it through a data flywheel — agents doing the
 modeling, transformation, and maintenance; humans governing every change;
-skills updating dynamically and loading through progressive disclosure.
+skills updating dynamically and loading through progressive disclosure. What
+the milestones collectively build is the **grounding layer** (see ROADMAP):
+constraints on one end, grounding data in the middle, verifiers and feedback
+on the other.
 
 ## Ground Rules (apply to every milestone)
 

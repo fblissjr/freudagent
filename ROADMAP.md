@@ -61,6 +61,15 @@ at L1/L2/L3, never all at once. That is the flywheel, and it is
 domain-agnostic: only the seed corpus, the detectors' vocabulary, and the
 skill contents change per use case.
 
+The transformed, governed data the loop produces and consumes is the
+**grounding layer** — the layer between raw sources and the agent, with
+three faces: constraints on one end (rules, activation conditions,
+policies), grounding data in the middle (validated knowledge, evidence,
+provenance), and verifiers and feedback on the other (eval gates, holdout
+results, corrections, usage signals). The warehouse is its governed source
+of truth; compiled files are its agent-facing form. Everything in this
+roadmap is ultimately about building and maintaining that layer at scale.
+
 ---
 
 ## Invariants: What Already Scales (Preserve at All Costs)

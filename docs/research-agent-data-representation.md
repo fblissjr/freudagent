@@ -200,7 +200,10 @@ and relationship structure flat files don't encode. And DuckLake (v1.0,
 catalog holds "schemas, snapshots, file lists, statistics" — **the
 database's job is catalog and governance, not primary storage.**
 
-The division of labor that everything converges on:
+The division of labor that everything converges on (this repo's name for
+the resulting layer is the **grounding layer**: constraints on one end,
+grounding data in the middle, verifiers and feedback on the other — the
+warehouse its governed truth, compiled files its agent-facing form):
 
 | Data character | Substrate | Agent access path |
 |---|---|---|
