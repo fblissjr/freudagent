@@ -23,6 +23,10 @@ This roadmap records what to preserve, what to rebuild, and in what order —
 so that any enterprise-scale descendant of this design inherits the right
 invariants and replaces the right substrate.
 
+The concrete build plan — milestones, schema deltas, store/CLI surface, and
+definitions of done for every phase below — is in
+[docs/implementation-plan.md](docs/implementation-plan.md).
+
 ---
 
 ## The Generalized Target
