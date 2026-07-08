@@ -208,9 +208,9 @@ The division of labor that everything converges on:
 | Episodic, relational, high-volume events (telemetry, feedback, provenance, metrics) | Structured store (columnar/relational) | Aggregation views, detectors, purpose-built query methods — never raw scans |
 | The bridge | DB as catalog/lineage/governance **over** the files | Compilation with provenance; drift checks; audit |
 
-A pure markdown wiki fails not on retrieval (grep + naming + frontmatter
-scale surprisingly far) but on **aggregation, concurrent writes, lineage,
-temporal queries, and governance**. A pure database fails not on those but
+A pure-markdown knowledge corpus fails not on retrieval (grep + naming +
+frontmatter scale surprisingly far) but on **aggregation, concurrent writes,
+lineage, temporal queries, and governance**. A pure database fails not on those but
 on **agent navigation** — models are pretrained on files and shell idioms,
 and `LIKE` scans over free-text columns are the worst of both worlds. The
 `LIKE`-on-every-column problem is a symptom of putting artifact-shaped data
