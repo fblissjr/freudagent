@@ -25,7 +25,10 @@ invariants and replaces the right substrate.
 
 The concrete build plan — milestones, schema deltas, store/CLI surface, and
 definitions of done for every phase below — is in
-[docs/implementation-plan.md](docs/implementation-plan.md).
+[docs/implementation-plan.md](docs/implementation-plan.md). A pre-execution
+research review validating this direction against the 2026 literature and
+production practice (and amending the plan in six places) is in
+[docs/research-agent-data-representation.md](docs/research-agent-data-representation.md).
 
 ---
 

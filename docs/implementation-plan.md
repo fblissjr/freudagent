@@ -705,6 +705,49 @@ These don't get milestone numbers; they get enforced at every milestone.
 | Case signatures too coarse/fine → dedup fails | M11 | Signature is per-detector and versioned in `dim_finding_type.parameters`; changing it opens new cases rather than corrupting old ones |
 | Serving API becomes a second write path | M14 | API writes only feedback/usage facts; dimension mutations have no endpoint; enforced by tests that assert the route table |
 
+## Research-Review Amendments (2026-07-08)
+
+A pre-execution research pass ([research-agent-data-representation.md](research-agent-data-representation.md))
+confirmed the architecture and produced six amendments. They modify the
+milestones above as follows; where an amendment conflicts with earlier text
+in this document, the amendment wins.
+
+1. **M11 — root-cause-typed findings.** `fact_finding`/`fact_case` gain
+   `terminal_cause`, `causal_status`, and `mechanism` fields. SQL detectors
+   leave them null (symptoms); the LLM analysis layer fills them (mechanisms).
+   Case signatures may incorporate mechanism once populated. Source:
+   Self-Harness (arXiv:2606.09498) failure-record structure — surface-identical
+   failures can have different causal mechanisms.
+2. **M13 — two-sided eval gate.** `build_holdout` produces held-in (items
+   exhibiting the targeted weakness) and held-out (general validated
+   history) splits; `complete_eval_run` passes only on held-in improvement
+   AND held-out non-regression. Source: Self-Harness acceptance rule.
+3. **M12/M13 — typed evidence links.** Proposal evidence references become
+   `{key, claim_kind}` pairs — claim kinds (numerical, methodological,
+   conclusion) live in an open-vocabulary registry. The approval path
+   verifies each claim kind against its cited rows before the gate.
+   Source: ScientistOne (arXiv:2605.26340) Chain-of-Evidence.
+4. **M9 — selection operators as data.** Activation conditions are the
+   first step of an MCE-style ρ/F split (arXiv:2601.21557): skill content
+   (ρ) and selection/retrieval/composition operators (F) both versioned,
+   both evolvable via proposals. M9's JSON contract gains an
+   `operators` field reserved for named, registry-validated operator
+   specs; full operator evolution is a post-M9 extension, but the schema
+   shape is decided now.
+5. **M8 — retrieval priority reordered.** Required core = lexical search
+   plus structured-metadata ranking (status boosts, eval scores from M13,
+   usage signals from M14). Embeddings stay optional and move last in the
+   fusion order. Rationale: both the meta-context literature and production
+   harnesses select via structured metadata and agentic lexical search
+   first; embeddings earn their place only for large fuzzy corpora.
+6. **M5/M14 — substrate rule made explicit.** M5's adapter protocol gains
+   an optional template-mining normalization step (Drain-style signatures
+   for log-shaped streams) so high-volume variable text collapses to stable
+   signatures before storage. M14's compiled knowledge artifacts carry YAML
+   frontmatter (routing metadata: type, title, description, tags) and
+   agent-authored diagrams compile as diagrams-as-code (Mermaid/D2), never
+   raster.
+
 ## What This Plan Deliberately Does Not Do
 
 Consistent with the roadmap's non-goals: no orchestration engine, no
