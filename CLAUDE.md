@@ -102,10 +102,17 @@ during Claude Code sessions, so the `freud-schema` CLI cannot access the same DB
 Do NOT shell out to `freud-schema` CLI for any command that touches the database --
 every subcommand except `db ddl` opens a connection and will fail with a lock error.
 
-- `execute_query` accepts multi-statement SQL.
+- `execute_query` accepts multi-statement SQL, and each call is ONE transaction.
+  Keep catalog changes (DROP/CREATE of tables and indexes) in separate calls from
+  each other and from data loads -- batching drops + creates + copies in one call
+  (or using `COPY FROM DATABASE` / `IMPORT DATABASE`, which are single-transaction)
+  trips DuckDB's index dependency tracking on the long-lived MCP connection
+  ("Could not commit creation of dependency" -- hit for real, 2026-07-09).
 - Lock workaround for CLI-only ops (ingest, compile): run them against a scratch DB
   file, then `ATTACH` it read-only from the MCP connection and `INSERT INTO` the live
-  tables -- deterministic keys make the copy idempotent.
+  tables -- deterministic keys make the copy idempotent. For a full reset-and-rebuild,
+  `EXPORT DATABASE (FORMAT PARQUET)` the scratch DB, then replay on the live
+  connection in separate calls: creates, then indexes, then `read_parquet` loads.
 
 Claude Code IS the harness. Orchestration happens natively (Agent tool, Read tool,
 MCP tools). The CLI exposes data operations (CRUD on skills/sources/rules/feedback/
