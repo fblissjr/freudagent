@@ -1,5 +1,6 @@
 <!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
-<!-- source: dim_rule 5d9cffebfa514c207c59d08b334fc3c3 effective_from 2026-07-09T11:48:33.197632 -->
+<!-- source: dim_rule 5d9cffebfa514c207c59d08b334fc3c3 effective_from 2026-07-09T13:24:01.397972 -->
+
 
 # Repo scope discipline
 
@@ -10,5 +11,3 @@ WebFetch/WebSearch exist. Exception: data paths this project's own
 CLAUDE.md or docs explicitly sanction (for example, sanctioned
 transcript or artifact directories). For anything else outside the
 repo, say what you need and why, and let the user decide first.
-
-<!-- provenance: proposal 13c95f9c; findings a2981d9f, b5e41f44 -->
