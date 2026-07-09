@@ -1,6 +1,6 @@
 # Roadmap: From Single-Operator Experiment to Enterprise Flywheel
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 This document is the result of a structural critique of the meta-harness as it
 exists today, generalized to a question bigger than this repo: **what would it
@@ -92,12 +92,11 @@ query and make staleness distinguishable from currency. This is the correct
 data model for a knowledge base intended to outlive its authors.
 
 ### 3. Deterministic keys and idempotent ingest
-MD5-style hash surrogates from natural keys mean any worker can compute a
-row's key without coordination, re-ingestion of unchanged data writes zero
-rows *by construction*, and `meta_load_log` makes the guarantee measurable
-rather than assumed. This pattern ports directly to distributed enterprise
-ETL. (The hash algorithm itself will change — see Phase 1 — but the pattern
-is the invariant.)
+Hash surrogates from natural keys (sha256/32 since v0.23, tenant-scoped)
+mean any worker can compute a row's key without coordination, re-ingestion
+of unchanged data writes zero rows *by construction*, and `meta_load_log`
+makes the guarantee measurable rather than assumed. This pattern ports
+directly to distributed enterprise ETL.
 
 ### 4. Two-layer analysis: deterministic first, inference last
 SQL detectors produce typed findings cheaply and repeatably, with no model
@@ -155,9 +154,10 @@ corrects it."
 - Confidence tiering from day one: everything derived starts untrusted;
   validation promotes. The `validation_status` machinery already models this —
   the playbook makes it policy.
-- Seed-corpus staleness watch: `source_hash` exists but nothing re-checks it.
-  Cold-started knowledge decays fastest; detecting changed sources is the
-  first maintenance detector worth writing.
+- Seed-corpus staleness watch: cold-started knowledge decays fastest;
+  detecting changed sources is the first maintenance detector worth writing.
+  (Shipped here in v0.24: `source add --hash` baselines + the `stale_source`
+  hybrid detector, plus the cold-start tutorial.)
 
 ### Phase 1 — Substrate Hardening (storage, keys, migrations, tenancy)
 
@@ -185,14 +185,16 @@ exists (`meta_schema_version`); nothing consumes it yet.
   owner policy, this research repo itself stays reset-based — all warehouse
   data here is disposable test data, and git history of code and tracked
   artifacts is the only history that matters. See CLAUDE.md.)
-- **Multi-tenant natural keys**: entity identity is currently
-  single-namespace (skill = `domain|task_type`, rule = bare `name`). These
-  collide the moment two teams exist. Tenancy/team must join the natural key
-  — and because keys derive from natural keys, this decision must precede
-  data accumulation, not follow it.
+- **Multi-tenant natural keys**: single-namespace entity identity collides
+  the moment two teams exist. Tenancy/team must join the natural key — and
+  because keys derive from natural keys, this decision must precede data
+  accumulation, not follow it. (Shipped here in v0.23: tenant-leading
+  natural keys on the four SCD-2 dims, `dim_tenant` registry, `--tenant`
+  CLI scope.)
 - **Key algorithm swap**: truncated SHA-256 in place of MD5. Cryptographically
   irrelevant here, but compliance regimes ban MD5 outright, and keys are
-  everywhere — cheap now, brutal later.
+  everywhere — cheap now, brutal later. (Shipped here in v0.23:
+  `sha256/32`, self-described in `meta_key_algorithm`.)
 - **Split the stores conceptually**: the telemetry warehouse (high-volume,
   sensitive, retention-bound) and the knowledge store (small, precious,
   kept forever) have different access, backup, and lifecycle needs. One file

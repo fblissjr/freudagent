@@ -1,6 +1,6 @@
 # Implementation Plan: Executing the Roadmap
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 This is the concrete build plan for [ROADMAP.md](../ROADMAP.md). The roadmap
 says *what* and *why*; this document says *how*, against this codebase as it
@@ -46,24 +46,35 @@ restated here because several milestones are large enough to tempt shortcuts.
 
 ## Milestone Map
 
-| # | Milestone | Roadmap phase | Size | Depends on |
-|---|-----------|--------------|------|------------|
-| M1 | Reset-based schema lifecycle (policy) | 1 | S | — |
-| M0 | Cold-start playbook + staleness detector | 0 | S | M1 |
-| M2 | Key algorithm versioning (SHA-256) | 1 | M | M1 |
-| M3 | Tenancy in natural keys | 1 | M | M1, M2 |
-| M4 | Store split + backend protocol | 1 | L | M1–M3 |
-| M5 | Generic event grain + ingest adapters | 2 | M | M1–M3 |
-| M6 | Ingest-time redaction | 2 | M | M5 |
-| M7 | Principals and authorization | 2 | M | M1, M3 |
-| M8 | Hybrid retrieval layer | 3 | L | M1, M3 |
-| M9 | Activation conditions with teeth | 3 | S | M8 |
-| M10 | Scoped materialization + drift check | 3 | S | M3 |
-| M11 | Cases, watermarks, incremental detection | 4 | L | M1, M5 |
-| M12 | Review queue and conflict handling | 4 | M | M7, M11 |
-| M13 | Verification gate + flywheel health | 5 | L | M11, M12 |
-| M14 | Serving layer + widened feedback | 6 | L | M8, M10, M13 |
-| M15 | Dream-work: periodic consolidation passes | 4/6 | M | M8, M11 |
+| # | Milestone | Roadmap phase | Size | Depends on | Status |
+|---|-----------|--------------|------|------------|--------|
+| M1 | Reset-based schema lifecycle (policy) | 1 | S | — | DONE 0.22.0 |
+| M0 | Cold-start playbook + staleness detector | 0 | S | M1 | DONE 0.24.0 |
+| M2 | Key algorithm versioning (SHA-256) | 1 | M | M1 | DONE 0.23.0 |
+| M3 | Tenancy in natural keys | 1 | M | M1, M2 | DONE 0.23.0 |
+| M4 | Store split + backend protocol | 1 | L | M1–M3 | — |
+| M5 | Generic event grain + ingest adapters | 2 | M | M1–M3 | — |
+| M6 | Ingest-time redaction | 2 | M | M5 | — |
+| M7 | Principals and authorization | 2 | M | M1, M3 | — |
+| M8 | Hybrid retrieval layer | 3 | L | M1, M3 | — |
+| M9 | Activation conditions with teeth | 3 | S | M8 | — |
+| M10 | Scoped materialization + drift check | 3 | S | M3 | — |
+| M11 | Cases, watermarks, incremental detection | 4 | L | M1, M5 | — |
+| M12 | Review queue and conflict handling | 4 | M | M7, M11 | — |
+| M13 | Verification gate + flywheel health | 5 | L | M11, M12 | — |
+| M14 | Serving layer + widened feedback | 6 | L | M8, M10, M13 | — |
+| M15 | Dream-work: periodic consolidation passes | 4/6 | M | M8, M11 | — |
+
+Shipped milestones carry the version that landed them (see CHANGELOG.md for
+the full record). As-shipped deltas from the specs below, all minor: M0's
+stale_source summaries carry the basename only (no age), findings are
+GLOBAL-scope with an empty evidence-session list (the source key lives in
+the summary), and the skip flag shipped as `couch run --warehouse-only`.
+M2+M3 landed as one reset as planned; implementation additionally fixed
+`approve_proposal`'s inline skill-key derivation (pre-tenancy formula) —
+the named-recipe convention exists precisely to prevent that class of bug.
+The first real reset-and-rebuild (2026-07-09: 174,779 transcript entries →
+127,495 rows, ~2m17s, 34 findings) validated the M1 recipe end to end.
 
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
 work). The order within tracks matters. Track C (M8–M10) can start once the
@@ -765,6 +776,8 @@ These don't get milestone numbers; they get enforced at every milestone.
 | Eval gate (M13) creates approval friction that tempts bypass | Human workflow | Gate is per-tenant policy, off by default until holdout sets exist; `require_eval` turns on per dimension; auto-approve stays risk-capped |
 | Case signatures too coarse/fine → dedup fails | M11 | Signature is per-detector and versioned in `dim_finding_type.parameters`; changing it opens new cases rather than corrupting old ones |
 | Serving API becomes a second write path | M14 | API writes only feedback/usage facts; dimension mutations have no endpoint; enforced by tests that assert the route table |
+| Reset-and-rebuild via the locked MCP connection wedges DuckDB's catalog dependency tracking (hit 2026-07-09) | M1 recipe, any reset while the MCP server holds the DB | One transaction per `execute_query` call: creates, indexes, and data loads as separate calls; never `COPY FROM DATABASE`/`IMPORT DATABASE` on the long-lived connection (single-transaction). Full recipe in CLAUDE.md's DuckDB MCP section |
+| Fresh full ingest is the standard path under reset-based lifecycle, and it costs minutes (~2m17s for 175k entries) | M1 recipe at scale | Backlog item "fresh-ingest insert speed" (spill batches to temp JSONL + `read_json` insert, ~300x measured) is now worth doing — its trigger condition ("if fresh runs become frequent") is met |
 
 ## Research-Review Amendments (2026-07-08)
 
