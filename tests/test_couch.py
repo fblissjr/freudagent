@@ -7,13 +7,21 @@ are the point of typed findings.
 
 import pytest
 
-from freud_schema.couch import SQL_FINDING_TYPES, run_couch, seed_finding_types
+from freud_schema.couch import (
+    SQL_FINDING_TYPES,
+    run_couch,
+    seed_finding_types,
+    source_content_hash,
+)
 from freud_schema.tables import (
+    DetectionMethod,
+    FindingScope,
     Message,
     MessageRole,
     Project,
     RecordSource,
     Session,
+    Source,
     ToolUse,
 )
 
@@ -135,3 +143,70 @@ class TestRunCouch:
         stats = run_couch(store)
         assert stats["findings"] == 0
         assert store.list_findings() == []
+
+
+class TestStaleSource:
+    """The hybrid detector: warehouse baseline vs current file bytes."""
+
+    def _register(self, store, path, with_hash=True):
+        return store.insert_source(Source(
+            content_path=str(path), media_type="text/plain",
+            source_hash=source_content_hash(path) if with_hash else None))
+
+    def test_seed_registers_hybrid_type(self, store):
+        seed_finding_types(store)
+        ft = store.get_finding_type("stale_source")
+        assert ft is not None
+        assert ft.detection_method == DetectionMethod.HYBRID
+
+    def test_mutated_source_fires(self, store, tmp_path):
+        doc = tmp_path / "seed-doc.txt"
+        doc.write_text("original corpus content")
+        self._register(store, doc)
+        doc.write_text("the upstream document changed")
+        run_couch(store)
+        hits = store.list_findings(finding_type="stale_source")
+        assert len(hits) == 1
+        assert hits[0].scope == FindingScope.GLOBAL
+        assert hits[0].project_key is None
+
+    def test_summary_carries_basename_never_directory(self, store, tmp_path):
+        doc = tmp_path / "seed-doc.txt"
+        doc.write_text("original")
+        self._register(store, doc)
+        doc.write_text("changed")
+        run_couch(store)
+        summary = store.list_findings(finding_type="stale_source")[0].summary
+        assert "seed-doc.txt" in summary
+        assert str(tmp_path) not in summary  # privacy: no directory paths
+
+    def test_unchanged_source_does_not_fire(self, store, tmp_path):
+        doc = tmp_path / "stable.txt"
+        doc.write_text("stable content")
+        self._register(store, doc)
+        run_couch(store)
+        assert store.list_findings(finding_type="stale_source") == []
+
+    def test_no_baseline_hash_is_skipped(self, store, tmp_path):
+        doc = tmp_path / "unhashed.txt"
+        doc.write_text("original")
+        self._register(store, doc, with_hash=False)
+        doc.write_text("changed")
+        run_couch(store)
+        assert store.list_findings(finding_type="stale_source") == []
+
+    def test_missing_file_is_skipped(self, store, tmp_path):
+        doc = tmp_path / "gone.txt"
+        doc.write_text("original")
+        self._register(store, doc)
+        doc.unlink()
+        run_couch(store)
+        assert store.list_findings(finding_type="stale_source") == []
+
+    def test_warehouse_only_skips_filesystem(self, store, tmp_path):
+        doc = tmp_path / "seed-doc.txt"
+        doc.write_text("original")
+        self._register(store, doc)
+        doc.write_text("changed")
+        run_couch(store, include_filesystem=False)
+        assert store.list_findings(finding_type="stale_source") == []

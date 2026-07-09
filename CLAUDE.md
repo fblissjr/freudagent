@@ -54,6 +54,7 @@ docs/
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
   tutorial-rlm-provider.md     - RLM provider tutorial
   tutorial-flywheel.md         - Feedback loop end-to-end
+  tutorial-cold-start.md       - Cold-start playbook: empty DB to turning flywheel
 a2ui/                - MCP server + Lit client for A2UI visual surfaces
 internal/            - Analysis docs, backlog, session logs (gitignored)
 .claude/

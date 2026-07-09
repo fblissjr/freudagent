@@ -38,6 +38,10 @@ model with a Python REPL loop for iterative, code-driven extraction of large inp
 Then walk through the [flywheel tutorial](docs/tutorial-flywheel.md) -- demonstrates
 the full feedback loop: extract, review, correct, refine skill, re-extract, compare.
 
+Starting a fresh deployment? The [cold-start tutorial](docs/tutorial-cold-start.md)
+is the day-one playbook: seed corpus with staleness baselines, thin human-authored
+skills, validate-everything gating, and the first turn of the flywheel.
+
 ## Usage
 
 ### CLI -- Freud Corpus
@@ -258,6 +262,7 @@ docs/
   tutorial-arxiv-extraction.md - End-to-end arxiv extraction pipeline
   tutorial-rlm-provider.md     - RLM provider: REPL loop, sub-calls, presets
   tutorial-flywheel.md         - Flywheel tutorial: feedback loop end-to-end
+  tutorial-cold-start.md       - Cold-start playbook: empty DB to turning flywheel
 skill/
   skill.md              - L2: routing document (CLI reference, workflow)
   reference/

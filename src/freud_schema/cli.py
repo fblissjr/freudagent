@@ -156,6 +156,10 @@ def main(argv: list[str] | None = None) -> None:
     p_source_add = p_source_sub.add_parser("add", help="Register a source")
     p_source_add.add_argument("--path", required=True, help="File path")
     p_source_add.add_argument("--media-type", required=True, help="MIME type")
+    p_source_add.add_argument(
+        "--hash", action="store_true",
+        help="Record the file's sha256 as the staleness baseline "
+             "(couch's stale_source detector compares against it)")
     p_source_sub.add_parser("list", help="List all sources")
 
     p_rule = sub.add_parser("rule", help="Manage rules")
@@ -252,8 +256,11 @@ def main(argv: list[str] | None = None) -> None:
     p_couch = sub.add_parser(
         "couch", help="Analysis passes over the warehouse (SQL finding detectors)")
     p_couch_sub = p_couch.add_subparsers(dest="couch_action")
-    p_couch_sub.add_parser(
-        "run", help="Run all SQL detectors and record findings (no model calls)")
+    p_couch_run = p_couch_sub.add_parser(
+        "run", help="Run all deterministic detectors and record findings (no model calls)")
+    p_couch_run.add_argument(
+        "--warehouse-only", action="store_true",
+        help="Skip detectors that read the filesystem (stale_source)")
     p_couch_list = p_couch_sub.add_parser("list", help="List recorded findings")
     p_couch_list.add_argument("--type", default=None, help="Filter by finding_type")
     p_couch_list.add_argument("--limit", type=int, default=30)
@@ -541,10 +548,20 @@ def _handle_source(args) -> None:
 
     with _get_store(args.db) as store:
         if args.source_action == "add":
+            source_hash = None
+            if args.hash:
+                from freud_schema.couch import source_content_hash
+                try:
+                    source_hash = source_content_hash(args.path)
+                except OSError as e:
+                    print(f"Cannot hash {args.path}: {e}", file=sys.stderr)
+                    sys.exit(1)
             source = Source(content_path=args.path, media_type=args.media_type,
-                             tenant_id=args.tenant)
+                             tenant_id=args.tenant, source_hash=source_hash)
             source_key = store.insert_source(source)
-            print(f"Source registered: key={source_key} tenant={args.tenant} path={args.path}")
+            hashed = f" hash={source_hash[:12]}..." if source_hash else ""
+            print(f"Source registered: key={source_key} tenant={args.tenant} "
+                  f"path={args.path}{hashed}")
         elif args.source_action == "list":
             for s in store.list_sources():
                 print(f"  [{s.source_key[:8]}] {s.content_path} ({s.media_type}) [{s.status.value}]")
@@ -932,7 +949,7 @@ def _handle_couch(args) -> None:
 
     with _get_store(args.db) as store:
         if args.couch_action == "run":
-            stats = run_couch(store)
+            stats = run_couch(store, include_filesystem=not args.warehouse_only)
             print(f"Couch run {stats['etl_run_id'][:8]}: "
                   f"{stats['findings']} finding(s) recorded.")
         elif args.couch_action == "list":

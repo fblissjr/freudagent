@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.23.0
+version: 0.24.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,7 +37,7 @@ scope:
 
 # FreudAgent Data Layer
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness
@@ -83,7 +83,7 @@ freud-schema db status                        # Show row counts
 freud-schema db reset                         # Drop and recreate all tables (destructive)
 freud-schema rule add --name always-json --content "..." --priority 10
 freud-schema skill add --domain D --task-type T --content "..." --status active [--version N]
-freud-schema source add --path /data/doc.pdf --media-type application/pdf
+freud-schema source add --path /data/doc.pdf --media-type application/pdf [--hash]
 ```
 
 `rule add` requires `--name` -- it doubles as the rule's stable identity and the
@@ -140,12 +140,16 @@ when the DuckDB MCP server is not connected, or ingest to a separate file and
 ### The Couch (analyze)
 
 ```bash
-freud-schema couch run                  # SQL detectors -> fact_finding (no model calls)
+freud-schema couch run                  # deterministic detectors -> fact_finding (no model calls)
+freud-schema couch run --warehouse-only  # skip filesystem detectors (stale_source)
 freud-schema couch list [--type retry_loop]
 ```
 
 Detects retry loops, tool error clusters, interruption hotspots, and
-permission friction, with evidence session keys attached. The LLM layer
+permission friction, with evidence session keys attached; plus stale
+sources (registered via `source add --hash`) whose file content changed
+since their baseline -- a hybrid detector that reads the filesystem, so
+`--warehouse-only` skips it where the corpus is absent. The LLM layer
 (user-correction patterns) runs inside Claude Code -- see the `/couch`
 project skill.
 

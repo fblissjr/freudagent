@@ -1,22 +1,29 @@
 """The couch: analysis passes over the warehouse producing typed findings
 (Phase 2 of the meta-harness plan).
 
-Two layers, split by what needs inference:
+Layers, split by what needs inference:
 
 - SQL layer (this module): deterministic detectors implemented as views
   in db.py (v_retry_loops, v_tool_error_clusters, v_interruption_hotspots,
   v_permission_friction). run_couch() applies thresholds and writes
   evidence-linked fact_finding rows. No model calls -- run it as often
   as you like.
+- Hybrid layer (this module): deterministic detectors that read state
+  outside the warehouse. _detect_stale_sources compares each registered
+  source's baseline source_hash against the current file bytes, so it
+  needs filesystem access -- run_couch(include_filesystem=False) skips
+  it for warehouse-only runs. A stale_source finding is therefore not
+  reproducible from the warehouse alone (detection_method = hybrid).
 - LLM layer (the /couch skill, .claude/skills/couch.md): findings that
   need judgment (user_correction_pattern). The harness fans out
   subagents over warehouse queries and writes findings via MCP; this
   library deliberately contains no model calls (no-orchestration rule).
 
 Privacy: summaries are built from tool names, counts, and rates only --
-never from tool inputs, message text, file paths, or URLs. Findings feed
-Phase 3's compile step, which writes committed files, so summaries are
-scrubbed by construction rather than by a later pass.
+never from tool inputs, message text, file paths, or URLs. Source
+findings carry the file's basename, never its directory path. Findings
+feed Phase 3's compile step, which writes committed files, so summaries
+are scrubbed by construction rather than by a later pass.
 
 Findings are append-only trend data: each run records what it saw,
 keyed by (finding_type, scope, project_key, summary, etl_run_id), so
@@ -25,6 +32,9 @@ keyed by (finding_type, scope, project_key, summary, etl_run_id), so
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     DetectionMethod,
@@ -32,6 +42,7 @@ from freud_schema.tables import (
     FindingScope,
     FindingType,
     RecordSource,
+    SourceStatus,
 )
 
 # Thresholds are deliberately conservative: a finding should be worth a
@@ -59,6 +70,19 @@ LLM_FINDING_TYPES: dict[str, str] = {
                           "trace data or judged from transcripts)",
 }
 
+HYBRID_FINDING_TYPES: dict[str, str] = {
+    "stale_source": "A registered source file's content changed since its "
+                    "baseline hash was recorded (reads warehouse + filesystem)",
+}
+
+
+def source_content_hash(path: str | Path) -> str:
+    """sha256 hexdigest of a source file's bytes -- the baseline recorded
+    by `source add --hash` and recomputed by the staleness detector.
+    Full digest, not the 32-char key truncation: this is a content
+    fingerprint, not a key."""
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
 
 def seed_finding_types(store: ExperimentStore) -> None:
     """Register the couch's finding vocabulary. Idempotent -- new
@@ -73,13 +97,18 @@ def seed_finding_types(store: ExperimentStore) -> None:
             finding_type=name, description=desc,
             detection_method=DetectionMethod.LLM,
             record_source=RecordSource.DERIVED))
+    for name, desc in HYBRID_FINDING_TYPES.items():
+        store.register_finding_type(FindingType(
+            finding_type=name, description=desc,
+            detection_method=DetectionMethod.HYBRID,
+            record_source=RecordSource.DERIVED))
 
 
 def _insert(store, etl_run_id, finding_type, project_key, summary,
-            evidence, count) -> str:
+            evidence, count, scope=FindingScope.PROJECT) -> str:
     return store.insert_finding(Finding(
         finding_type=finding_type,
-        scope=FindingScope.PROJECT,
+        scope=scope,
         project_key=project_key,
         evidence_session_keys=sorted(set(evidence)),
         occurrence_count=count,
@@ -132,6 +161,31 @@ def _detect_permission_friction(store, etl_run_id) -> int:
     return len(rows)
 
 
+def _detect_stale_sources(store, etl_run_id) -> int:
+    """One GLOBAL finding per registered source whose current file bytes
+    no longer match its baseline source_hash.
+
+    Only sources that have a baseline (source add --hash) and whose
+    content_path still exists are checked -- no baseline means nothing
+    to compare, a missing file is a different problem than a stale one.
+    Summaries carry the basename only, never the directory path.
+    """
+    stale = 0
+    for src in store.list_sources(status=SourceStatus.ACTIVE):
+        if not src.source_hash:
+            continue
+        path = Path(src.content_path)
+        if not path.is_file():
+            continue
+        if source_content_hash(path) != src.source_hash:
+            _insert(store, etl_run_id, "stale_source", None,
+                    f"{path.name}: content changed since its baseline hash "
+                    f"was recorded (source {src.source_key[:8]})",
+                    [], 1, scope=FindingScope.GLOBAL)
+            stale += 1
+    return stale
+
+
 _DETECTORS = (
     _detect_retry_loops,
     _detect_error_clusters,
@@ -139,13 +193,22 @@ _DETECTORS = (
     _detect_permission_friction,
 )
 
+_FILESYSTEM_DETECTORS = (
+    _detect_stale_sources,
+)
 
-def run_couch(store: ExperimentStore) -> dict:
-    """Run every SQL detector and record findings. Returns
-    {etl_run_id, findings}. Registry seeding is included (idempotent)."""
+
+def run_couch(store: ExperimentStore, include_filesystem: bool = True) -> dict:
+    """Run every deterministic detector and record findings. Returns
+    {etl_run_id, findings}. Registry seeding is included (idempotent).
+
+    include_filesystem=False skips detectors that read state outside
+    the warehouse (stale_source) -- use it where the source files are
+    not present (CI, another machine)."""
     seed_finding_types(store)
+    detectors = _DETECTORS + (_FILESYSTEM_DETECTORS if include_filesystem else ())
     with store.load_run("couch_sql", record_source=RecordSource.DERIVED) as stats:
         with store.transaction():
-            for detector in _DETECTORS:
+            for detector in detectors:
                 stats.rows_written += detector(store, stats.etl_run_id)
     return {"etl_run_id": stats.etl_run_id, "findings": stats.rows_written}

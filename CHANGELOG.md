@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.24.0
+
+M0 of the enterprise-scale implementation plan: the cold-start playbook and
+the first maintenance detector. The flywheel now has a documented first turn
+and a standing signal for when seed knowledge decays.
+
+### Added
+
+- couch.py: `stale_source` detector -- recomputes each active source's
+  content hash and compares it to the baseline recorded at registration;
+  emits one GLOBAL-scope finding per changed source, basename only in the
+  summary (privacy rules apply). Registered with `detection_method = hybrid`:
+  it reads the warehouse AND the filesystem, so the finding is not
+  reproducible from the warehouse alone. Sources without a baseline hash and
+  missing files are skipped.
+- couch.py: `source_content_hash()` -- sha256 hexdigest of a source file's
+  bytes (full digest; a content fingerprint, not a key), shared by the CLI
+  baseline and the detector's recomputation.
+- couch.py: `run_couch(include_filesystem=True)` -- False skips filesystem
+  detectors for warehouse-only runs (CI, machines without the corpus).
+- cli.py: `source add --hash` records the staleness baseline;
+  `couch run --warehouse-only` skips filesystem detectors.
+- docs/tutorial-cold-start.md: the day-one playbook -- seed corpus with
+  staleness baselines, thin human-authored skills, validate-everything
+  cold-start gating, typed corrections, first flywheel turn, and the first
+  staleness finding. Linked from README.
+- tests: TestStaleSource in test_couch.py (mutated/unchanged/no-baseline/
+  missing-file/warehouse-only paths, hybrid registration, and a
+  basename-only privacy assertion).
+
+### Changed
+
+- `_insert` in couch.py takes a scope parameter (default PROJECT) so
+  non-project findings (stale_source is GLOBAL) share the one write path.
+
+
 ## 0.23.0
 
 M2+M3 of the enterprise-scale implementation plan: key algorithm versioning
