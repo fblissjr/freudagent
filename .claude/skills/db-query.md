@@ -1,71 +1,95 @@
 ---
 name: db-query
-description: Query the experiment harness DuckDB via the duckdb MCP server. Use when inspecting skills, sources, sessions, traces, extractions, feedback, or rules data.
+description: Query the experiment harness DuckDB via MCP (store-ops server's read-only query tool, or a generic duckdb server). Use when inspecting skills, sources, sessions, traces, extractions, feedback, rules, findings, or proposals.
 ---
 
 # db-query
 
-Last updated: 2026-07-07
+Last updated: 2026-07-09
 
-Query the FreudAgent experiment harness database using the `duckdb` MCP server tools.
+Query the FreudAgent experiment harness database via MCP.
 
 ## When to use
 
-**Inside Claude Code (this session):** Always use `mcp__duckdb__execute_query` for
-all database reads AND writes. Never shell out to `freud-schema` CLI for DB
-operations -- DuckDB is single-process, and the MCP server already holds the
-connection. CLI commands will fail with a lock error.
+**Inside Claude Code — reads:** use the store-ops server's `query` tool
+(`freud-schema mcp-serve`, configured in `.mcp.json` since v0.25/M16). It is
+read-only by construction (single SELECT statement, parser-enforced; SHOW/
+DESCRIBE/SUMMARIZE allowed). If a session is still connected to a generic
+`duckdb` MCP server instead, `mcp__duckdb__execute_query` works for reads the
+same way. Never shell out to the CLI while any MCP server holds the DB --
+DuckDB is single-process and CLI commands fail with a lock error.
 
-**Outside Claude Code (scripts, CI, terminal):** Use the `freud-schema` CLI.
+**Inside Claude Code — writes:** never raw SQL. Use the store-ops server's
+write tools (`rule_add`, `skill_add`, `source_add`, `feedback_add`,
+`finding_add`, `extraction_validate`/`reject`, `proposal_add`/`approve`/
+`reject`, `couch_run`, `compile`, `ingest_transcripts`) -- each is a thin
+wrapper over the store's one write path (validation, key recipes,
+denormalization, lineage). On a generic duckdb server, use the CLI write
+window instead (see CLAUDE.md's DuckDB MCP section).
+
+**Outside Claude Code (scripts, CI, terminal):** use the `freud-schema` CLI.
 
 Use this skill for:
-- Inspecting experiment data (skills, sources, sessions, traces, extractions, feedback, rules)
-- Ad-hoc analysis of orchestrator runs
+- Inspecting experiment data (skills, sources, sessions, traces, extractions, feedback, rules, findings, proposals)
+- Ad-hoc analysis of orchestrator runs and couch findings
 - Checking schema state or table contents
 - Debugging extraction output or session status
 - Verifying data integrity after code changes
-- **All INSERT/UPDATE/DELETE operations** during Claude Code sessions
 
 ## How to use
 
-The primary interface is `mcp__duckdb__execute_query`. Pass any valid DuckDB SQL:
+Read via the store-ops `query` tool (preferred) or `mcp__duckdb__execute_query`:
 
 ```
-mcp__duckdb__execute_query(sql="SELECT * FROM dim_skill WHERE status = 'active' AND is_current")
-mcp__duckdb__execute_query(sql="INSERT INTO dim_rule (rule_key, name, scope, content, priority, hash_diff) VALUES (md5('global-rule'), 'global-rule', 'global', 'Rule text', 10, 'x')")
+query(sql="SELECT * FROM dim_skill WHERE status = 'active' AND is_current")
 ```
 
-Keys are MD5 hashes (`keys.dimension_key()`), not sequences -- see "Key scheme"
-below. Raw SQL inserts must compute the key themselves; `ExperimentStore` does
-this automatically.
+Keys are sha256/32 hashes (`keys.dimension_key()`: SHA-256 hexdigest truncated
+to 32 chars), not sequences -- see "Key scheme" below. You should never need to
+compute one by hand: the write tools and `ExperimentStore` derive keys
+automatically. (The only sanctioned raw-INSERT fallback is the /couch skill's
+appendix, for sessions stuck on a generic server.)
 
 ## MCP tools available
 
-The `duckdb` MCP server (mcp-server-motherduck) exposes these tools:
+**Store-ops server (`freud-schema`, preferred -- .mcp.json):**
 
 | Tool | Use for |
 |------|---------|
-| `mcp__duckdb__execute_query` | Run any DuckDB SQL (SELECT, INSERT, UPDATE, DELETE, DDL). Pass `sql` parameter. |
-| `mcp__duckdb__list_tables` | Show all tables in the database. |
-| `mcp__duckdb__list_columns` | Show columns of a specific table. Pass `table` parameter. |
+| `query` | Read-only SQL: exactly one SELECT (WITH/FROM/SHOW/DESCRIBE/SUMMARIZE forms allowed); rows capped at 500. |
+| `rule_add`, `skill_add` | Create entities in the NON-compiling status (inactive/draft) -- activation goes through the proposal flow. |
+| `source_add`, `feedback_add`, `finding_add`, `extraction_validate`, `extraction_reject` | The corresponding store write, validated + lineage-stamped. |
+| `proposal_add`, `proposal_approve`, `proposal_reject` | Evolve flow. `proposal_approve` is the human approval gate -- NEVER allowlist it. |
+| `couch_run`, `compile`, `ingest_transcripts` | Pipeline operations in-session. |
 
-## Schema: Meta-Harness Model (Kimball-style, v0.17.0)
+**Generic `duckdb` server (legacy/alternative, reads only):**
+
+| Tool | Use for |
+|------|---------|
+| `mcp__duckdb__execute_query` | SELECT queries. Do not use for writes -- see above. |
+| `mcp__duckdb__list_tables` / `list_columns` | Schema inspection. |
+
+## Schema: Meta-Harness Model (Kimball-style, schema version 6 / v0.23+)
 
 ### Key scheme
 
-Every key is `dimension_key(*natural_key_parts)` -- MD5 hex of pipe-joined parts,
-`NULL` mapped to `"-1"`. No sequences. Replicate in raw SQL with
-`md5(part1 || '|' || part2)`. Full natural-key recipe per table is in
+Every key is `dimension_key(*natural_key_parts)` -- SHA-256 hex of pipe-joined
+parts truncated to 32 chars (`keys.KEY_ALGORITHM = "sha256/32"`), `NULL` mapped
+to `"-1"`. No sequences. Replicate in raw SQL with
+`substring(CAST(sha256(part1 || '|' || part2) AS VARCHAR), 1, 32)`. The four
+SCD-2 dims' natural keys LEAD with `tenant_id` (skill = tenant|domain|task_type,
+rule = tenant|name, source = tenant|content_path). `meta_key_algorithm` records
+the active scheme. Full natural-key recipe per table is in
 `skill/reference/schema.md`.
 
 ### SCD-2 dimensions (versioned reference data)
 
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
-| `dim_skill` | Declarative instructions | domain, task_type, version, status, origin, content |
-| `dim_source` | Raw artifacts to process | content_path, media_type, status |
-| `dim_rule` | Constraints (global or per-domain) | name, scope, domain, priority, content, status |
-| `dim_sampling_config` | Prior run sampling settings | domain, task_type, strategy, max_samples |
+| `dim_skill` | Declarative instructions | tenant_id, domain, task_type, version, status, origin, content |
+| `dim_source` | Raw artifacts to process | tenant_id, content_path, media_type, source_hash, status |
+| `dim_rule` | Constraints (global or per-domain) | tenant_id, name, scope, domain, priority, content, status |
+| `dim_sampling_config` | Prior run sampling settings | tenant_id, domain, task_type, strategy, max_samples |
 
 All four carry `effective_from`, `effective_to`, `is_current`, `hash_diff` --
 query current rows with `WHERE is_current`. An attribute change closes the old
@@ -76,6 +100,7 @@ row and inserts a new one; rows never mutate.
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
 | `dim_project` | Conformed project dimension | project_path, project_name |
+| `dim_tenant` | Tenant registry (default seeded at init) | tenant_id, display_name |
 | `dim_facet_type` | Behavioral facet registry | facet_id, prompt_version, method, output_type |
 | `dim_finding_type` | Open finding-type vocabulary | finding_type, detection_method |
 
@@ -98,8 +123,9 @@ enum edits).
 | `fact_finding` | Detected patterns (couch output) | finding_type, scope, project_key, summary |
 | `fact_proposal` | Proposed dimension changes (evolve output) | target_dimension, target_key, status |
 
-Every fact table carries a lineage envelope: `record_source` (CHECK-constrained:
-native, transcript_ingest, history_jsonl, derived) and `etl_run_id` (joins
+Every fact table carries a lineage envelope: `tenant_key` (denormalized
+`dim_tenant` reference), `record_source` (CHECK-constrained: native,
+transcript_ingest, history_jsonl, derived) and `etl_run_id` (joins
 `meta_load_log`).
 
 ### Analytical views (replace complex store queries)
@@ -112,13 +138,21 @@ native, transcript_ingest, history_jsonl, derived) and `etl_run_id` (joins
 | `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
 | `v_skill_feedback_patterns` | Skills with feedback above threshold |
 | `v_session_feedback_count` | Feedback count per session (for HIGH_FEEDBACK sampling) |
+| `v_retry_loops` | Identical-input tool-call loops per session (couch detector base) |
+| `v_tool_error_clusters` | Per-project tool error rates (couch detector base) |
+| `v_interruption_hotspots` | Mid-turn user interruptions per project (couch detector base) |
+| `v_permission_friction` | Permission denials per project+tool (couch detector base) |
+
+Couch views carry NO thresholds -- couch.py's detectors own them; consume the
+views through the store's `query_*` methods, never re-derive thresholds.
 
 ### Operational
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Schema version tracking (version, description). Currently version 4. |
-| `meta_load_log` | One row per ingest/compile run: etl_run_id, operation, status, row counts |
+| `meta_schema_version` | Schema DDL changelog (version, description). Currently version 6. NOT a migration ledger -- schema changes reset + re-ingest (see CLAUDE.md policy). |
+| `meta_key_algorithm` | Active key scheme (sha256/32), seeded at init. |
+| `meta_load_log` | One row per ingest/couch/compile run: etl_run_id, operation, status, row counts |
 
 ## Enum values (enforced by CHECK constraints)
 
@@ -215,5 +249,5 @@ FROM fact_proposal WHERE status = 'pending'
 - SCD-2 dimensions (`dim_skill`, `dim_source`, `dim_rule`, `dim_sampling_config`) never mutate -- an attribute change closes the current row and inserts a new one. Always filter `WHERE is_current` unless you specifically want history.
 - JSON columns (metadata, context_loaded, token_usage, result, output, correction, alternatives, outcome, activation_conditions, sampled_session_keys, tool_input, value_json, target_natural_key) are queryable with DuckDB's JSON functions: `output->>'$.raw'`, `json_extract(metadata, '$.key')`
 - No UNIQUE constraints -- entity identity and version monotonicity are enforced by the store layer (`insert_skill` rejects a version that doesn't exceed the current one), not the DDL.
-- The MCP server connects to `data/freudagent.duckdb` with read-write access
+- The store-ops MCP server (`freud-schema mcp-serve`, .mcp.json) holds the single connection: reads via its parser-enforced read-only `query` tool, writes via its store-op tools only. A generic duckdb server, if connected instead, has raw read-write access -- treat it as read-only by convention and use the CLI write window for writes.
 - To get the DDL as standalone SQL: `freud-schema db ddl` (this is the one CLI DB command that does NOT open a connection)
