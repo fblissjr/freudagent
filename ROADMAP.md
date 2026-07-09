@@ -168,7 +168,9 @@ and reviewers. And "no migration path; breaking changes reset the schema" is
 honest for an experiment but definitionally incompatible with a long-term
 store: transcript-derived facts are re-ingestable, but **human feedback,
 proposals, and approval history are not re-derivable from anything** — they
-are the most expensive data in the system.
+are the most expensive data in the system. (Felt twice in this repo already:
+rule provenance footers do not survive a reset — the approving proposals are
+gone, and only compiled files in git history preserve the evidence chain.)
 
 **What exists as the seed**: all access already goes through the store layer
 (never raw connections), which makes the backend swappable. Schema versioning
