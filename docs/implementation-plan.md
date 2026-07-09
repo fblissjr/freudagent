@@ -64,6 +64,7 @@ restated here because several milestones are large enough to tempt shortcuts.
 | M13 | Verification gate + flywheel health | 5 | L | M11, M12 | — |
 | M14 | Serving layer + widened feedback | 6 | L | M8, M10, M13 | — |
 | M15 | Dream-work: periodic consolidation passes | 4/6 | M | M8, M11 | — |
+| M16 | Store-ops MCP server (in-session writes) | 6 | M | M1–M3 | — |
 
 Shipped milestones carry the version that landed them (see CHANGELOG.md for
 the full record). As-shipped deltas from the specs below, all minor: M0's
@@ -744,6 +745,54 @@ each pass individually invocable; lineage rows present per pass.
 second run, and a scheduled invocation (documented harness recipe, e.g.
 Claude Code cron) keeps a live warehouse consolidated without human
 triggering.
+
+## Track H — Harness write surface
+
+### M16. Store-ops MCP server (added 2026-07-09)
+
+**Why**: the lock conventions optimized for read-analysis and made the write
+half of the flywheel second-class — native-row writes (rules, proposals,
+approvals, compile) need a disconnect-the-MCP-server dance, and the LLM
+couch layer writes findings via raw SQL with hand-derived keys, bypassing
+the one-write-path guarantee. That is misaligned with the thesis: Claude
+Code IS the harness, and the harness writes during sessions. Surfaced by
+the first real flywheel turn (2026-07-09), which also caught the couch
+skill's key recipe still saying md5 — exactly the drift raw-SQL write
+paths breed.
+
+**What exists as the seed**: every operation is already a store method with
+validation, key recipes, denormalization, and load_run lineage. The CLI is
+a thin argparse layer over them; an MCP server is the same thinness with a
+different transport.
+
+**Changes**
+- New module `src/freud_schema/mcp_server.py` behind an optional extra
+  (`mcp`), started via `freud-schema mcp-serve --db PATH`. It holds the
+  single DuckDB connection (replacing the generic duckdb MCP server in
+  `.mcp.json`) and exposes:
+  - `query(sql)` — read-only (SELECT/DESCRIBE only; writes rejected), so
+    ad-hoc analysis keeps its full SQL surface.
+  - Store-op tools mirroring the CLI's data operations: `rule_add`,
+    `skill_add`, `source_add`, `feedback_add`, `finding_add` (retiring the
+    couch skill's raw-INSERT exception), `proposal_add` / `proposal_approve`
+    / `proposal_reject`, `extraction_validate`, `compile`, `couch_run`.
+    Each is a thin wrapper over the existing store method — no new write
+    logic, same validation, same lineage.
+  - `ingest_transcripts` — the one CLI-only op left, now in-session.
+- CLI handlers and MCP tools share one dispatch layer so the surfaces
+  cannot drift (same principle as the batch-delegating single write path).
+- CLAUDE.md's DuckDB MCP section rewrites to: reads via `query`, writes via
+  store-op tools, no write window, no exceptions.
+- The library still never calls models; this server is data ops only.
+
+**Tests**: handler-level round trips against `:memory:` (each tool → store
+method → row present); the read-only `query` tool rejects
+INSERT/UPDATE/DELETE/DDL; a full flywheel-turn script (rule add → proposal
+→ approve → compile) passes through tools alone.
+
+**Done when**: a Claude Code session connected only to the store-ops server
+completes a full flywheel turn with zero raw-SQL writes and zero MCP
+disconnects.
 
 ## Cross-Cutting Workstreams
 

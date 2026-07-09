@@ -93,14 +93,25 @@ Full CLI reference is in `skill/skill.md`. Key commands:
 DuckDB is single-process -- only one connection per file. The MCP server holds it
 during Claude Code sessions, so the `freud-schema` CLI cannot access the same DB file.
 
-**Always use MCP tools for database access:**
+**Reads: any SQL, any time, via MCP** (`execute_query`, `list_tables`,
+`list_columns`). Do not shell out to the CLI for reads -- it will fail with a
+lock error while the MCP server is connected.
 
-- `mcp__duckdb__execute_query` -- Run any SQL (SELECT, INSERT, UPDATE, DELETE, DDL)
-- `mcp__duckdb__list_tables` -- List all tables in the database
-- `mcp__duckdb__list_columns` -- Show columns of a specific table
+**Writes: through the store's write path, never raw SQL** (owner decision
+2026-07-09 -- the harness writes too; raw SQL bypasses the one-write-path
+guarantee and hand-derives keys, the exact bug class the store exists to
+prevent):
 
-Do NOT shell out to `freud-schema` CLI for any command that touches the database --
-every subcommand except `db ddl` opens a connection and will fail with a lock error.
+- Native-row writes (rules, skills, sources, feedback, proposals,
+  approve/reject, compile): open a **CLI write window** -- disconnect the
+  duckdb MCP server (`/mcp`), run the `freud-schema` commands, reconnect.
+  One toggle, and the store keeps its single write path.
+- Documented exception until M16: LLM-layer findings (the `/couch` skill)
+  may INSERT `fact_finding` via `execute_query` -- append-only, keys per the
+  skill's sha256/32 recipe, wrapped in a `meta_load_log` row.
+- The durable fix is the **store-ops MCP server** (implementation plan M16):
+  store operations exposed as MCP tools, so in-session writes go through the
+  write path with no toggle and the exception above retires.
 
 - `execute_query` accepts multi-statement SQL, and each call is ONE transaction.
   Keep catalog changes (DROP/CREATE of tables and indexes) in separate calls from

@@ -1,6 +1,6 @@
 # /couch -- put the session history on the couch
 
-Last updated: 2026-07-07
+Last updated: 2026-07-09
 
 Analysis passes over the transcript warehouse that need judgment, not
 aggregation. The SQL layer (`freud-schema couch run`, no model calls)
@@ -42,20 +42,26 @@ scoped subagents, write conclusions back as `fact_finding` rows.
 
 4. **Record findings** via `mcp__duckdb__execute_query`. `finding_type`
    must already exist in `dim_finding_type` (`user_correction_pattern` and
-   `recurring_dead_end` are seeded by `couch run`). Keys are
-   `md5(finding_type || '|' || scope || '|' || coalesce(project_key,'-1')
-   || '|' || summary || '|' || etl_run_id)`:
+   `recurring_dead_end` are seeded by `couch run`). Keys are sha256/32
+   since v0.23 (NOT md5): `substring(CAST(sha256(x) AS VARCHAR), 1, 32)`
+   over `finding_type || '|' || scope || '|' || coalesce(project_key,'-1')
+   || '|' || summary || '|' || etl_run_id`:
 
    ```sql
    INSERT INTO fact_finding (finding_key, finding_type, finding_type_key,
        scope, project_key, evidence_session_keys, occurrence_count, summary,
-       record_source, etl_run_id)
-   VALUES (?, 'user_correction_pattern', md5('user_correction_pattern'),
-       'project', ?, ?, ?, ?, 'derived', ?)
+       tenant_key, record_source, etl_run_id)
+   VALUES (?, 'user_correction_pattern',
+       substring(CAST(sha256('user_correction_pattern') AS VARCHAR), 1, 32),
+       'project', ?, ?, ?, ?,
+       substring(CAST(sha256('default') AS VARCHAR), 1, 32),
+       'derived', ?)
    ```
 
    Open a `meta_load_log` row first (`operation = 'couch_llm'`) and close
-   it with counts when done, same as the SQL layer does.
+   it with counts when done, same as the SQL layer does. (This raw INSERT
+   is the documented exception to writes-through-the-store -- it retires
+   when the store-ops MCP server lands, implementation plan M16.)
 
 ## Privacy rules (non-negotiable)
 
