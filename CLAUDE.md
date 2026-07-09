@@ -221,10 +221,13 @@ Schema docs: `.claude/skills/db-query.md`
   will say so explicitly.
 - Standard schema-change recipe: edit DDL in db.py (register new tables in `ALL_TABLES`
   and the `reset_schema()` drop list, new views in `ALL_VIEWS`, bump `_SCHEMA_VERSIONS`
-  on breaking change) -> reset (`db reset` from the CLI, or `reset_schema()`'s DDL via
-  `execute_query` when the MCP server holds the lock) -> `ingest transcripts` ->
-  `couch run` -> recreate whatever native test rows (skills/rules/feedback/proposals)
-  the current experiment needs
+  on breaking change) -> reset via a CLI window (`db reset`; the store-ops server has
+  no reset/DDL tool BY DESIGN -- disconnect it first, reconnect after) ->
+  `ingest transcripts` -> `couch run` -> recreate native rows. Two sharp edges:
+  (1) re-seed active rules into dim_rule BEFORE anything compiles, or the reaper
+  deletes their compiled files (strip the marker header/provenance footer from each
+  compiled .md for content); (2) reset wipes proposal/finding provenance -- expected,
+  not a bug; footers survive only in compiled files and git history
 - New tables must be added to `reset_schema()` drop list (order matters: dependents first)
 - DDL stored as `list[str]` (one statement per element, no semicolon splitting)
 
