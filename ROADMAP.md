@@ -346,6 +346,13 @@ visual surfaces over the store.
 - **Staleness as a standing detector**: watched sources (Phase 0's hash
   re-check) produce findings when upstream material changes, proposing
   re-extraction — maintenance becomes a loop the system runs on itself.
+- **Consolidation passes ("dreaming")**: periodic offline jobs that
+  restructure what event-driven detection only accumulates — dedup/merge
+  of near-duplicate findings and feedback, re-resolution of denormalized
+  attributes and relationships as dimensions evolve, index and aggregate
+  refresh, retention pruning. Scheduling lives in the harness; the layer
+  ships idempotent, lineage-stamped consolidation operations safe to run
+  on any cadence. A knowledge system that only reacts never reorganizes.
 
 ---
 

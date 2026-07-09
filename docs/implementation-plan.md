@@ -63,6 +63,7 @@ restated here because several milestones are large enough to tempt shortcuts.
 | M12 | Review queue and conflict handling | 4 | M | M7, M11 |
 | M13 | Verification gate + flywheel health | 5 | L | M11, M12 |
 | M14 | Serving layer + widened feedback | 6 | L | M8, M10, M13 |
+| M15 | Dream-work: periodic consolidation passes | 4/6 | M | M8, M11 |
 
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
 work). The order within tracks matters. Track C (M8–M10) can start once the
@@ -679,6 +680,59 @@ warehouse; a feedback POST eventually surfaces as an open case in `couch
 cases`; and the API cannot mutate a dimension by construction.
 
 ---
+
+## Track G — Consolidation
+
+### M15. Dream-work: periodic consolidation passes (added 2026-07-09)
+
+**Why**: event-driven detection and human-triggered flywheel turns are not
+enough — between turns, the warehouse and its derived structures degrade on
+their own. Findings accumulate near-duplicates; denormalized fact attributes
+drift from dims that have since evolved; the retrieval corpus and its
+indexes fall behind current rows; staleness baselines age; telemetry
+outgrows its retention horizon. A knowledge system that only reacts never
+reorganizes. This is the "memory lifecycle as core intelligence" challenge
+from the research review, and what the agent-memory literature runs as
+offline consolidation ("sleep-time compute"). Here it gets the name the
+repo was always going to give it: **dream-work** — condensation,
+displacement, secondary revision.
+
+**What exists as the seed**: every operation below is an idempotent data op
+the library already half-has — case upserts (M11), `retrieval.reindex()`
+(M8), the stale_source detector (M0), `prune_telemetry` (M4a),
+`load_run()` lineage for all of it.
+
+**Changes**
+- One entry point, `run_dreamwork(store, *, passes=None)` in a new
+  `dreamwork.py`, each pass wrapped in its own `load_run` (operation names
+  `dreamwork_<pass>`), all idempotent and watermark-aware:
+  - **Condensation** (dedup/merge): fold near-duplicate findings into their
+    cases (M11's upsert applied retroactively across historical runs);
+    merge redundant unit feedback onto the same target (M14).
+  - **Displacement** (re-linking): refresh denormalized attributes on facts
+    whose source dimensions evolved since insert (skill attrs, tenant);
+    emit a dangling-reference report as findings rather than failing.
+  - **Secondary revision** (metadata refresh): rebuild the retrieval corpus
+    and indexes (M8); recompute source staleness baselines' findings (M0);
+    refresh flywheel-health aggregates (M13).
+  - **Retention**: `prune_telemetry` past the configured horizon (M4a) —
+    knowledge tables never pruned.
+- CLI: `maintain run [--pass NAME]` — runs all passes or one.
+- **Scheduling stays in the harness** (no-orchestration rule): Claude Code
+  cron/hooks, CI schedules, or OS cron invoke `maintain run` on whatever
+  cadence fits. The library ships operations that are safe at any
+  frequency; it never ships a scheduler. Anything in a pass that needs
+  judgment (e.g. semantic merge of near-duplicate knowledge) is an LLM-layer
+  job for the harness, exactly like the couch's LLM detectors — the
+  library's passes stay deterministic.
+
+**Tests**: run-twice idempotency per pass (second run writes zero rows);
+each pass individually invocable; lineage rows present per pass.
+
+**Done when**: `maintain run` twice in a row reports zero writes on the
+second run, and a scheduled invocation (documented harness recipe, e.g.
+Claude Code cron) keeps a live warehouse consolidated without human
+triggering.
 
 ## Cross-Cutting Workstreams
 
