@@ -267,8 +267,8 @@ swappable behind the store layer.
 - Classify tables: **knowledge** = SCD-2 dims, registries, `fact_proposal`,
   `fact_feedback`, `fact_trace_feedback`, `fact_extraction`, eval tables
   (M13); **telemetry** = `fact_session`, `fact_message`, `fact_tool_use`,
-  `fact_trace`, `fact_session_facets`, `fact_finding`, cases (M11),
-  watermarks; `meta_*` exists in both.
+  `fact_trace`, `fact_session_facets`, `fact_finding`, `fact_event` (M5),
+  cases (M11), watermarks; `meta_*` exists in both.
 - `ExperimentStore` accepts two connections (or one, aliased — the default
   stays a single file so nothing breaks for the single-operator case).
   `ALL_TABLES` gains a store-affinity map used by `db status`, backup
@@ -552,6 +552,10 @@ is the default human entry point.
   `etl_run_id`): detectors filter their base queries to
   `occurred_at > watermark` and advance it inside the same transaction.
   Full-rescan stays available (`couch run --full`) for after-backfill use.
+- Detector precision (felt input, first flywheel turn): permission_friction
+  must distinguish user-judgment denials from headless auto-denials
+  ("prompts unavailable" result_text signature) — an entire finding was
+  environmental noise. Filter lands with the watermark rework.
 - Thresholds as data: `dim_finding_type` gains `parameters JSON`
   (schema change via reset, per M1 policy); `run_couch` reads per-type
   parameters with the module
@@ -650,7 +654,10 @@ holdout inputs — that's where model calls live.
     privacy gate: no eval, no approval, last good version keeps serving.
 - Case verification (closing M11's loop): a scheduled `couch verify` pass
   checks `addressed` cases — if the case's detector reports no recurrence
-  since `addressed` + a configurable quiet window, transition to `verified`;
+  since `addressed` + a configurable quiet window — denominated in ACTIVE
+  SESSIONS, not days (felt input: P1's verify measurement was underpowered
+  at 64 post-rule sessions; days say nothing about power) — transition to
+  `verified`;
   recurrence reopens (already handled by M11).
 - Views: `v_flywheel_health` — per skill version: extraction count,
   correction rate, time-to-validation; per rule: case recurrence after
@@ -881,7 +888,7 @@ These don't get milestone numbers; they get enforced at every milestone.
 | Case signatures too coarse/fine → dedup fails | M11 | Signature is per-detector and versioned in `dim_finding_type.parameters`; changing it opens new cases rather than corrupting old ones |
 | Serving API becomes a second write path | M14 | API writes only feedback/usage facts; dimension mutations have no endpoint; enforced by tests that assert the route table |
 | Reset-and-rebuild via the locked MCP connection wedges DuckDB's catalog dependency tracking (hit 2026-07-09) | M1 recipe, any reset while the MCP server holds the DB | One transaction per `execute_query` call: creates, indexes, and data loads as separate calls; never `COPY FROM DATABASE`/`IMPORT DATABASE` on the long-lived connection (single-transaction). Full recipe in CLAUDE.md's DuckDB MCP section |
-| Fresh full ingest is the standard path under reset-based lifecycle, and it costs minutes (~2m17s for 175k entries) | M1 recipe at scale | Backlog item "fresh-ingest insert speed" (spill batches to temp JSONL + `read_json` insert, ~300x measured) is now worth doing — its trigger condition ("if fresh runs become frequent") is met |
+| ~~Fresh full ingest costs minutes~~ RESOLVED 0.26.0 | M1 recipe at scale | Spill-to-JSONL + `read_json` landed with M5: ~600x on the insert loop, live rebuild 2m17s → 13.6s wall |
 | In-session write tools enable agent self-modification (rules that load into the agent's own future sessions) with the human atom bypassed | M16 | Gate design in M16: add-tools are draft/inactive-only (never compiled), `proposal_approve` never allowlisted (harness permission prompt = the human atom's transport), read-only `query` enforced at the parser level with multi-statement rejection, no destructive tools exposed |
 | Read-only SQL classification bypassed via CTE/ATTACH/COPY/PRAGMA smuggling | M16 `query` tool | Parser-level statement extraction (single statement, SELECT-type only), explicit bypass-attempt tests in the suite |
 

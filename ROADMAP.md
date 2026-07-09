@@ -219,7 +219,10 @@ sources; the load-run context manager gives every operation typed stats.
 **What to build**:
 - **Generic event grain**: generalize the message/tool-use fact tables so
   agent transcripts are one `record_source` among many enterprise event
-  streams, rather than the privileged shape.
+  streams, rather than the privileged shape. (Shipped here in v0.26:
+  `fact_event` + open event-type registry, the `IngestAdapter` protocol
+  with transcript and JSONL adapters, and Drain-style-lite signature
+  normalization per research amendment 6.)
 - **Ingest-time redaction**: secret scanning and sensitive-content
   classification *before* rows land, making the warehouse clean by
   construction. The compile-time gate remains as the backstop it was always
