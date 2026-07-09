@@ -34,7 +34,7 @@ def _rule_proposal(**over) -> Proposal:
 class TestApproveRuleProposal:
     def test_approve_creates_rule(self, store):
         pkey = store.insert_proposal(_rule_proposal())
-        rule_key = store.approve_proposal(pkey, reviewed_by="fred")
+        rule_key = store.approve_proposal(pkey, reviewed_by="reviewer")
         rule = store.get_rule(rule_key)
         assert rule is not None
         assert rule.name == "no-retry-loops"
@@ -44,11 +44,11 @@ class TestApproveRuleProposal:
 
     def test_approve_records_outcome(self, store):
         pkey = store.insert_proposal(_rule_proposal())
-        rule_key = store.approve_proposal(pkey, reviewed_by="fred")
+        rule_key = store.approve_proposal(pkey, reviewed_by="reviewer")
         p = store.get_proposal(pkey)
         assert p.status == ProposalStatus.APPROVED
         assert p.resulting_dimension_key == rule_key
-        assert p.reviewed_by == "fred"
+        assert p.reviewed_by == "reviewer"
         assert p.reviewed_at is not None
 
     def test_approve_evolves_existing_rule(self, store):
@@ -105,7 +105,7 @@ class TestApproveSkillProposal:
 class TestReject:
     def test_reject_changes_nothing_downstream(self, store):
         pkey = store.insert_proposal(_rule_proposal())
-        store.reject_proposal(pkey, reviewed_by="fred")
+        store.reject_proposal(pkey, reviewed_by="reviewer")
         p = store.get_proposal(pkey)
         assert p.status == ProposalStatus.REJECTED
         assert p.resulting_dimension_key is None

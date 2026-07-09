@@ -27,7 +27,7 @@ def _approve_rule(store, name="no-retry-loops",
         target_natural_key={"name": name},
         proposed_content=content,
         evidence_finding_keys=list(evidence)))
-    store.approve_proposal(pkey, reviewed_by="fred")
+    store.approve_proposal(pkey, reviewed_by="reviewer")
     return pkey
 
 

@@ -59,6 +59,8 @@ a2ui/                - MCP server + Lit client for A2UI visual surfaces
 internal/            - Analysis docs, backlog, session logs (gitignored)
 .claude/
   skills/            - Project-specific Claude Code skills (committed)
+  rules/             - Compiled rule output from dim_rule (committed; do NOT edit --
+                       change the dimension row via proposal and recompile)
   settings.local.json - Personal permissions (gitignored)
 ```
 
@@ -198,6 +200,9 @@ Schema docs: `.claude/skills/db-query.md`
 - `--status`/`--scope`/`--type` args must use `choices=[e.value for e in EnumClass]`
 - Handlers that modify by key resolve prefixes via `store.resolve_key()` first and `sys.exit(1)` on no-match/ambiguity
 - CLI exposes data operations only -- no execution/orchestration commands (harness's job)
+- CLI output is human-oriented: scripts must capture keys from each command's own
+  stdout, never scrape `list` output (no --json; learned 2026-07-09 when a scripted
+  approval loop half-ran. M16's store-ops MCP tools are the structured surface)
 
 ### Tests
 - Module-scoped `entries` fixture for JSONL (no repeated `load_entries()`)

@@ -77,6 +77,15 @@ the named-recipe convention exists precisely to prevent that class of bug.
 The first real reset-and-rebuild (2026-07-09: 174,779 transcript entries →
 127,495 rows, ~2m17s, 34 findings) validated the M1 recipe end to end.
 
+The first full flywheel turn also ran 2026-07-09 (pre-registered in
+`internal/research/`): SQL findings → LLM couch judgment → three
+evidence-linked rule proposals → owner approval → compile with provenance
+footers. Retroactive verification of the earliest compiled rule was
+directional but underpowered (identical-retry sessions 1.5% before → 0/64
+after; re-measure at ~200 post-rule sessions). The turn's friction log
+feeds M11 (auto-denial filtering), M13 (session-denominated verify
+windows, health views), and M16 (which it motivated).
+
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
 work). The order within tracks matters. Track C (M8–M10) can start once the
 substrate track lands; Track D additionally needs M5 and M7 from Track B
@@ -790,9 +799,24 @@ method → row present); the read-only `query` tool rejects
 INSERT/UPDATE/DELETE/DDL; a full flywheel-turn script (rule add → proposal
 → approve → compile) passes through tools alone.
 
+**Risk — self-modification without the human atom** (identified
+2026-07-09, before build): an in-session agent with direct `rule_add` /
+`skill_add` tools can write rules that load into its own future sessions,
+bypassing the proposal → human-approval flow entirely. The CLI has the
+same bypass, but a human runs the CLI; MCP tools are agent-invoked. Gate
+design, non-negotiable: (a) `rule_add`/`skill_add` tools accept only
+`status=draft` (drafts don't compile — activation requires the proposal
+flow); (b) `proposal_approve` is never allowlisted — it must surface the
+harness permission prompt every single time, making the approval click
+the human atom's transport; (c) the read-only `query` tool enforces
+read-only via statement classification AND rejects multi-statement input
+(CTE/ATTACH/COPY smuggling is a known bypass class — test it explicitly);
+(d) `db reset` and other destructive ops are not exposed as tools at all.
+
 **Done when**: a Claude Code session connected only to the store-ops server
 completes a full flywheel turn with zero raw-SQL writes and zero MCP
-disconnects.
+disconnects — and the gate tests prove an agent cannot activate a rule
+without a human-confirmed approval.
 
 ## Cross-Cutting Workstreams
 
