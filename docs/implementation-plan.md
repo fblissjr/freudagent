@@ -256,6 +256,16 @@ default tenant, and the two-tenant collision test passes.
 
 ### M4. Store split + backend protocol
 
+**Priority note (2026-07-09, owner-flagged)**: M4 is now the least urgent
+Track A item and should slide behind M11 → M13. Its original pain — the
+single-file lock choreography — was mostly absorbed by M16 (the store-ops
+server holds the one connection and the write surface lives in-session);
+what remains (multi-writer concurrency, retention separation, backend
+swap) is enterprise-descendant territory. Nothing downstream blocks on it
+except M15's retention hook (`prune_telemetry`), which can ship standalone
+if M15 arrives first. Dependency order in the map is unchanged — this is
+scheduling guidance, not a dependency edit.
+
 **Goal**: break the single-file, single-process wall. The knowledge store
 (small, precious, forever) and the telemetry warehouse (high-volume,
 sensitive, retention-bound) become separable, and the storage engine becomes
