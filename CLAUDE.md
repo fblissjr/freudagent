@@ -29,6 +29,12 @@ src/freud_schema/
   ingest.py          - Sense: transcript ingestion, idempotent by key construction
   couch.py           - Analyze: SQL finding detectors; thresholds live here, never in view DDL
   materialize.py     - Materialize: rule compiler with provenance + fail-closed privacy gate
+  ops.py             - Shared write-op dispatch layer: CLI and mcp_server.py both call
+                       these instead of ExperimentStore directly, so the two surfaces
+                       cannot drift
+  mcp_server.py      - Store-ops MCP server (M16): read-only `query` tool + gated write
+                       tools; self-modification gate lives here (rule_add/skill_add force
+                       non-compiling statuses; proposal_approve is the human atom)
   vendor/ccutils_parsers/ - Vendored transcript parsers, pinned upstream commit --
                        do not edit here, sync from upstream
   orchestrator.py    - Context assembly, provider protocol, provider implementations
@@ -62,6 +68,8 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
   rules/             - Compiled rule output from dim_rule (committed; do NOT edit --
                        change the dimension row via proposal and recompile)
   settings.local.json - Personal permissions (gitignored)
+.mcp.json            - MCP server config: freud-schema mcp-serve (the store-ops
+                       connection holder for this project; committed)
 ```
 
 ## Development
@@ -71,8 +79,9 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 - Tests: `uv run pytest tests/`
 - `[tool.pytest.ini_options]` in pyproject.toml anchors the rootdir -- without it, collection
   escapes into the parent directory (itself a Python project) and every test fails at import
-- Install: `uv sync --extra dev`
-- Optional: `uv sync --extra anthropic` (Claude API), `uv sync --extra local` (httpx)
+- Install: `uv sync --extra dev` (includes the `mcp` extra so gate tests run)
+- Optional: `uv sync --extra anthropic` (Claude API), `uv sync --extra local` (httpx),
+  `uv sync --extra mcp` (store-ops MCP server, `freud-schema mcp-serve`)
 
 ## CLI Quick Reference
 
@@ -89,43 +98,67 @@ Full CLI reference is in `skill/skill.md`. Key commands:
 - `freud-schema ingest transcripts [--project] [--since]` (idempotent; CLI-only, needs the DB lock)
 - `freud-schema couch run|list` (SQL detectors -> fact_finding, no model calls)
 - `freud-schema proposal add|list|show|approve|reject` / `freud-schema compile --out DIR`
+- `freud-schema mcp-serve` (store-ops MCP server over stdio; requires `uv sync --extra mcp`)
 
 ## DuckDB MCP
 
-DuckDB is single-process -- only one connection per file. The MCP server holds it
-during Claude Code sessions, so the `freud-schema` CLI cannot access the same DB file.
+DuckDB is single-process -- only one connection per file. Exactly one process
+may hold it during a Claude Code session, so the `freud-schema` CLI cannot
+touch the same DB file while that connection is open.
 
-**Reads: any SQL, any time, via MCP** (`execute_query`, `list_tables`,
-`list_columns`). Do not shell out to the CLI for reads -- it will fail with a
-lock error while the MCP server is connected.
+**The store-ops server (`freud-schema mcp-serve`, configured in `.mcp.json`)
+is the preferred connection holder** (implementation plan M16, landed
+0.25.0). It exposes:
 
-**Writes: through the store's write path, never raw SQL** (owner decision
-2026-07-09 -- the harness writes too; raw SQL bypasses the one-write-path
-guarantee and hand-derives keys, the exact bug class the store exists to
-prevent):
+- `query(sql)` -- read-only. Enforced at the parser level
+  (`mcp_server.classify_readonly`): exactly one SELECT statement, no
+  INSERT/UPDATE/DELETE/DDL/ATTACH/COPY/PRAGMA, no multi-statement input.
+  Ad-hoc analysis keeps its full SQL surface within that constraint.
+- Store-op tools for every write (`rule_add`, `skill_add`, `source_add`,
+  `feedback_add`, `finding_add`, `extraction_validate`, `extraction_reject`,
+  `proposal_add`, `proposal_reject`, `couch_run`, `compile`,
+  `ingest_transcripts`) -- each a thin wrapper over `ops.py`, which is the
+  same dispatch layer the CLI calls, so the two surfaces cannot drift.
+- **The self-modification gate**: `rule_add`/`skill_add` always create the
+  non-compiling status (rules: `inactive`; skills: `draft`) regardless of
+  what a caller asks for -- a session cannot make a rule or skill load into
+  its own future context by calling these tools directly. The only path to
+  activation is `proposal_add` -> `proposal_approve`.
+- `proposal_approve` is the one human atom's transport: **never allowlist
+  it** in permissions config, at any scope. Every call must surface the
+  harness's permission prompt -- that prompt IS the approval. `reviewed_by`
+  is a required argument, not optional.
+- No tool exposes `db reset`, `db ddl`, or any raw-write escape hatch.
 
-- Native-row writes (rules, skills, sources, feedback, proposals,
-  approve/reject, compile): open a **CLI write window** -- disconnect the
-  duckdb MCP server (`/mcp`), run the `freud-schema` commands, reconnect.
-  One toggle, and the store keeps its single write path.
-- Documented exception until M16: LLM-layer findings (the `/couch` skill)
-  may INSERT `fact_finding` via `execute_query` -- append-only, keys per the
-  skill's sha256/32 recipe, wrapped in a `meta_load_log` row.
-- The durable fix is the **store-ops MCP server** (implementation plan M16):
-  store operations exposed as MCP tools, so in-session writes go through the
-  write path with no toggle and the exception above retires.
+**Migration note**: if this project's `.mcp.json` still lists a generic
+`duckdb` MCP server entry (e.g. from a user-level config), disable it for
+this project once the store-ops server is connected -- two servers holding
+the same file is the lock conflict this section used to be about. Until a
+session has switched over, the old write-window rules still apply:
 
-- `execute_query` accepts multi-statement SQL, and each call is ONE transaction.
-  Keep catalog changes (DROP/CREATE of tables and indexes) in separate calls from
-  each other and from data loads -- batching drops + creates + copies in one call
-  (or using `COPY FROM DATABASE` / `IMPORT DATABASE`, which are single-transaction)
-  trips DuckDB's index dependency tracking on the long-lived MCP connection
-  ("Could not commit creation of dependency" -- hit for real, 2026-07-09).
-- Lock workaround for CLI-only ops (ingest, compile): run them against a scratch DB
-  file, then `ATTACH` it read-only from the MCP connection and `INSERT INTO` the live
-  tables -- deterministic keys make the copy idempotent. For a full reset-and-rebuild,
-  `EXPORT DATABASE (FORMAT PARQUET)` the scratch DB, then replay on the live
-  connection in separate calls: creates, then indexes, then `read_parquet` loads.
+- Native-row writes through a **generic duckdb MCP server**: open a **CLI
+  write window** -- disconnect that server (`/mcp`), run the `freud-schema`
+  commands, reconnect.
+- The `/couch` skill's raw-INSERT exception is retired: `finding_add`
+  (CLI or the MCP tool) is the one write path for findings now, LLM-judged
+  or SQL-detected alike. `.claude/skills/couch.md` keeps the old raw-SQL
+  recipe as a fallback appendix for sessions still on a generic server.
+
+**Still true for any raw connection** (the store-ops server's `query` tool
+included, since it shares the store's connection): `execute_query`-style
+calls accept multi-statement SQL, and each call is ONE transaction. Keep
+catalog changes (DROP/CREATE of tables and indexes) in separate calls from
+each other and from data loads -- batching drops + creates + copies in one
+call (or using `COPY FROM DATABASE` / `IMPORT DATABASE`, which are
+single-transaction) trips DuckDB's index dependency tracking on a
+long-lived connection ("Could not commit creation of dependency" -- hit for
+real, 2026-07-09). Lock workaround for CLI-only ops when no MCP server is
+in play (ingest, compile): run them against a scratch DB file, then
+`ATTACH` it read-only from the MCP connection and `INSERT INTO` the live
+tables -- deterministic keys make the copy idempotent. For a full
+reset-and-rebuild, `EXPORT DATABASE (FORMAT PARQUET)` the scratch DB, then
+replay on the live connection in separate calls: creates, then indexes,
+then `read_parquet` loads.
 
 Claude Code IS the harness. Orchestration happens natively (Agent tool, Read tool,
 MCP tools). The CLI exposes data operations (CRUD on skills/sources/rules/feedback/

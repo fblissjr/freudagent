@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "freud-schema": {
+      "command": "uv",
+      "args": ["run", "freud-schema", "mcp-serve"],
+      "type": "stdio"
+    }
+  }
+}

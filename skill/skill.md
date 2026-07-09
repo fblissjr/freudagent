@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.24.0
+version: 0.25.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,7 +37,7 @@ scope:
 
 # FreudAgent Data Layer
 
-Last updated: 2026-07-09
+Last updated: 2026-07-09 (M16: store-ops MCP server)
 
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness
@@ -64,11 +64,19 @@ All commands use `freud-schema` (or `uv run freud-schema`). The `--db` flag is g
 global and defaults to `default`; it scopes the four tenant-keyed dims (skills, rules,
 sources, sampling configs) and `compile` -- omitting it preserves single-tenant behavior.
 
-> **If DuckDB MCP is available (Claude Code sessions):** Prefer `mcp__duckdb__execute_query`
-> over CLI commands for all database operations. DuckDB is single-process -- the MCP server
-> holds the connection, so CLI commands that touch the DB will fail with a lock error.
-> CLI commands that don't open a connection (corpus queries, archetype/preset commands,
-> `db ddl`) still work.
+> **If an MCP server is connected (Claude Code sessions):** DuckDB is single-process --
+> whichever server holds the connection, `freud-schema` CLI commands that touch the DB
+> will fail with a lock error. CLI commands that don't open a connection (corpus queries,
+> archetype/preset commands, `db ddl`) still work regardless.
+>
+> Prefer the **store-ops server** (`freud-schema mcp-serve`, configured in `.mcp.json`,
+> implementation plan M16): its `query` tool covers reads, and every write goes through
+> a gated tool (`rule_add`, `skill_add`, `source_add`, `feedback_add`, `finding_add`,
+> `extraction_validate`/`reject`, `proposal_add`/`reject`, `couch_run`, `compile`,
+> `ingest_transcripts`) instead of a CLI write-window toggle. `proposal_approve` is
+> never allowlisted -- every approval surfaces the permission prompt by design. If the
+> session is instead connected to a generic `duckdb` MCP server, use
+> `mcp__duckdb__execute_query` for reads and fall back to a CLI write window for writes.
 
 Keys are sha256/32 hashes (`keys.dimension_key()`), not integers -- every command that
 takes an entity reference (skill, source, rule, extraction, feedback, session,
@@ -172,6 +180,23 @@ line, and a provenance footer naming the approving proposal and its
 findings. The privacy gate is fail-closed: files containing home paths or
 the OS username are blocked, and the last good compile survives.
 Rollback: `store.rollback_dimension()` then recompile.
+
+### Store-Ops MCP Server
+
+```bash
+freud-schema mcp-serve                # stdio; needs uv sync --extra mcp
+```
+
+The in-session write surface (implementation plan M16). `cli.py` and
+`mcp_server.py` both call the same `ops.py` dispatch functions, so CLI and
+MCP behavior cannot drift. The server holds the single DuckDB connection
+for the session -- configure it once in `.mcp.json` (already committed)
+instead of the generic `duckdb` MCP server. Gate design: `rule_add`/
+`skill_add` always create the non-compiling status (rules: `inactive`,
+skills: `draft`) no matter what status is requested; the only path to
+activation is `proposal_add` -> `proposal_approve`, and `proposal_approve`
+must never be allowlisted -- every approval surfaces the permission
+prompt. No tool exposes `db reset`, `db ddl`, or raw writes.
 
 ## Corpus
 

@@ -40,12 +40,33 @@ scoped subagents, write conclusions back as `fact_finding` rows.
    approach, or just a follow-up question? Subagents return a verdict plus
    a one-line generic description of the pattern -- see privacy rules.
 
-4. **Record findings** via `mcp__duckdb__execute_query`. `finding_type`
-   must already exist in `dim_finding_type` (`user_correction_pattern` and
-   `recurring_dead_end` are seeded by `couch run`). Keys are sha256/32
-   since v0.23 (NOT md5): `substring(CAST(sha256(x) AS VARCHAR), 1, 32)`
-   over `finding_type || '|' || scope || '|' || coalesce(project_key,'-1')
-   || '|' || summary || '|' || etl_run_id`:
+4. **Record findings** via the `finding_add` MCP tool (store-ops server,
+   `freud-schema mcp-serve` -- implementation plan M16, landed 0.25.0):
+
+   ```
+   finding_add(
+       finding_type="user_correction_pattern",
+       summary="user repeatedly redirected agent away from editing generated files",
+       scope="project",
+       project_key=<project_key>,
+       evidence_session_keys=[<session_key>, ...],
+       occurrence_count=<n>,
+   )
+   ```
+
+   `finding_type` must already exist in `dim_finding_type`
+   (`user_correction_pattern` and `recurring_dead_end` are seeded by
+   `couch run`) -- the tool validates the registry lookup and raises if it
+   isn't registered, same as every other detector's write path. The tool
+   opens and closes its own `meta_load_log` row (`operation = 'couch_llm'`)
+   internally; there is nothing left to do by hand.
+
+   **Fallback appendix** (sessions still connected to a generic duckdb MCP
+   server rather than the store-ops server): the raw INSERT this tool
+   replaced. Keys are sha256/32 since v0.23 (NOT md5):
+   `substring(CAST(sha256(x) AS VARCHAR), 1, 32)` over `finding_type || '|'
+   || scope || '|' || coalesce(project_key,'-1') || '|' || summary || '|'
+   || etl_run_id`:
 
    ```sql
    INSERT INTO fact_finding (finding_key, finding_type, finding_type_key,
@@ -59,9 +80,9 @@ scoped subagents, write conclusions back as `fact_finding` rows.
    ```
 
    Open a `meta_load_log` row first (`operation = 'couch_llm'`) and close
-   it with counts when done, same as the SQL layer does. (This raw INSERT
-   is the documented exception to writes-through-the-store -- it retires
-   when the store-ops MCP server lands, implementation plan M16.)
+   it with counts when done, same as the SQL layer does. This is a
+   fallback only -- prefer `finding_add` whenever the store-ops server is
+   connected.
 
 ## Privacy rules (non-negotiable)
 

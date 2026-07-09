@@ -310,6 +310,13 @@ def main(argv: list[str] | None = None) -> None:
     p_sc_add.add_argument("--max-samples", type=int, default=3)
     p_sc_sub.add_parser("list", help="List all sampling configs")
 
+    # --- MCP store-ops server ---
+    sub.add_parser(
+        "mcp-serve",
+        help="Run the store-ops MCP server over stdio (uses global --db); "
+             "requires the 'mcp' extra (uv sync --extra mcp)",
+    )
+
     args = parser.parse_args(argv)
     if not args.command:
         parser.print_help()
@@ -437,6 +444,8 @@ def main(argv: list[str] | None = None) -> None:
         _handle_compile(args)
     elif args.command == "sampling-config":
         _handle_sampling_config(args)
+    elif args.command == "mcp-serve":
+        _handle_mcp_serve(args)
 
 
 # ---------------------------------------------------------------------------
@@ -498,7 +507,7 @@ def _handle_db(args) -> None:
 
 
 def _handle_skill(args) -> None:
-    from freud_schema.tables import Skill
+    from freud_schema import ops
 
     with _get_store(args.db) as store:
         if args.skill_action == "add":
@@ -509,13 +518,14 @@ def _handle_skill(args) -> None:
             if not content:
                 print("Provide --content or --file", file=sys.stderr)
                 sys.exit(1)
-            skill = Skill(
-                domain=args.domain, task_type=args.task_type,
-                version=args.version, tenant_id=args.tenant,
-                content=content, status=SkillStatus(args.status),
+            result = ops.skill_add(
+                store, domain=args.domain, task_type=args.task_type,
+                content=content, version=args.version, tenant_id=args.tenant,
+                status=SkillStatus(args.status),
             )
-            skill_key = store.insert_skill(skill)
-            print(f"Skill created: key={skill_key} tenant={args.tenant} domain={args.domain} task_type={args.task_type} v{args.version} status={args.status}")
+            print(f"Skill created: key={result['skill_key']} tenant={result['tenant_id']} "
+                  f"domain={result['domain']} task_type={result['task_type']} "
+                  f"v{result['version']} status={result['status']}")
         elif args.skill_action == "list":
             for s in store.list_skills():
                 origin_tag = f" [{s.origin.value}]" if s.origin != SkillOrigin.HUMAN_AUTHORED else ""
@@ -544,24 +554,22 @@ def _handle_skill(args) -> None:
 
 
 def _handle_source(args) -> None:
-    from freud_schema.tables import Source
+    from freud_schema import ops
 
     with _get_store(args.db) as store:
         if args.source_action == "add":
-            source_hash = None
-            if args.hash:
-                from freud_schema.couch import source_content_hash
-                try:
-                    source_hash = source_content_hash(args.path)
-                except OSError as e:
-                    print(f"Cannot hash {args.path}: {e}", file=sys.stderr)
-                    sys.exit(1)
-            source = Source(content_path=args.path, media_type=args.media_type,
-                             tenant_id=args.tenant, source_hash=source_hash)
-            source_key = store.insert_source(source)
+            try:
+                result = ops.source_add(
+                    store, path=args.path, media_type=args.media_type,
+                    tenant_id=args.tenant, hash_baseline=args.hash,
+                )
+            except OSError as e:
+                print(f"Cannot hash {args.path}: {e}", file=sys.stderr)
+                sys.exit(1)
+            source_hash = result["source_hash"]
             hashed = f" hash={source_hash[:12]}..." if source_hash else ""
-            print(f"Source registered: key={source_key} tenant={args.tenant} "
-                  f"path={args.path}{hashed}")
+            print(f"Source registered: key={result['source_key']} tenant={result['tenant_id']} "
+                  f"path={result['path']}{hashed}")
         elif args.source_action == "list":
             for s in store.list_sources():
                 print(f"  [{s.source_key[:8]}] {s.content_path} ({s.media_type}) [{s.status.value}]")
@@ -570,16 +578,17 @@ def _handle_source(args) -> None:
 
 
 def _handle_rule(args) -> None:
-    from freud_schema.tables import Rule
+    from freud_schema import ops
 
     with _get_store(args.db) as store:
         if args.rule_action == "add":
-            rule = Rule(
-                name=args.name, scope=RuleScope(args.scope), domain=args.domain,
-                priority=args.priority, content=args.content, tenant_id=args.tenant,
+            result = ops.rule_add(
+                store, name=args.name, content=args.content,
+                scope=RuleScope(args.scope), domain=args.domain,
+                priority=args.priority, tenant_id=args.tenant,
             )
-            rule_key = store.insert_rule(rule)
-            print(f"Rule created: key={rule_key} tenant={args.tenant} name={args.name} scope={args.scope}")
+            print(f"Rule created: key={result['rule_key']} tenant={result['tenant_id']} "
+                  f"name={result['name']} scope={result['scope']}")
         elif args.rule_action == "list":
             for r in store.list_rules():
                 domain = f" domain={r.domain}" if r.domain else ""
@@ -589,8 +598,6 @@ def _handle_rule(args) -> None:
 
 
 def _handle_feedback(args) -> None:
-    from freud_schema.tables import Feedback
-
     with _get_store(args.db) as store:
         if args.feedback_action == "list":
             skill_key = None
@@ -614,24 +621,23 @@ def _handle_feedback(args) -> None:
                     for fb in fb_list:
                         print(f"  [{fb.feedback_key[:8]}] skill={fb.skill_key[:8]} type={fb.correction_type.value} by={fb.created_by or 'anon'}")
         elif args.feedback_action == "add":
-            extraction_key = _resolve_or_exit(store, "fact_extraction", args.extraction_key)
-            ext = store.get_extraction(extraction_key)
+            from freud_schema import ops
             try:
                 correction = orjson.loads(args.correction)
             except Exception:
                 print("--correction must be valid JSON", file=sys.stderr)
                 sys.exit(1)
-            fb = Feedback(
-                extraction_key=extraction_key,
-                session_key=ext.session_key,
-                skill_key=ext.skill_key,
-                correction=correction,
-                correction_type=CorrectionType(args.type),
-                notes=args.notes,
-                created_by=args.by,
-            )
-            fb_key = store.insert_feedback(fb)
-            print(f"Feedback created: key={fb_key} extraction={extraction_key[:8]} type={args.type}")
+            try:
+                result = ops.feedback_add(
+                    store, extraction_key=args.extraction_key,
+                    correction_type=CorrectionType(args.type),
+                    correction=correction, notes=args.notes, created_by=args.by,
+                )
+            except ValueError as e:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
+            print(f"Feedback created: key={result['feedback_key']} "
+                  f"extraction={result['extraction_key'][:8]} type={result['correction_type']}")
         else:
             print("Use: feedback list|add", file=sys.stderr)
 
@@ -674,11 +680,14 @@ def _handle_extraction(args) -> None:
             print(f"\n  Output:")
             _print_json(ext.output, indent="    ")
         elif args.extraction_action in ("validate", "reject"):
-            extraction_key = _resolve_or_exit(store, "fact_extraction", args.key)
-            status = (ValidationStatus.VALIDATED if args.extraction_action == "validate"
-                      else ValidationStatus.REJECTED)
-            store.update_validation(extraction_key, status=status, validated_by=args.by)
-            print(f"Extraction {extraction_key[:8]} marked as {status.value}.")
+            from freud_schema import ops
+            op = ops.extraction_validate if args.extraction_action == "validate" else ops.extraction_reject
+            try:
+                result = op(store, key=args.key, validated_by=args.by)
+            except ValueError as e:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
+            print(f"Extraction {result['extraction_key'][:8]} marked as {result['validation_status']}.")
         else:
             print("Use: extraction list|show|validate|reject", file=sys.stderr)
 
@@ -836,7 +845,7 @@ def _handle_trace_feedback(args) -> None:
 def _handle_ingest(args) -> None:
     from datetime import datetime
 
-    from freud_schema.ingest import ingest_transcripts
+    from freud_schema import ops
 
     if args.ingest_action != "transcripts":
         print("Use: ingest transcripts", file=sys.stderr)
@@ -850,7 +859,7 @@ def _handle_ingest(args) -> None:
                   file=sys.stderr)
             sys.exit(1)
     with _get_store(args.db) as store:
-        stats = ingest_transcripts(
+        stats = ops.ingest_transcripts(
             store, root=args.root, project=args.project, since=since)
     print(f"Ingest run {stats['etl_run_id'][:8]} completed:")
     print(f"  sessions:     {stats['sessions']:>8}")
@@ -860,7 +869,7 @@ def _handle_ingest(args) -> None:
 
 
 def _handle_proposal(args) -> None:
-    from freud_schema.tables import Proposal
+    from freud_schema import ops
 
     with _get_store(args.db) as store:
         if args.proposal_action == "add":
@@ -871,14 +880,12 @@ def _handle_proposal(args) -> None:
                 sys.exit(1)
             evidence = ([k.strip() for k in args.evidence.split(",") if k.strip()]
                         if args.evidence else None)
-            pkey = store.insert_proposal(Proposal(
-                target_dimension=TargetDimension(args.target),
-                target_natural_key=natural_key,
-                proposed_content=args.content,
-                proposed_version=args.version,
-                evidence_finding_keys=evidence,
-            ))
-            print(f"Proposal created (pending): key={pkey}")
+            result = ops.proposal_add(
+                store, target=TargetDimension(args.target),
+                natural_key=natural_key, content=args.content,
+                version=args.version, evidence=evidence,
+            )
+            print(f"Proposal created (pending): key={result['proposal_key']}")
         elif args.proposal_action == "list":
             status = ProposalStatus(args.status) if args.status else None
             proposals = store.list_proposals(status=status)
@@ -907,16 +914,15 @@ def _handle_proposal(args) -> None:
             for line in p.proposed_content.splitlines():
                 print(f"    {line}")
         elif args.proposal_action in ("approve", "reject"):
-            pkey = _resolve_or_exit(store, "fact_proposal", args.key)
             try:
                 if args.proposal_action == "approve":
-                    result_key = store.approve_proposal(pkey, reviewed_by=args.by)
-                    print(f"Proposal {pkey[:8]} approved. "
-                          f"Dimension key: {result_key}")
+                    result = ops.proposal_approve(store, key=args.key, reviewed_by=args.by)
+                    print(f"Proposal {result['proposal_key'][:8]} approved. "
+                          f"Dimension key: {result['resulting_dimension_key']}")
                     print("Run `freud-schema compile --out <dir>` to materialize.")
                 else:
-                    store.reject_proposal(pkey, reviewed_by=args.by)
-                    print(f"Proposal {pkey[:8]} rejected.")
+                    result = ops.proposal_reject(store, key=args.key, reviewed_by=args.by)
+                    print(f"Proposal {result['proposal_key'][:8]} rejected.")
             except ValueError as e:
                 print(str(e), file=sys.stderr)
                 sys.exit(1)
@@ -926,11 +932,11 @@ def _handle_proposal(args) -> None:
 
 
 def _handle_compile(args) -> None:
-    from freud_schema.materialize import compile_rules
+    from freud_schema import ops
 
     scope = RuleScope(args.scope) if args.scope else None
     with _get_store(args.db) as store:
-        result = compile_rules(store, args.out, scope=scope, tenant_id=args.tenant)
+        result = ops.compile_rules(store, out_dir=args.out, scope=scope, tenant_id=args.tenant)
     for f in result["written"]:
         print(f"  wrote   {f}")
     for f in result["removed"]:
@@ -945,11 +951,11 @@ def _handle_compile(args) -> None:
 
 
 def _handle_couch(args) -> None:
-    from freud_schema.couch import run_couch
+    from freud_schema import ops
 
     with _get_store(args.db) as store:
         if args.couch_action == "run":
-            stats = run_couch(store, include_filesystem=not args.warehouse_only)
+            stats = ops.couch_run(store, include_filesystem=not args.warehouse_only)
             print(f"Couch run {stats['etl_run_id'][:8]}: "
                   f"{stats['findings']} finding(s) recorded.")
         elif args.couch_action == "list":
@@ -991,6 +997,17 @@ def _handle_sampling_config(args) -> None:
                     print(f"  [{c.config_key[:8]}] {domain}/{task} strategy={c.strategy.value} max={c.max_samples} [{c.status.value}]")
         else:
             print("Use: sampling-config add|list", file=sys.stderr)
+
+
+def _handle_mcp_serve(args) -> None:
+    from freud_schema.mcp_server import serve
+    try:
+        serve(args.db)
+    except ImportError as e:
+        # build_server() imports the mcp package lazily (provider convention);
+        # this is where a missing `mcp` extra actually surfaces.
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,97 @@
 # Changelog
 
+## 0.25.0
+
+M16 of the enterprise-scale implementation plan: the store-ops MCP server --
+the harness's write surface during sessions, and the durable fix for the
+CLI write-window dance and the `/couch` skill's raw-INSERT exception.
+
+**Gate hardening (post-implementation review)**: DuckDB types read-only
+PRAGMAs, SHOW, and DESCRIBE as `StatementType.SELECT` by rewriting them to
+pragma table functions, so parser-type classification alone let
+`PRAGMA database_list` through `query()`'s read-only gate. A first-token
+allowlist (SELECT/WITH/FROM/SHOW/DESCRIBE/SUMMARIZE) closes the hole;
+regression tests cover PRAGMA (bare and comment-prefixed), CALL, SET, and
+the allowed introspection forms.
+
+### Added
+
+- `ops.py`: the shared write-op dispatch layer -- pure functions taking
+  `(store, typed params)` and returning plain dicts, one per write
+  operation (`rule_add`, `skill_add`, `source_add`, `feedback_add`,
+  `finding_add`, `proposal_add`, `proposal_approve`, `proposal_reject`,
+  `extraction_validate`, `extraction_reject`, `compile_rules`, `couch_run`,
+  `ingest_transcripts`). `cli.py` and `mcp_server.py` both call these
+  instead of `ExperimentStore` directly, so the two surfaces cannot drift.
+  `finding_add` wraps `store.insert_finding` in its own `couch_llm`
+  load_run, retiring the `/couch` skill's raw-INSERT exception -- LLM
+  judgment now writes through the one write path like every SQL detector.
+- `mcp_server.py`: the store-ops MCP server, behind the new `mcp` extra.
+  `classify_readonly(sql)` enforces `query()`'s read-only contract at the
+  parser level via `duckdb.extract_statements()` -- exactly one statement,
+  SELECT-typed only, rejecting INSERT/UPDATE/DELETE/DDL/ATTACH/COPY/
+  PRAGMA/EXPORT and multi-statement smuggling before anything reaches the
+  connection. `build_server(store, db_path)` registers `query` plus one
+  tool per `ops.py` write function; `serve(db_path)` opens the single
+  DuckDB connection for the session and runs the server over stdio.
+  Self-modification gate (non-negotiable, from the M16 risk analysis):
+  `rule_add`/`skill_add` always create the non-compiling status (rules:
+  `inactive`; skills: `draft`) regardless of what a caller requests, so a
+  session cannot make a rule or skill load into its own future context by
+  calling these tools directly -- the only path to activation is
+  `proposal_add` -> `proposal_approve`. `proposal_approve`'s tool
+  description opens with an explicit "never allowlist this tool" sentence
+  and requires `reviewed_by` with no default. No tool exposes `db reset`,
+  `db ddl`, or any raw-write escape hatch.
+- `cli.py`: new `mcp-serve` subcommand (uses the global `--db` flag),
+  guarded import with an `uv sync --extra mcp` install hint when the extra
+  is missing.
+- `.mcp.json`: project MCP config pointing at `freud-schema mcp-serve`, so
+  the repo self-describes its connection holder.
+- `pyproject.toml`: new `mcp` extra (`mcp>=1.2`); also added to `dev` so
+  the gate tests run without an extra install step.
+- tests/test_mcp_server.py: `ops.py` round trips against `:memory:` for
+  every write op; `classify_readonly` acceptance (SELECT, WITH...SELECT)
+  and one rejection test per bypass class (INSERT, UPDATE, DELETE, CREATE
+  TABLE, DROP, ATTACH, COPY, PRAGMA, EXPORT DATABASE, multi-statement);
+  gate tests proving `rule_add`/`skill_add` force the non-compiling status
+  even when `active` is requested, a gated rule does not compile, and a
+  full flywheel turn (rule stays inactive -> proposal -> approve ->
+  compile) passes through tool wrappers alone; server-construction tests
+  behind `pytest.importorskip("mcp")` covering the registered tool
+  inventory, `proposal_approve`'s gate-sentence description, and the
+  absence of any reset/ddl-named tool.
+
+### Changed
+
+- `cli.py`: the write handlers (`rule add`, `skill add`, `source add`,
+  `feedback add`, `proposal add/approve/reject`, `extraction
+  validate/reject`, `compile`, `couch run`, `ingest`) are now thin --
+  parse args, call the matching `ops.py` function, print. No behavior
+  change; the CLI is the second consumer of the same dispatch layer the
+  MCP server uses, not a separate implementation.
+- CLAUDE.md's "DuckDB MCP" section rewritten for the new reality: the
+  store-ops server is the preferred connection holder, with the gate
+  design and the generic-server migration note; the old CLI-write-window
+  rules are kept as the fallback path for sessions still on a generic
+  `duckdb` MCP server.
+- `.claude/skills/couch.md`: step 4 now records findings via the
+  `finding_add` MCP tool; the old raw-INSERT SQL recipe moved to a
+  fallback appendix for sessions without the store-ops server.
+- `skill/skill.md`: CLI reference gains `mcp-serve`; the "if an MCP server
+  is available" callout now recommends the store-ops server first.
+
+### Deviations from spec
+
+- `query()`'s read-only gate does not special-case `EXPLAIN`. The plan
+  allowed it "if duckdb types it separately and it wraps a SELECT"; in
+  practice `duckdb.extract_statements()` types `EXPLAIN <anything>` as
+  `StatementType.EXPLAIN` with no exposed handle on the wrapped
+  statement, and `EXPLAIN ANALYZE <write>` actually executes the wrapped
+  statement. `classify_readonly()` takes the plan's own fallback instead:
+  SELECT only, unconditionally -- `EXPLAIN` is rejected like every other
+  non-SELECT type. See docs/implementation-plan.md's M16 as-shipped note.
+
 ## 0.24.0
 
 M0 of the enterprise-scale implementation plan: the cold-start playbook and

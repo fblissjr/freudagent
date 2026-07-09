@@ -64,7 +64,7 @@ restated here because several milestones are large enough to tempt shortcuts.
 | M13 | Verification gate + flywheel health | 5 | L | M11, M12 | — |
 | M14 | Serving layer + widened feedback | 6 | L | M8, M10, M13 | — |
 | M15 | Dream-work: periodic consolidation passes | 4/6 | M | M8, M11 | — |
-| M16 | Store-ops MCP server (in-session writes) | 6 | M | M1–M3 | — |
+| M16 | Store-ops MCP server (in-session writes) | 6 | M | M1–M3 | DONE 0.25.0 |
 
 Shipped milestones carry the version that landed them (see CHANGELOG.md for
 the full record). As-shipped deltas from the specs below, all minor: M0's
@@ -85,6 +85,18 @@ directional but underpowered (identical-retry sessions 1.5% before → 0/64
 after; re-measure at ~200 post-rule sessions). The turn's friction log
 feeds M11 (auto-denial filtering), M13 (session-denominated verify
 windows, health views), and M16 (which it motivated).
+
+M16 landed 0.25.0 as planned, with one interpretive call in `query`'s
+gate: the spec allowed `EXPLAIN` "if duckdb types it separately and it
+wraps a SELECT." Measured against `duckdb.extract_statements()`, `EXPLAIN
+<anything>` always types as `StatementType.EXPLAIN` with no exposed
+handle on the wrapped statement's type, and `EXPLAIN ANALYZE <write>`
+actually executes the wrapped statement (that's how it collects runtime
+stats) -- so honoring the wrapping clause would have required parsing the
+SQL text a second time to guess what followed `EXPLAIN`, or trusting the
+caller. `classify_readonly()` took the spec's own fallback instead:
+SELECT only, unconditionally. `EXPLAIN` is rejected by the same path as
+every other non-SELECT statement type.
 
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
 work). The order within tracks matters. Track C (M8–M10) can start once the
@@ -851,6 +863,8 @@ These don't get milestone numbers; they get enforced at every milestone.
 | Serving API becomes a second write path | M14 | API writes only feedback/usage facts; dimension mutations have no endpoint; enforced by tests that assert the route table |
 | Reset-and-rebuild via the locked MCP connection wedges DuckDB's catalog dependency tracking (hit 2026-07-09) | M1 recipe, any reset while the MCP server holds the DB | One transaction per `execute_query` call: creates, indexes, and data loads as separate calls; never `COPY FROM DATABASE`/`IMPORT DATABASE` on the long-lived connection (single-transaction). Full recipe in CLAUDE.md's DuckDB MCP section |
 | Fresh full ingest is the standard path under reset-based lifecycle, and it costs minutes (~2m17s for 175k entries) | M1 recipe at scale | Backlog item "fresh-ingest insert speed" (spill batches to temp JSONL + `read_json` insert, ~300x measured) is now worth doing — its trigger condition ("if fresh runs become frequent") is met |
+| In-session write tools enable agent self-modification (rules that load into the agent's own future sessions) with the human atom bypassed | M16 | Gate design in M16: add-tools are draft/inactive-only (never compiled), `proposal_approve` never allowlisted (harness permission prompt = the human atom's transport), read-only `query` enforced at the parser level with multi-statement rejection, no destructive tools exposed |
+| Read-only SQL classification bypassed via CTE/ATTACH/COPY/PRAGMA smuggling | M16 `query` tool | Parser-level statement extraction (single statement, SELECT-type only), explicit bypass-attempt tests in the suite |
 
 ## Research-Review Amendments (2026-07-08)
 
