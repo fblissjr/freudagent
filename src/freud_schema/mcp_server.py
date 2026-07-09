@@ -406,6 +406,34 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
             store, root=root, project=project, since=since_dt,
         )
 
+    @server.tool(
+        name="ingest_events",
+        description=(
+            "Ingest a generic newline-delimited JSON event stream into "
+            "fact_event (M5) -- the non-transcript ingest path. One "
+            "stream per *.jsonl file under root; idempotent by key "
+            "construction, re-running against unchanged files writes zero "
+            "rows. Distinct event types are auto-registered in "
+            "dim_event_type. since (YYYY-MM-DD) filters by file mtime."
+        ),
+    )
+    def ingest_events(
+        root: str,
+        stream_type: str | None = None,
+        since: str | None = None,
+    ) -> dict:
+        since_dt = None
+        if since:
+            try:
+                since_dt = datetime.fromisoformat(since)
+            except ValueError as e:
+                raise ValueError(
+                    f"Invalid since date: {since} (expected YYYY-MM-DD)"
+                ) from e
+        return ops.ingest_events(
+            store, root=root, stream_type=stream_type, since=since_dt,
+        )
+
     return server
 
 

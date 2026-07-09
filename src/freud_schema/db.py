@@ -3,12 +3,13 @@
 Dimensional model (Kimball-style):
 - 4 SCD Type 2 dimensions: dim_skill, dim_source, dim_rule,
   dim_sampling_config (effective_from/effective_to/is_current/hash_diff).
-- 3 registry dimensions (append-only, no SCD-2): dim_project,
-  dim_facet_type, dim_finding_type.
-- 10 fact tables: fact_session (accumulating snapshot), fact_trace,
+- 5 registry dimensions (append-only, no SCD-2): dim_project, dim_tenant,
+  dim_facet_type, dim_finding_type, dim_event_type.
+- 11 fact tables: fact_session (accumulating snapshot), fact_trace,
   fact_extraction, fact_feedback, fact_trace_feedback, fact_message,
-  fact_tool_use, fact_session_facets, fact_finding, fact_proposal.
-- 6 analytical views, meta_schema_version, meta_load_log.
+  fact_tool_use, fact_session_facets, fact_finding, fact_proposal,
+  fact_event.
+- 10 analytical views, meta_schema_version, meta_load_log, meta_key_algorithm.
 
 Key scheme: sha256/32 hash surrogate keys (keys.dimension_key), no
 sequences. Deterministic keys make transcript re-ingestion idempotent.
@@ -234,6 +235,15 @@ def _build_tables_ddl() -> list[str]:
     {_check_in('detection_method', DetectionMethod)},
     {_check_in('record_source', RecordSource)}
 )""",
+        f"""CREATE TABLE IF NOT EXISTS dim_event_type (
+    event_type_key VARCHAR NOT NULL,
+    event_type VARCHAR NOT NULL,
+    description VARCHAR,
+    schema_hint JSON,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('record_source', RecordSource)}
+)""",
         # -- Facts --
         f"""CREATE TABLE IF NOT EXISTS fact_session (
     session_key VARCHAR NOT NULL,
@@ -405,6 +415,19 @@ def _build_tables_ddl() -> list[str]:
     {_check_in('target_dimension', TargetDimension)},
     {_check_in('status', ProposalStatus)}
 )""",
+        f"""CREATE TABLE IF NOT EXISTS fact_event (
+    event_key VARCHAR NOT NULL,
+    stream_key VARCHAR NOT NULL,
+    native_event_id VARCHAR,
+    event_type VARCHAR NOT NULL,
+    occurred_at TIMESTAMP,
+    actor VARCHAR,
+    payload JSON,
+    content_text VARCHAR,
+    signature VARCHAR,
+    sequence_num INTEGER NOT NULL DEFAULT 0,
+{_lineage_cols()}
+)""",
     ]
 
 
@@ -558,6 +581,9 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_fact_finding_type ON fact_finding(finding_type)",
     "CREATE INDEX IF NOT EXISTS idx_fact_finding_project ON fact_finding(project_key)",
     "CREATE INDEX IF NOT EXISTS idx_fact_proposal_status ON fact_proposal(status)",
+    # fact_event (M5)
+    "CREATE INDEX IF NOT EXISTS idx_fact_event_stream_occurred ON fact_event(stream_key, occurred_at)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_event_type ON fact_event(event_type)",
     # meta_load_log
     "CREATE INDEX IF NOT EXISTS idx_meta_load_log_run ON meta_load_log(etl_run_id)",
 ]
@@ -575,6 +601,8 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
         "4 SQL finding views"),
     (6, "v0.23 M2+M3: sha256/32 keys, dim_tenant registry, tenant-scoped "
         "natural keys, meta_key_algorithm"),
+    (7, "v0.26 M5: generic event grain -- fact_event, dim_event_type "
+        "registry, event_ingest record_source"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it
@@ -582,10 +610,12 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
 # `db status` and any other inventory consumer iterate this, never their
 # own hand-maintained copy.
 ALL_TABLES: tuple[str, ...] = (
+    "fact_event",
     "fact_proposal", "fact_finding", "fact_session_facets",
     "fact_tool_use", "fact_message",
     "fact_trace_feedback", "fact_feedback", "fact_trace",
     "fact_extraction", "fact_session",
+    "dim_event_type",
     "dim_finding_type", "dim_facet_type", "dim_project", "dim_tenant",
     "dim_source", "dim_skill", "dim_rule", "dim_sampling_config",
     "meta_load_log", "meta_schema_version", "meta_key_algorithm",

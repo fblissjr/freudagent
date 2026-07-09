@@ -28,6 +28,8 @@ DuckDB's cursor.description (type_code == "JSON").
 
 from __future__ import annotations
 
+import os
+import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -39,6 +41,8 @@ import orjson
 from freud_schema.db import init_schema
 from freud_schema.keys import dimension_key, hash_diff
 from freud_schema.tables import (
+    Event,
+    EventType,
     Extraction,
     FacetType,
     Feedback,
@@ -121,6 +125,8 @@ _KEY_COLUMNS: dict[str, str] = {
     "fact_session_facets": "facet_row_key",
     "fact_finding": "finding_key",
     "fact_proposal": "proposal_key",
+    "dim_event_type": "event_type_key",
+    "fact_event": "event_key",
 }
 
 # The four SCD-2 dims whose natural key now leads with tenant_id.
@@ -128,6 +134,38 @@ _KEY_COLUMNS: dict[str, str] = {
 _TENANT_SCOPED_DIMS: frozenset[str] = frozenset(
     {"dim_skill", "dim_rule", "dim_source", "dim_sampling_config"}
 )
+
+# Column -> DuckDB type maps for the spill-to-JSON bulk insert path
+# (_bulk_insert_json): fresh-ingest volumes dominate cost in the per-row
+# executemany loop, so these three ingestion-scale tables (fact_message,
+# fact_tool_use, fact_event) load via a single read_json INSERT instead
+# (BACKLOG "fresh-ingest insert speed", ~300-600x measured). Column order
+# here is what drives both the spilled JSONL keys and the INSERT/SELECT
+# column list, so it must exactly match each table's DDL column set.
+_MESSAGE_JSON_TYPES: dict[str, str] = {
+    "message_key": "VARCHAR", "session_key": "VARCHAR", "project_key": "VARCHAR",
+    "role": "VARCHAR", "entry_uuid": "VARCHAR", "parent_uuid": "VARCHAR",
+    "sequence_num": "INTEGER", "occurred_at": "TIMESTAMP", "content_text": "VARCHAR",
+    "has_thinking": "BOOLEAN", "stop_reason": "VARCHAR", "input_tokens": "INTEGER",
+    "output_tokens": "INTEGER", "is_meta": "BOOLEAN", "is_sidechain": "BOOLEAN",
+    "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
+}
+
+_TOOL_USE_JSON_TYPES: dict[str, str] = {
+    "tool_use_key": "VARCHAR", "session_key": "VARCHAR", "project_key": "VARCHAR",
+    "message_key": "VARCHAR", "tool_use_id": "VARCHAR", "tool_name": "VARCHAR",
+    "tool_input": "JSON", "is_error": "BOOLEAN", "result_text": "VARCHAR",
+    "sequence_num": "INTEGER", "occurred_at": "TIMESTAMP",
+    "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
+}
+
+_EVENT_JSON_TYPES: dict[str, str] = {
+    "event_key": "VARCHAR", "stream_key": "VARCHAR", "native_event_id": "VARCHAR",
+    "event_type": "VARCHAR", "occurred_at": "TIMESTAMP", "actor": "VARCHAR",
+    "payload": "JSON", "content_text": "VARCHAR", "signature": "VARCHAR",
+    "sequence_num": "INTEGER",
+    "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
+}
 
 
 class ExperimentStore:
@@ -739,6 +777,35 @@ class ExperimentStore:
         return [FindingType(**d) for d in self._fetchall(
             "SELECT * FROM dim_finding_type ORDER BY finding_type")]
 
+    def register_event_type(self, et: EventType) -> str:
+        """Register an event vocabulary entry; idempotent. Key: event_type.
+
+        Mirrors register_finding_type -- fact_event.event_type is
+        registry-validated the same way fact_finding.finding_type is (open
+        vocabulary, no CHECK constraint).
+        """
+        key = dimension_key(et.event_type)
+        if not self._key_exists("dim_event_type", key):
+            self.con.execute(
+                """INSERT INTO dim_event_type (event_type_key, event_type,
+                   description, schema_hint, record_source)
+                   VALUES (?, ?, ?, ?, ?)""",
+                [key, et.event_type, et.description, _json(et.schema_hint),
+                 et.record_source],
+            )
+        return key
+
+    def get_event_type(self, event_type: str) -> EventType | None:
+        d = self._fetchone(
+            "SELECT * FROM dim_event_type WHERE event_type_key = ?",
+            [dimension_key(event_type)],
+        )
+        return EventType(**d) if d else None
+
+    def list_event_types(self) -> list[EventType]:
+        return [EventType(**d) for d in self._fetchall(
+            "SELECT * FROM dim_event_type ORDER BY event_type")]
+
     # -------------------------------------------------------------------
     # Sessions (fact_session, accumulating snapshot)
     # -------------------------------------------------------------------
@@ -1291,12 +1358,50 @@ class ExperimentStore:
         self.insert_tool_uses([tu])
         return dimension_key(tu.session_key, tu.tool_use_id)
 
-    def _existing_keys(self, table: str, session_key: str) -> set[str]:
+    def _existing_keys(self, table: str, group_col: str, group_val: str) -> set[str]:
+        """Existing keys for one grouping value -- session_key for
+        messages/tool_uses, stream_key for events. The batched existence
+        check is what makes unchanged re-ingest cheap (per-row round trips
+        are the ingestion hot path's dominant cost). group_col comes from
+        internal call sites only, never caller input."""
         key_col = _KEY_COLUMNS[table]
         return {d[key_col] for d in self._fetchall(
-            f"SELECT {key_col} FROM {table} WHERE session_key = ?",
-            [session_key],
+            f"SELECT {key_col} FROM {table} WHERE {group_col} = ?",
+            [group_val],
         )}
+
+    def _bulk_insert_json(
+        self, table: str, col_types: dict[str, str], rows: list[dict],
+    ) -> None:
+        """Spill rows to a temp newline-delimited JSON file and load with
+        one `read_json` INSERT -- the fresh-ingest speed fix (BACKLOG
+        "fresh-ingest insert speed"; measured ~300-600x over per-row
+        executemany at ingest volumes on a 50k-row fixture). orjson
+        serializes nested dict/list values as native JSON (not
+        double-encoded strings) and datetimes as ISO 8601, both of which
+        `columns=` type-casts correctly on read. table/col_types come from
+        internal call sites only (never caller input) -- same trust
+        boundary as the rest of this file's f-string SQL. The temp
+        directory is always cleaned up, success or failure, via
+        TemporaryDirectory's context manager.
+        """
+        if not rows:
+            return
+        columns = list(col_types.keys())
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spill_path = os.path.join(tmpdir, "spill.jsonl")
+            with open(spill_path, "wb") as f:
+                for row in rows:
+                    f.write(orjson.dumps(row))
+                    f.write(b"\n")
+            cols_sql = ", ".join(columns)
+            types_sql = ", ".join(f"'{c}': '{col_types[c]}'" for c in columns)
+            self.con.execute(
+                f"""INSERT INTO {table} ({cols_sql})
+                    SELECT {cols_sql} FROM read_json(?, format='newline_delimited',
+                    columns={{{types_sql}}})""",
+                [spill_path],
+            )
 
     @staticmethod
     def message_key_for(session_key: str, entry_uuid: str) -> str:
@@ -1315,9 +1420,8 @@ class ExperimentStore:
 
     def insert_messages(self, msgs: list[Message]) -> dict[str, str]:
         """Bulk insert for one session's messages: one existing-key fetch,
-        then inserts for the misses only -- the batched existence check is
-        what makes unchanged re-ingest cheap (per-row round trips are the
-        ingestion hot path's dominant cost).
+        then a single spill-to-JSON insert for the misses only -- the
+        batched existence check is what makes unchanged re-ingest cheap.
 
         Skips keys already present (same semantics as insert_message);
         raises on mixed-session batches. Returns {entry_uuid: message_key}
@@ -1327,9 +1431,9 @@ class ExperimentStore:
         if not msgs:
             return {}
         session_key = self._require_single_session(msgs, "insert_messages")
-        existing = self._existing_keys("fact_message", session_key)
+        existing = self._existing_keys("fact_message", "session_key", session_key)
         key_map: dict[str, str] = {}
-        params = []
+        rows = []
         for m in msgs:
             key = self.message_key_for(m.session_key, m.entry_uuid or uuid4().hex)
             if m.entry_uuid:
@@ -1337,23 +1441,19 @@ class ExperimentStore:
             if key in existing:
                 continue
             existing.add(key)  # dedupe within the batch too
-            params.append([
-                key, m.session_key, m.project_key, m.role, m.entry_uuid,
-                m.parent_uuid, m.sequence_num, m.occurred_at, m.content_text,
-                m.has_thinking, m.stop_reason, m.input_tokens, m.output_tokens,
-                m.is_meta, m.is_sidechain, m.tenant_key or self._default_tenant_key,
-                m.record_source, m.etl_run_id,
-            ])
-        if params:
-            self.con.executemany(
-                """INSERT INTO fact_message (message_key, session_key, project_key,
-                   role, entry_uuid, parent_uuid, sequence_num, occurred_at,
-                   content_text, has_thinking, stop_reason, input_tokens,
-                   output_tokens, is_meta, is_sidechain, tenant_key,
-                   record_source, etl_run_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                params,
-            )
+            rows.append({
+                "message_key": key, "session_key": m.session_key,
+                "project_key": m.project_key, "role": m.role,
+                "entry_uuid": m.entry_uuid, "parent_uuid": m.parent_uuid,
+                "sequence_num": m.sequence_num, "occurred_at": m.occurred_at,
+                "content_text": m.content_text, "has_thinking": m.has_thinking,
+                "stop_reason": m.stop_reason, "input_tokens": m.input_tokens,
+                "output_tokens": m.output_tokens, "is_meta": m.is_meta,
+                "is_sidechain": m.is_sidechain,
+                "tenant_key": m.tenant_key or self._default_tenant_key,
+                "record_source": m.record_source, "etl_run_id": m.etl_run_id,
+            })
+        self._bulk_insert_json("fact_message", _MESSAGE_JSON_TYPES, rows)
         return key_map
 
     def insert_tool_uses(self, tus: list[ToolUse]) -> int:
@@ -1362,30 +1462,119 @@ class ExperimentStore:
         if not tus:
             return 0
         session_key = self._require_single_session(tus, "insert_tool_uses")
-        existing = self._existing_keys("fact_tool_use", session_key)
-        params = []
+        existing = self._existing_keys("fact_tool_use", "session_key", session_key)
+        rows = []
         for tu in tus:
             key = dimension_key(tu.session_key, tu.tool_use_id or uuid4().hex)
             if key in existing:
                 continue
             existing.add(key)
-            params.append([
-                key, tu.session_key, tu.project_key, tu.message_key,
-                tu.tool_use_id, tu.tool_name, _json(tu.tool_input), tu.is_error,
-                tu.result_text, tu.sequence_num, tu.occurred_at,
-                tu.tenant_key or self._default_tenant_key,
-                tu.record_source, tu.etl_run_id,
-            ])
-        if params:
-            self.con.executemany(
-                """INSERT INTO fact_tool_use (tool_use_key, session_key, project_key,
-                   message_key, tool_use_id, tool_name, tool_input, is_error,
-                   result_text, sequence_num, occurred_at, tenant_key,
-                   record_source, etl_run_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                params,
-            )
-        return len(params)
+            rows.append({
+                "tool_use_key": key, "session_key": tu.session_key,
+                "project_key": tu.project_key, "message_key": tu.message_key,
+                "tool_use_id": tu.tool_use_id, "tool_name": tu.tool_name,
+                "tool_input": tu.tool_input, "is_error": tu.is_error,
+                "result_text": tu.result_text, "sequence_num": tu.sequence_num,
+                "occurred_at": tu.occurred_at,
+                "tenant_key": tu.tenant_key or self._default_tenant_key,
+                "record_source": tu.record_source, "etl_run_id": tu.etl_run_id,
+            })
+        self._bulk_insert_json("fact_tool_use", _TOOL_USE_JSON_TYPES, rows)
+        return len(rows)
+
+    # -------------------------------------------------------------------
+    # Events (fact_event) -- generic event grain (M5)
+    # -------------------------------------------------------------------
+
+    @staticmethod
+    def stream_key_for(record_source: RecordSource, native_stream_id: str) -> str:
+        """The stream-key recipe, named -- the generalization of
+        session_key_for for non-transcript event sources."""
+        return dimension_key(record_source.value, native_stream_id)
+
+    @staticmethod
+    def event_key_for(stream_key: str, native_event_id: str) -> str:
+        """The event-key recipe, named -- sibling of message_key_for."""
+        return dimension_key(stream_key, native_event_id)
+
+    @staticmethod
+    def _require_single_stream(rows, label: str) -> str:
+        """Batch inserts dedupe against ONE stream's existing keys; a
+        mixed-stream batch would silently duplicate rows from the others.
+        Sibling of _require_single_session."""
+        stream_keys = {r.stream_key for r in rows}
+        if len(stream_keys) != 1:
+            raise ValueError(f"{label} batch must contain a single stream_key, "
+                             f"got {len(stream_keys)}")
+        return stream_keys.pop()
+
+    def insert_events(self, events: list[Event]) -> int:
+        """Bulk insert for one stream's events -- sibling of
+        insert_messages/insert_tool_uses (batched existence check, then a
+        spill-to-JSON insert for the misses only). event_type is
+        registry-validated against dim_event_type before any row is
+        written (open vocabulary, same pattern as finding_type) -- fails
+        closed on an unregistered type. Raises on mixed-stream batches.
+        Returns the number of rows actually written.
+        """
+        if not events:
+            return 0
+        stream_key = self._require_single_stream(events, "insert_events")
+        for et in {e.event_type for e in events}:
+            if self.get_event_type(et) is None:
+                raise ValueError(
+                    f"event_type '{et}' is not registered in dim_event_type -- "
+                    f"register it first (it's a row, not an enum)"
+                )
+        existing = self._existing_keys("fact_event", "stream_key", stream_key)
+        rows = []
+        for ev in events:
+            key = self.event_key_for(ev.stream_key, ev.native_event_id or uuid4().hex)
+            if key in existing:
+                continue
+            existing.add(key)
+            rows.append({
+                "event_key": key, "stream_key": ev.stream_key,
+                "native_event_id": ev.native_event_id, "event_type": ev.event_type,
+                "occurred_at": ev.occurred_at, "actor": ev.actor,
+                "payload": ev.payload, "content_text": ev.content_text,
+                "signature": ev.signature, "sequence_num": ev.sequence_num,
+                "tenant_key": ev.tenant_key or self._default_tenant_key,
+                "record_source": ev.record_source, "etl_run_id": ev.etl_run_id,
+            })
+        self._bulk_insert_json("fact_event", _EVENT_JSON_TYPES, rows)
+        return len(rows)
+
+    def insert_event(self, ev: Event) -> str:
+        """Insert a single event. Delegates to insert_events (one write
+        path per table, sibling of insert_message/insert_tool_use)."""
+        if ev.native_event_id is None:
+            ev = ev.model_copy(update={"native_event_id": uuid4().hex})
+        self.insert_events([ev])
+        return self.event_key_for(ev.stream_key, ev.native_event_id)
+
+    def get_event(self, event_key: str) -> Event | None:
+        d = self._fetchone(
+            "SELECT * FROM fact_event WHERE event_key = ?", [event_key])
+        return Event(**d) if d else None
+
+    def list_events(
+        self,
+        stream_key: str | None = None,
+        event_type: str | None = None,
+        limit: int = 100,
+    ) -> list[Event]:
+        query = "SELECT * FROM fact_event WHERE 1=1"
+        params: list = []
+        if stream_key is not None:
+            query += " AND stream_key = ?"
+            params.append(stream_key)
+        if event_type is not None:
+            query += " AND event_type = ?"
+            params.append(event_type)
+        query += " ORDER BY occurred_at DESC LIMIT ?"
+        params.append(limit)
+        return [Event(**d) for d in self._fetchall(query, params)]
 
     # -------------------------------------------------------------------
     # Session facets (fact_session_facets)

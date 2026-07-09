@@ -19,14 +19,17 @@ compiled files are its agent-facing form.
 src/freud_schema/
   cli.py             - CLI interface (freud-schema)
   keys.py            - Deterministic sha256/32 surrogate keys: dimension_key(), hash_diff()
-  db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 4
-                       registries (incl. dim_tenant) + 10 facts, 10 views, meta_load_log,
-                       meta_key_algorithm, CHECK constraints, indexes. No sequences.
+  db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 5
+                       registries (incl. dim_tenant, dim_event_type) + 11 facts (incl.
+                       fact_event), 10 views, meta_load_log, meta_key_algorithm, CHECK
+                       constraints, indexes. No sequences.
   tables.py          - Pydantic models + 20 enum classes (single source of truth)
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
                        from the path, never the internal sessionId -- it's the parent's)
-  ingest.py          - Sense: transcript ingestion, idempotent by key construction
+  ingest.py          - Sense: transcript ingestion (idempotent by key construction) +
+                       the IngestAdapter protocol (TranscriptAdapter, JsonlEventAdapter)
+                       for the generic fact_event grain
   couch.py           - Analyze: SQL finding detectors; thresholds live here, never in view DDL
   materialize.py     - Materialize: rule compiler with provenance + fail-closed privacy gate
   ops.py             - Shared write-op dispatch layer: CLI and mcp_server.py both call
@@ -96,6 +99,7 @@ Full CLI reference is in `skill/skill.md`. Key commands:
 - `freud-schema skill add|list|deprecate|activate` (add supports `--version N`)
 - `freud-schema session list|show`
 - `freud-schema ingest transcripts [--project] [--since]` (idempotent; CLI-only, needs the DB lock)
+- `freud-schema ingest events --root DIR [--stream-type] [--since]` (generic JSONL event streams -> fact_event, idempotent)
 - `freud-schema couch run|list` (SQL detectors -> fact_finding, no model calls)
 - `freud-schema proposal add|list|show|approve|reject` / `freud-schema compile --out DIR`
 - `freud-schema mcp-serve` (store-ops MCP server over stdio; requires `uv sync --extra mcp`)
@@ -117,8 +121,9 @@ is the preferred connection holder** (implementation plan M16, landed
 - Store-op tools for every write (`rule_add`, `skill_add`, `source_add`,
   `feedback_add`, `finding_add`, `extraction_validate`, `extraction_reject`,
   `proposal_add`, `proposal_reject`, `couch_run`, `compile`,
-  `ingest_transcripts`) -- each a thin wrapper over `ops.py`, which is the
-  same dispatch layer the CLI calls, so the two surfaces cannot drift.
+  `ingest_transcripts`, `ingest_events`) -- each a thin wrapper over
+  `ops.py`, which is the same dispatch layer the CLI calls, so the two
+  surfaces cannot drift.
 - **The self-modification gate**: `rule_add`/`skill_add` always create the
   non-compiling status (rules: `inactive`; skills: `draft`) regardless of
   what a caller asks for -- a session cannot make a rule or skill load into

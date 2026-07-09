@@ -251,6 +251,19 @@ def main(argv: list[str] | None = None) -> None:
     p_ingest_tr.add_argument(
         "--since", default=None,
         help="Only files modified on/after this date (YYYY-MM-DD)")
+    p_ingest_ev = p_ingest_sub.add_parser(
+        "events",
+        help="Ingest a generic newline-delimited JSON event stream "
+             "(idempotent; re-runs skip existing rows)")
+    p_ingest_ev.add_argument(
+        "--root", required=True,
+        help="Root directory containing *.jsonl event stream files")
+    p_ingest_ev.add_argument(
+        "--stream-type", default=None,
+        help="Reserved for future multi-adapter selection")
+    p_ingest_ev.add_argument(
+        "--since", default=None,
+        help="Only files modified on/after this date (YYYY-MM-DD)")
 
     # --- Couch commands ---
     p_couch = sub.add_parser(
@@ -847,8 +860,8 @@ def _handle_ingest(args) -> None:
 
     from freud_schema import ops
 
-    if args.ingest_action != "transcripts":
-        print("Use: ingest transcripts", file=sys.stderr)
+    if args.ingest_action not in ("transcripts", "events"):
+        print("Use: ingest transcripts|events", file=sys.stderr)
         sys.exit(1)
     since = None
     if args.since:
@@ -859,10 +872,16 @@ def _handle_ingest(args) -> None:
                   file=sys.stderr)
             sys.exit(1)
     with _get_store(args.db) as store:
-        stats = ops.ingest_transcripts(
-            store, root=args.root, project=args.project, since=since)
-    print(f"Ingest run {stats['etl_run_id'][:8]} completed:")
-    print(f"  sessions:     {stats['sessions']:>8}")
+        if args.ingest_action == "transcripts":
+            stats = ops.ingest_transcripts(
+                store, root=args.root, project=args.project, since=since)
+            print(f"Ingest run {stats['etl_run_id'][:8]} completed:")
+            print(f"  sessions:     {stats['sessions']:>8}")
+        else:
+            stats = ops.ingest_events(
+                store, root=args.root, stream_type=args.stream_type, since=since)
+            print(f"Ingest run {stats['etl_run_id'][:8]} completed:")
+            print(f"  streams:      {stats['streams']:>8}")
     print(f"  rows read:    {stats['rows_read']:>8}")
     print(f"  rows written: {stats['rows_written']:>8}")
     print(f"  rows skipped: {stats['rows_skipped']:>8}")

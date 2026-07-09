@@ -5,7 +5,7 @@ description: Query the experiment harness DuckDB via MCP (store-ops server's rea
 
 # db-query
 
-Last updated: 2026-07-09
+Last updated: 2026-07-09 (M5: generic event grain)
 
 Query the FreudAgent experiment harness database via MCP.
 
@@ -60,7 +60,7 @@ appendix, for sessions stuck on a generic server.)
 | `rule_add`, `skill_add` | Create entities in the NON-compiling status (inactive/draft) -- activation goes through the proposal flow. |
 | `source_add`, `feedback_add`, `finding_add`, `extraction_validate`, `extraction_reject` | The corresponding store write, validated + lineage-stamped. |
 | `proposal_add`, `proposal_approve`, `proposal_reject` | Evolve flow. `proposal_approve` is the human approval gate -- NEVER allowlist it. |
-| `couch_run`, `compile`, `ingest_transcripts` | Pipeline operations in-session. |
+| `couch_run`, `compile`, `ingest_transcripts`, `ingest_events` | Pipeline operations in-session. |
 
 **Generic `duckdb` server (legacy/alternative, reads only):**
 
@@ -69,7 +69,7 @@ appendix, for sessions stuck on a generic server.)
 | `mcp__duckdb__execute_query` | SELECT queries. Do not use for writes -- see above. |
 | `mcp__duckdb__list_tables` / `list_columns` | Schema inspection. |
 
-## Schema: Meta-Harness Model (Kimball-style, schema version 6 / v0.23+)
+## Schema: Meta-Harness Model (Kimball-style, schema version 7 / v0.26+)
 
 ### Key scheme
 
@@ -103,10 +103,11 @@ row and inserts a new one; rows never mutate.
 | `dim_tenant` | Tenant registry (default seeded at init) | tenant_id, display_name |
 | `dim_facet_type` | Behavioral facet registry | facet_id, prompt_version, method, output_type |
 | `dim_finding_type` | Open finding-type vocabulary | finding_type, detection_method |
+| `dim_event_type` | Open event-type vocabulary (M5) | event_type, schema_hint |
 
 `dim_finding_type` validates `fact_finding.finding_type` in the store layer --
 that column has no CHECK constraint, by design (new finding types are rows, not
-enum edits).
+enum edits). `dim_event_type` validates `fact_event.event_type` the same way.
 
 ### Fact tables (event data with denormalized attributes)
 
@@ -122,6 +123,7 @@ enum edits).
 | `fact_session_facets` | Behavioral facet values (EAV) | session_key, facet_id, prompt_version |
 | `fact_finding` | Detected patterns (couch output) | finding_type, scope, project_key, summary |
 | `fact_proposal` | Proposed dimension changes (evolve output) | target_dimension, target_key, status |
+| `fact_event` | Generic event grain (M5, non-transcript sources) | stream_key, native_event_id, event_type, occurred_at, payload |
 
 Every fact table carries a lineage envelope: `tenant_key` (denormalized
 `dim_tenant` reference), `record_source` (CHECK-constrained: native,
@@ -150,7 +152,7 @@ views through the store's `query_*` methods, never re-derive thresholds.
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Schema DDL changelog (version, description). Currently version 6. NOT a migration ledger -- schema changes reset + re-ingest (see CLAUDE.md policy). |
+| `meta_schema_version` | Schema DDL changelog (version, description). Currently version 7. NOT a migration ledger -- schema changes reset + re-ingest (see CLAUDE.md policy). |
 | `meta_key_algorithm` | Active key scheme (sha256/32), seeded at init. |
 | `meta_load_log` | One row per ingest/couch/compile run: etl_run_id, operation, status, row counts |
 
@@ -178,10 +180,11 @@ views through the store's `query_*` methods, never re-derive thresholds.
 | fact_finding.scope | project, global |
 | fact_proposal.target_dimension | dim_skill, dim_rule, dim_sampling_config |
 | fact_proposal.status | pending, approved, rejected |
-| record_source (every dim_*/fact_*/meta_* table) | native, transcript_ingest, history_jsonl, derived |
+| record_source (every dim_*/fact_*/meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, derived |
 
-`fact_finding.finding_type` has NO CHECK constraint -- open vocabulary,
-registry-validated against `dim_finding_type`.
+`fact_finding.finding_type` and `fact_event.event_type` have NO CHECK
+constraint -- open vocabulary, registry-validated against `dim_finding_type`
+and `dim_event_type` respectively.
 
 ## Common queries
 
@@ -239,6 +242,12 @@ FROM fact_message WHERE session_key = ? ORDER BY sequence_num
 ```sql
 SELECT proposal_key, target_dimension, proposed_version, status
 FROM fact_proposal WHERE status = 'pending'
+```
+
+**Events for one stream, in order (fact_event, M5's generic event grain):**
+```sql
+SELECT event_type, occurred_at, actor, content_text
+FROM fact_event WHERE stream_key = ? ORDER BY occurred_at
 ```
 
 ## Design notes

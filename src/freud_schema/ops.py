@@ -333,3 +333,17 @@ def ingest_transcripts(
     returns {sessions, etl_run_id, rows_read, rows_written, rows_skipped}."""
     from freud_schema.ingest import ingest_transcripts as _ingest_transcripts
     return _ingest_transcripts(store, root=root, project=project, since=since)
+
+
+def ingest_events(
+    store: ExperimentStore,
+    *,
+    root: str | Path,
+    stream_type: str | None = None,
+    since: datetime | None = None,
+) -> dict:
+    """Ingest a generic JSONL event stream (M5). Delegates to
+    ingest.ingest_events; returns {streams, etl_run_id, rows_read,
+    rows_written, rows_skipped}."""
+    from freud_schema.ingest import ingest_events as _ingest_events
+    return _ingest_events(store, root=root, stream_type=stream_type, since=since)

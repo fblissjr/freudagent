@@ -160,6 +160,17 @@ class TestOpsRoundTrip:
         assert result["sessions"] == 0
         assert result["rows_written"] == 0
 
+    def test_ingest_events_delegates(self, store, tmp_path):
+        import json
+        root = tmp_path / "events"
+        root.mkdir()
+        (root / "s.jsonl").write_text(json.dumps(
+            {"id": "e1", "type": "t", "timestamp": None,
+             "actor": None, "payload": None}) + "\n")
+        result = ops.ingest_events(store, root=root)
+        assert result["streams"] == 1
+        assert result["rows_written"] == 1
+
 
 # ---------------------------------------------------------------------------
 # classify_readonly: the parser-level gate behind query()
@@ -318,7 +329,7 @@ class TestServerConstruction:
             "query", "rule_add", "skill_add", "source_add", "feedback_add",
             "finding_add", "extraction_validate", "extraction_reject",
             "proposal_add", "proposal_reject", "proposal_approve",
-            "couch_run", "compile", "ingest_transcripts",
+            "couch_run", "compile", "ingest_transcripts", "ingest_events",
         }
         assert expected <= names
 
@@ -337,6 +348,20 @@ class TestServerConstruction:
             lowered = name.lower()
             assert "reset" not in lowered
             assert "ddl" not in lowered
+
+    def test_ingest_events_tool_round_trip(self, store, build_server, tmp_path):
+        import json
+        root = tmp_path / "events"
+        root.mkdir()
+        (root / "s.jsonl").write_text(json.dumps(
+            {"id": "e1", "type": "t", "timestamp": None,
+             "actor": None, "payload": None}) + "\n")
+        server = build_server(store)
+        ingest_events = _tool_fn(server, "ingest_events")
+        result = ingest_events(root=str(root))
+        assert result["streams"] == 1
+        assert result["rows_written"] == 1
+        assert store.get_event_type("t") is not None
 
 
 class TestClassifyReadonlyPragmaHole:

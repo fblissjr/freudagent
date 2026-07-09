@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.25.0
+version: 0.26.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,7 +37,7 @@ scope:
 
 # FreudAgent Data Layer
 
-Last updated: 2026-07-09 (M16: store-ops MCP server)
+Last updated: 2026-07-09 (M5: generic event grain + ingest adapters)
 
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness
@@ -73,10 +73,11 @@ sources, sampling configs) and `compile` -- omitting it preserves single-tenant 
 > implementation plan M16): its `query` tool covers reads, and every write goes through
 > a gated tool (`rule_add`, `skill_add`, `source_add`, `feedback_add`, `finding_add`,
 > `extraction_validate`/`reject`, `proposal_add`/`reject`, `couch_run`, `compile`,
-> `ingest_transcripts`) instead of a CLI write-window toggle. `proposal_approve` is
-> never allowlisted -- every approval surfaces the permission prompt by design. If the
-> session is instead connected to a generic `duckdb` MCP server, use
-> `mcp__duckdb__execute_query` for reads and fall back to a CLI write window for writes.
+> `ingest_transcripts`, `ingest_events`) instead of a CLI write-window toggle.
+> `proposal_approve` is never allowlisted -- every approval surfaces the permission
+> prompt by design. If the session is instead connected to a generic `duckdb` MCP
+> server, use `mcp__duckdb__execute_query` for reads and fall back to a CLI write
+> window for writes.
 
 Keys are sha256/32 hashes (`keys.dimension_key()`), not integers -- every command that
 takes an entity reference (skill, source, rule, extraction, feedback, session,
@@ -144,6 +145,23 @@ subagents link to their parents with agentType/description from `.meta.json`
 sidecars. This is a CLI-time operation -- it needs the database lock, so run it
 when the DuckDB MCP server is not connected, or ingest to a separate file and
 `ATTACH` it from the MCP session.
+
+### Generic Event Ingestion (sense, M5)
+
+```bash
+freud-schema ingest events --root ./events                # everything under a JSONL events root
+freud-schema ingest events --root ./events --since 2026-07-01
+```
+
+Any non-transcript source ingests through the same idempotent, lineage-stamped
+path: `IngestAdapter` (`discover()` + `parse()`, `ingest.py`) is the protocol,
+`JsonlEventAdapter` is the reference implementation -- one stream per `*.jsonl`
+file under `--root`, one JSON object per line (`{id, type, timestamp, actor,
+payload}` plus an optional `text`). Rows land in `fact_event`; distinct event
+types auto-register in `dim_event_type` (open vocabulary, same pattern as
+`finding_type`). `--stream-type` is reserved for future multi-adapter
+selection. In-session, use the store-ops `ingest_events` tool instead of the
+CLI (same lock rule as `ingest_transcripts`).
 
 ### The Couch (analyze)
 

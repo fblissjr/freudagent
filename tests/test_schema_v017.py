@@ -35,11 +35,14 @@ def _columns(con, table: str) -> set[str]:
 
 
 DIMS = {"dim_skill", "dim_source", "dim_rule", "dim_sampling_config"}
-REGISTRIES = {"dim_project", "dim_tenant", "dim_facet_type", "dim_finding_type"}
+REGISTRIES = {
+    "dim_project", "dim_tenant", "dim_facet_type", "dim_finding_type",
+    "dim_event_type",
+}
 FACTS = {
     "fact_session", "fact_trace", "fact_extraction", "fact_feedback",
     "fact_trace_feedback", "fact_message", "fact_tool_use",
-    "fact_session_facets", "fact_finding", "fact_proposal",
+    "fact_session_facets", "fact_finding", "fact_proposal", "fact_event",
 }
 META = {"meta_schema_version", "meta_load_log", "meta_key_algorithm"}
 

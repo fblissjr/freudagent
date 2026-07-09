@@ -1,6 +1,6 @@
 # FreudAgent Data Shapes
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09 (M5: generic event grain)
 
 When generating A2UI surfaces for FreudAgent, your data model will contain these entity types.
 All tables use a dimensional model (dim_/fact_ naming). Fact tables carry denormalized
@@ -201,6 +201,38 @@ until a human approves or rejects.
 | resulting_dimension_key | string or null | Set on approval |
 | reviewed_by | string or null | |
 | reviewed_at | string or null | ISO datetime |
+
+## Event
+
+A generic ingested event (from `fact_event`) -- the generalization of Message/
+ToolUse for non-transcript sources (M5). Any enterprise event stream ingests
+through this grain via an IngestAdapter; transcripts keep their richer typed
+projection instead.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| event_key | string | Primary key (sha256/32 hash) |
+| stream_key | string | Which stream this event belongs to (ref the source's own identity) |
+| native_event_id | string or null | Source stream's own event id, if any |
+| event_type | string | Open vocabulary -- see EventType below |
+| occurred_at | string or null | ISO datetime |
+| actor | string or null | |
+| payload | object or null | Adapter-parsed event payload |
+| content_text | string or null | Extracted searchable text, if any |
+| signature | string or null | Optional normalized template signature |
+| sequence_num | integer | Order within the stream |
+
+## EventType
+
+Registry row for an event vocabulary entry (from `dim_event_type`). New event
+types are rows here, never enum edits -- the generalization of FindingType.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| event_type_key | string | Primary key (sha256/32 hash) |
+| event_type | string | Open vocabulary |
+| description | string or null | |
+| schema_hint | object or null | Optional shape hint for this event type's payload |
 
 ## Project
 

@@ -1,5 +1,96 @@
 # Changelog
 
+## 0.26.0
+
+M5 of the enterprise-scale implementation plan: the generic event grain and
+ingest-adapter protocol, so agent transcripts become one source among many --
+plus the fresh-ingest speed optimization from the risk register, landed
+alongside since M5's schema reset is the natural trigger point (BACKLOG
+"fresh-ingest insert speed"). **Schema v7 -- reset required.**
+
+### Added
+
+- `tables.py`: `RecordSource.EVENT_INGEST`; new registry model `EventType`
+  (mirrors `FindingType` -- open vocabulary, `schema_hint JSON`); new fact
+  model `Event` (the generalization of `Message`/`ToolUse` for non-transcript
+  sources -- `stream_key`, `native_event_id`, `event_type`, `occurred_at`,
+  `actor`, `payload`, `content_text`, `signature`, `sequence_num`, lineage
+  envelope).
+- `db.py`: `dim_event_type` (registry, append-only, mirrors
+  `dim_finding_type`) and `fact_event` (indexed on `(stream_key,
+  occurred_at)` and `(event_type)`); both registered in `ALL_TABLES`
+  (dependents-first drop order). `_SCHEMA_VERSIONS` bumped to 7.
+- `store.py`: `register_event_type`/`get_event_type`/`list_event_types`
+  (mirror the finding-type registry methods); `stream_key_for(record_source,
+  native_stream_id)` (named recipe, generalizes `session_key_for`);
+  `event_key_for(stream_key, native_event_id)`; `insert_events(events) ->
+  int` (batched existence check, single-stream guard, registry-validates
+  `event_type` before writing -- fails closed on an unregistered type, same
+  pattern as `insert_finding`) and a thin `insert_event` delegating to it;
+  `get_event`/`list_events` read helpers.
+- `ingest.py`: `IngestAdapter` protocol (`@runtime_checkable`) --
+  `discover(root, since) -> list[SourceUnit]`, `parse(unit) ->
+  Iterator[RawEvent]`, plus an optional `normalize(text) -> str` hook
+  (amendment 6). `TranscriptAdapter` conforms to the protocol's shape
+  (reuses `discover_sessions`/`iter_typed_entries`) but is not wired into
+  `ingest_transcripts()`, which is unchanged. `JsonlEventAdapter` is the
+  second reference adapter: one stream per `*.jsonl` file under a root
+  (`native_stream_id` = the file's path relative to root), one JSON object
+  per line (`{id, type, timestamp, actor, payload}` + optional `text`);
+  `normalize()` delegates to the new `mask_signature()`. `mask_signature(text)`
+  -- Drain-style-lite template signature: regex-masks UUIDs, quoted strings,
+  hex strings >= 8 chars, and bare numbers to stable placeholders (documented
+  as a cheap normalization step, not real template mining). New
+  `ingest_events(store, *, root, stream_type=None, since=None) -> dict`,
+  wrapped in `load_run("ingest_events")`: auto-registers each distinct event
+  type in `dim_event_type`, writes rows idempotently (unchanged file = zero
+  rows, grown file = delta only).
+- `ops.py`: `ingest_events` (same dispatch-layer pattern as
+  `ingest_transcripts`).
+- `mcp_server.py`: `ingest_events` tool, mirroring `ingest_transcripts`.
+- `cli.py`: `ingest events --root DIR [--stream-type T] [--since ISO]`.
+- tests: `tests/test_events.py` (store-layer -- registry validation,
+  single-stream guard, `stream_key_for`/`event_key_for` recipes, and
+  row-content equivalence for the JSON-spill bulk insert covering None/NULL,
+  timestamps, JSON columns, unicode, and embedded newlines/quotes in text,
+  for `fact_event`/`fact_message`/`fact_tool_use`); `tests/test_ingest_events.py`
+  (ingest-layer -- adapter protocol conformance, `mask_signature` masking and
+  stability, `JsonlEventAdapter`/`TranscriptAdapter` discover/parse round
+  trips, `ingest_events()` idempotency and grown-file delta, couch-detector
+  non-interference); MCP/ops round-trip tests for `ingest_events` in
+  `tests/test_mcp_server.py`; CLI smoke test in `tests/test_experiment.py`.
+
+### Changed (fresh-ingest speed, BACKLOG "fresh-ingest insert speed" -- DONE)
+
+- `store.py`: `insert_messages`, `insert_tool_uses`, and the new
+  `insert_events` now load their post-dedupe miss rows through a new private
+  `_bulk_insert_json()` instead of `con.executemany()` -- rows spill to a
+  temp newline-delimited JSON file (orjson, `tempfile.TemporaryDirectory`,
+  always cleaned up) and load with one `INSERT INTO <table> (cols...) SELECT
+  cols... FROM read_json(?, format='newline_delimited', columns={...})` per
+  batch, with an explicit per-column type spec. orjson serializes nested
+  dict/list payloads as native JSON (not double-encoded strings) and
+  datetimes as ISO 8601, both of which `read_json`'s `columns=` type-casts
+  correctly. The batched existence-check dedupe, single-session/stream
+  guards, and `meta_load_log` counting semantics are unchanged -- only the
+  final write mechanism changed. Measured on a synthetic 50k-row
+  `fact_message`-shaped fixture: ~54.5s for `executemany` vs. ~0.09s for the
+  spill+`read_json` path -- **~600x**, exceeding the BACKLOG's ~300x
+  estimate.
+
+### Deviations from spec
+
+- `fact_event` does not carry a denormalized `event_type_key` column the way
+  `fact_finding` carries `finding_type_key` -- the task spec's own column
+  list for `fact_event` omitted it, and open-vocabulary registry validation
+  (the actual point) works identically without the denormalized reference.
+- Row-content equivalence between the new spill+`read_json` path and the old
+  `executemany` path is asserted against literal expected values
+  (`tests/test_events.py`) rather than by keeping both code paths live in
+  production -- the task spec offered this as an explicit alternative
+  ("keep the old path available... or by asserting against expected
+  literals -- your choice").
+
 ## 0.25.0
 
 M16 of the enterprise-scale implementation plan: the store-ops MCP server --

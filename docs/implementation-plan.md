@@ -53,7 +53,7 @@ restated here because several milestones are large enough to tempt shortcuts.
 | M2 | Key algorithm versioning (SHA-256) | 1 | M | M1 | DONE 0.23.0 |
 | M3 | Tenancy in natural keys | 1 | M | M1, M2 | DONE 0.23.0 |
 | M4 | Store split + backend protocol | 1 | L | M1–M3 | — |
-| M5 | Generic event grain + ingest adapters | 2 | M | M1–M3 | — |
+| M5 | Generic event grain + ingest adapters | 2 | M | M1–M3 | DONE 0.26.0 |
 | M6 | Ingest-time redaction | 2 | M | M5 | — |
 | M7 | Principals and authorization | 2 | M | M1, M3 | — |
 | M8 | Hybrid retrieval layer | 3 | L | M1, M3 | — |
@@ -97,6 +97,25 @@ SQL text a second time to guess what followed `EXPLAIN`, or trusting the
 caller. `classify_readonly()` took the spec's own fallback instead:
 SELECT only, unconditionally. `EXPLAIN` is rejected by the same path as
 every other non-SELECT statement type.
+
+M5 landed 0.26.0 bundled with the fresh-ingest speed optimization from the
+risk register (the M1-recipe risk row anticipated doing both together).
+As-shipped deltas from the spec: `fact_event` does not carry a denormalized
+`event_type_key` column the way `fact_finding` carries `finding_type_key`
+-- the spec's own column list for `fact_event` omitted it, and open-vocabulary
+validation (the actual point of the registry) works the same without the
+denormalized reference. `TranscriptAdapter` conforms to `IngestAdapter`'s
+shape (its `discover`/`parse` reuse `discover_sessions`/`iter_typed_entries`
+and produce genuine `RawEvent`s per transcript entry) but `ingest_transcripts()`
+does not route through it -- the direct path stays untouched, so the existing
+transcript test suite carries zero regression risk. The JSON-spill bulk
+insert (`ExperimentStore._bulk_insert_json`) now backs `insert_messages`,
+`insert_tool_uses`, and `insert_events`; row-content equivalence with the old
+per-row `executemany` path is asserted against literal expected values
+(`tests/test_events.py`) rather than by keeping both code paths live, per the
+task's own "your choice" clause. Measured on a synthetic 50k-row fixture:
+~0.09s for the spill+`read_json` path vs. ~55s for `executemany` (~600x) --
+see CHANGELOG.md for the reproducible benchmark shape.
 
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
 work). The order within tracks matters. Track C (M8–M10) can start once the

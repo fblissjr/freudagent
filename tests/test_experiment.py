@@ -914,6 +914,34 @@ def test_cli_skill_deprecate_nonexistent(tmp_path):
         main(["--db", db, "skill", "deprecate", "999"])
 
 
+def test_cli_ingest_events(tmp_path):
+    from freud_schema.cli import main
+    import io
+    import json
+    import sys
+    db = str(tmp_path / "test.duckdb")
+    events_root = tmp_path / "events"
+    events_root.mkdir()
+    (events_root / "s.jsonl").write_text(json.dumps(
+        {"id": "e1", "type": "t", "timestamp": None,
+         "actor": None, "payload": None}) + "\n")
+    buf = io.StringIO()
+    old_stdout = sys.stdout
+    sys.stdout = buf
+    try:
+        main(["--db", db, "ingest", "events", "--root", str(events_root)])
+    finally:
+        sys.stdout = old_stdout
+    output = buf.getvalue()
+    assert "streams:" in output
+    assert "rows written:" in output
+    with duckdb.connect(db) as con:
+        assert con.execute("SELECT COUNT(*) FROM fact_event").fetchone()[0] == 1
+        assert con.execute(
+            "SELECT COUNT(*) FROM dim_event_type WHERE event_type = 't'"
+        ).fetchone()[0] == 1
+
+
 def test_cli_source_add_list(tmp_path):
     from freud_schema.cli import main
     import io

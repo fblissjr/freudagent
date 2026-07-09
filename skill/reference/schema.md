@@ -1,6 +1,6 @@
 # DuckDB Schema Reference
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09 (M5: generic event grain)
 
 Full schema for the FreudAgent experiment harness (v0.17.0 meta-harness model).
 Use the `duckdb` MCP tools for ad-hoc queries. See `.claude/skills/db-query.md`
@@ -30,11 +30,12 @@ for common query patterns and enum values.
   `dim_finding_type`). Append-only reference data whose identity doesn't evolve
   the way a skill's or rule's content does.
 - **Lineage envelope on every fact table**: `record_source` (CHECK-constrained
-  allowlist: `native`, `transcript_ingest`, `history_jsonl`, `derived`) and
-  `etl_run_id` (joins `meta_load_log`). Every row declares where it came from.
+  allowlist: `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`,
+  `derived`) and `etl_run_id` (joins `meta_load_log`). Every row declares where
+  it came from.
 - **Denormalized fact tables.** Fact tables carry dimension attributes
   (`skill_domain`, `source_path`, etc.) at insert time. Eliminates fact-to-fact joins.
-- **Analytical views.** 6 views replace complex aggregation queries and N+1 patterns.
+- **Analytical views.** 10 views replace complex aggregation queries and N+1 patterns.
 
 ## Key Scheme
 
@@ -55,6 +56,7 @@ M3) -- a tenant scopes identity, so `dim_skill` for `("team-a", "x", "y")` and
 | `dim_tenant` | `(tenant_id,)` | Not itself tenant-scoped -- it's the tenant registry |
 | `dim_facet_type` | `(facet_id, prompt_version)` | Bumping the prompt version adds a row, never overwrites |
 | `dim_finding_type` | `(finding_type,)` | |
+| `dim_event_type` | `(event_type,)` | Open vocabulary, mirrors `dim_finding_type` |
 | `fact_session` | `(record_source, native_session_id)` | Re-ingesting the same transcript resolves to the same key |
 | `fact_trace` | `(session_key, depth, sequence_order, title)` | Deterministic -- bulk re-imports of the same trace buffer are idempotent |
 | `fact_extraction` | `(session_key, source_key, uuid4())` | uuid-salted: a native event, intrinsically unique, never re-ingested |
@@ -65,6 +67,7 @@ M3) -- a tenant scopes identity, so `dim_skill` for `("team-a", "x", "y")` and
 | `fact_session_facets` | `(session_key, facet_id, prompt_version)` | |
 | `fact_finding` | `(finding_type, scope, project_key, summary, etl_run_id)` | |
 | `fact_proposal` | `(target_dimension, target_key, uuid4())` | uuid-salted |
+| `fact_event` | `(stream_key, native_event_id)` | `stream_key = dimension_key(record_source, native_stream_id)`, the generalization of `session_key` |
 
 Writing raw SQL (MCP tools, not the store layer)? Replicate `dimension_key()` with
 DuckDB's `sha256()`: `substring(sha256(part1 || '|' || part2 || ...), 1, 32)`,
@@ -241,6 +244,25 @@ vocabulary, registry-validated against `dim_finding_type` in the store layer
 domains seed their finding types as data -- a row insert -- not a DDL change or
 an enum edit. This is the same reasoning that keeps skills and rules as data
 instead of code.
+
+### dim_event_type
+Registry row for an event vocabulary entry (M5) -- the generalization of
+`dim_finding_type` for the generic event grain. Entity key: `(event_type,)`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| event_type_key | VARCHAR | `dimension_key(event_type)` |
+| event_type | VARCHAR NOT NULL | Open vocabulary -- see note below |
+| description | VARCHAR | |
+| schema_hint | JSON | Optional shape hint for this event type's payload |
+| record_source | VARCHAR | Lineage |
+| created_at | TIMESTAMP | |
+
+**`event_type` has no CHECK constraint, by design** -- same reasoning as
+`finding_type` above: `fact_event.event_type` is registry-validated against
+`dim_event_type` in the store layer (`insert_events` raises `ValueError` if a
+type isn't registered first). Any `IngestAdapter` widens the vocabulary by
+inserting a row, never by editing an enum.
 
 ## Fact Tables (event data with denormalized attributes)
 
@@ -462,6 +484,31 @@ or rejects. Approval creates the new SCD-2 row and records it in
 the evolve loop learned to modify a new kind of rule-bearing dimension, which is
 a code change by definition, not a data change.
 
+### fact_event
+The generic event grain (M5) -- the generalization of `fact_message`/
+`fact_tool_use` for non-transcript sources. Any enterprise event stream
+ingests through this table via an `IngestAdapter` (`ingest.py`); transcripts
+keep their richer typed projection instead of also landing here -- typed
+tables are for sources rich enough to deserve them. Ingestion-scale table:
+deterministic keys, skip-if-exists inserts, loaded via the spill-to-JSON bulk
+insert path (`_bulk_insert_json`, shared with `fact_message`/`fact_tool_use`).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| event_key | VARCHAR | `dimension_key(stream_key, native_event_id or uuid4())` |
+| stream_key | VARCHAR NOT NULL | `dimension_key(record_source, native_stream_id)` -- the generalization of `session_key`, via `stream_key_for()` |
+| native_event_id | VARCHAR | Source stream's own event id, if any |
+| event_type | VARCHAR NOT NULL | Open vocabulary -- no CHECK, see `dim_event_type` above |
+| occurred_at | TIMESTAMP | |
+| actor | VARCHAR | |
+| payload | JSON | Adapter-parsed event payload |
+| content_text | VARCHAR | Extracted searchable text, if any |
+| signature | VARCHAR | Optional normalized template signature (amendment 6's `mask_signature()` hook) |
+| sequence_num | INTEGER DEFAULT 0 | Order within the stream |
+| *lineage columns* | | See above -- defaults to `record_source = event_ingest` |
+
+Indexed on `(stream_key, occurred_at)` and `(event_type)`.
+
 ## Analytical Views
 
 | View | Purpose |
@@ -502,16 +549,17 @@ re-pointed to the new key names (`skill_key`, `session_key`,
 | fact_proposal.target_dimension | dim_skill, dim_rule, dim_sampling_config |
 | fact_proposal.status | pending, approved, rejected |
 | meta_load_log.status | running, completed, failed (shares `SessionStatus`) |
-| **record_source** (every dim_*, fact_*, and meta_* table) | native, transcript_ingest, history_jsonl, derived |
+| **record_source** (every dim_*, fact_*, and meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, derived |
 
-**`fact_finding.finding_type` is deliberately absent from this table.** It has no
-CHECK constraint -- see the "Registry Dimensions" section above for why.
+**`fact_finding.finding_type` and `fact_event.event_type` are deliberately absent
+from this table.** Neither has a CHECK constraint -- see the "Registry
+Dimensions" section above for why.
 
 ## Operational
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Schema version tracking (version, description). Seeded on `db init`. Currently version 6. |
+| `meta_schema_version` | Schema version tracking (version, description). Seeded on `db init`. Currently version 7. |
 | `meta_load_log` | One row per ingest/compile run. `start_load_run()` opens a row and returns `etl_run_id`; `complete_load_run()` closes it with row counts and an optional error. |
 | `meta_key_algorithm` | Single-row self-description of the active key scheme (`algorithm`, `recorded_at`). Seeded with `keys.KEY_ALGORITHM` (`sha256/32`) on `db init`. |
 
@@ -564,6 +612,10 @@ FROM fact_finding WHERE scope = 'project' ORDER BY detected_at DESC;
 -- Proposals pending human review
 SELECT proposal_key, target_dimension, proposed_version, status
 FROM fact_proposal WHERE status = 'pending';
+
+-- Events for one stream, in order (fact_event, generic event grain)
+SELECT event_type, occurred_at, actor, content_text
+FROM fact_event WHERE stream_key = 'a1b2c3...' ORDER BY occurred_at;
 
 -- Load run health (ingestion/compile runs)
 SELECT operation, status, rows_read, rows_written, rows_skipped, error

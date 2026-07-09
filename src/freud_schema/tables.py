@@ -116,6 +116,7 @@ class RecordSource(str, Enum):
     NATIVE = "native"
     TRANSCRIPT_INGEST = "transcript_ingest"
     HISTORY_JSONL = "history_jsonl"
+    EVENT_INGEST = "event_ingest"
     DERIVED = "derived"
 
 
@@ -343,6 +344,26 @@ class FindingType(BaseModel):
     created_at: datetime | None = None
 
 
+class EventType(BaseModel):
+    """Registry row for an event vocabulary entry (M5) -- the
+    generalization of FindingType for the generic event grain. Open
+    vocabulary, same reasoning as finding_type: any ingest adapter's event
+    shapes are rows here, never enum edits.
+
+    Key: dimension_key(event_type).
+    """
+
+    event_type_key: str | None = None
+    event_type: str
+    description: str | None = None
+    schema_hint: dict | None = Field(
+        default=None,
+        description="Optional JSON shape hint for this event type's payload",
+    )
+    record_source: RecordSource = RecordSource.NATIVE
+    created_at: datetime | None = None
+
+
 # ---------------------------------------------------------------------------
 # Fact models (event data with denormalized dimension attributes)
 # ---------------------------------------------------------------------------
@@ -447,6 +468,49 @@ class ToolUse(BaseModel):
     # Lineage
     tenant_key: str | None = None
     record_source: RecordSource = RecordSource.TRANSCRIPT_INGEST
+    etl_run_id: str | None = None
+    created_at: datetime | None = None
+
+
+class Event(BaseModel):
+    """One generic ingested event -- the generalization of Message/ToolUse
+    for non-transcript sources (M5). Any enterprise event stream ingests
+    through this grain via an IngestAdapter (ingest.py); transcripts keep
+    their richer typed projection (Message/ToolUse) instead of also
+    landing here -- typed tables are for sources rich enough to deserve
+    them.
+
+    Key: dimension_key(stream_key, native_event_id) -- deterministic, so
+    re-ingestion is idempotent, matching Message/ToolUse.
+    """
+
+    event_key: str | None = None
+    stream_key: str
+    native_event_id: str | None = Field(
+        default=None,
+        description="Source stream's own event id, if any -- falls back "
+                    "to a random uuid (non-idempotent for that row) like "
+                    "entry_uuid/tool_use_id do",
+    )
+    event_type: str = Field(
+        description="Open vocabulary, registry-validated against "
+                    "dim_event_type in the store layer -- no CHECK constraint",
+    )
+    occurred_at: datetime | None = None
+    actor: str | None = None
+    payload: dict | None = None
+    content_text: str | None = Field(
+        default=None, description="Extracted searchable text, if any",
+    )
+    signature: str | None = Field(
+        default=None,
+        description="Optional normalized template signature (amendment 6 "
+                    "normalization hook, e.g. mask_signature())",
+    )
+    sequence_num: int = 0
+    # Lineage
+    tenant_key: str | None = None
+    record_source: RecordSource = RecordSource.EVENT_INGEST
     etl_run_id: str | None = None
     created_at: datetime | None = None
 

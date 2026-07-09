@@ -1,4 +1,5 @@
-"""Transcript ingestion: JSONL session files into the warehouse (Phase 1: sense).
+"""Ingestion: transcripts and generic event streams into the warehouse
+(Phase 1: sense).
 
 Grain produced per transcript file:
 - one fact_session row (accumulating snapshot: completed_at/model_used
@@ -17,17 +18,36 @@ deltas, so the idempotency guarantee is measurable, not assumed.
 
 This is a CLI-time operation: DuckDB is single-process, so it must run
 when the MCP server does not hold the database lock.
+
+M5 adds a generic IngestAdapter protocol so transcripts stop being the
+only source that can ingest: discover(root, since) finds ingestable
+units, parse(unit) streams typed RawEvents out of one unit.
+TranscriptAdapter conforms to the protocol's shape but ingest_transcripts()
+does not route through it -- the direct path below (discover_sessions +
+_ingest_file) is unchanged and stays the one the existing test suite
+exercises; typed tables (fact_session/message/tool_use) are projections
+for sources rich enough to deserve them. JsonlEventAdapter is the second
+reference adapter: it writes the generic fact_event grain via
+ingest_events(), the smallest possible proof that a non-transcript stream
+flows end-to-end into the warehouse idempotently.
 """
 
 from __future__ import annotations
 
+import json
+import re
+from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 from freud_schema.discovery import SessionFile, default_projects_root, discover_sessions
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     AgentRole,
+    Event,
+    EventType,
     Message,
     MessageRole,
     Project,
@@ -55,6 +75,66 @@ _RESULT_TEXT_MAX = 2000
 # projects are shared across files, so counting ensure_project calls as
 # candidates would report false skips on the very first run.
 _COUNTED_TABLES = ("fact_session", "fact_message", "fact_tool_use")
+
+
+# ---------------------------------------------------------------------------
+# IngestAdapter protocol (M5) -- discover + parse, source-agnostic
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SourceUnit:
+    """One discoverable unit of ingestable work -- the adapter protocol's
+    generalization of SessionFile (one transcript file) / one JSONL event
+    file. native_stream_id is the identity stream_key_for keys off; id is
+    adapter-defined and stable across runs."""
+
+    id: str
+    path: Path
+    native_stream_id: str
+    meta: dict | None = None
+
+
+@dataclass
+class RawEvent:
+    """One adapter-parsed event, pre-key-derivation. Fields map directly
+    onto Event's non-lineage columns; key derivation, registry
+    validation, and lineage stamping happen in the ingest orchestrator
+    (ingest_events), not here -- adapters only parse."""
+
+    id: str | None
+    type: str
+    timestamp: datetime | None
+    actor: str | None
+    payload: dict | None
+    content_text: str | None = None
+
+
+@runtime_checkable
+class IngestAdapter(Protocol):
+    """Protocol every ingest source implements (M5): discover() finds
+    ingestable units under a root; parse() streams typed events out of one
+    unit. TranscriptAdapter and JsonlEventAdapter are the two reference
+    implementations -- TranscriptAdapter continues to write the typed
+    fact_session/fact_message/fact_tool_use tables exactly as
+    ingest_transcripts() always has (typed tables are projections for
+    sources rich enough to deserve them); JsonlEventAdapter writes the
+    generic fact_event grain via ingest_events().
+
+    An adapter MAY additionally define `normalize(self, text: str) -> str`
+    (amendment 6's optional template-mining hook) -- ingest_events() calls
+    it when present to fill Event.signature. There is no abstract method
+    for it here because typing.Protocol cannot express "optional method";
+    callers probe with hasattr() instead.
+    """
+
+    def discover(
+        self, root: str | Path, since: datetime | None = None,
+    ) -> list[SourceUnit]:
+        ...
+
+    def parse(self, unit: SourceUnit) -> Iterator[RawEvent]:
+        ...
 
 
 def _parse_ts(raw: str | None) -> datetime | None:
@@ -93,6 +173,140 @@ def _result_text(content) -> str | None:
         joined = "\n".join(p for p in parts if p)
         return joined[:_RESULT_TEXT_MAX] if joined else None
     return None
+
+
+class TranscriptAdapter:
+    """IngestAdapter conformance for Claude Code transcripts. discover()
+    and parse() reuse the same discovery/parsing primitives as
+    ingest_transcripts()/_ingest_file() below, but ingest_transcripts()
+    itself is untouched and remains the production write path (typed
+    fact_session/fact_message/fact_tool_use tables -- typed tables are
+    projections for sources rich enough to deserve them). This class
+    exists so transcripts satisfy IngestAdapter's shape alongside
+    JsonlEventAdapter; it does not replace the existing pipeline, and
+    nothing in ingest_transcripts() routes through it."""
+
+    def discover(
+        self, root: str | Path, since: datetime | None = None,
+    ) -> list[SourceUnit]:
+        return [
+            SourceUnit(
+                id=sf.path_identity or sf.path.stem,
+                path=sf.path,
+                native_stream_id=sf.path_identity or sf.path.stem,
+                meta=sf.meta,
+            )
+            for sf in discover_sessions(root, since=since)
+        ]
+
+    def parse(self, unit: SourceUnit) -> Iterator[RawEvent]:
+        for entry in iter_typed_entries(unit.path):
+            ts = _parse_ts(getattr(entry, "timestamp", None))
+            if isinstance(entry, UserEntry):
+                blocks = _blocks((entry.message or {}).get("content"))
+                yield RawEvent(
+                    id=entry.uuid, type="user_message", timestamp=ts,
+                    actor="user", payload=None,
+                    content_text=_text_of(blocks) or None,
+                )
+            elif isinstance(entry, AssistantEntry):
+                msg = entry.message or {}
+                blocks = _blocks(msg.get("content"))
+                yield RawEvent(
+                    id=entry.uuid, type="assistant_message", timestamp=ts,
+                    actor="assistant",
+                    payload={"model": msg["model"]} if msg.get("model") else None,
+                    content_text=_text_of(blocks) or None,
+                )
+
+
+# ---------------------------------------------------------------------------
+# Signature masking (amendment 6: optional normalization hook)
+# ---------------------------------------------------------------------------
+
+_SIG_UUID_RE = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
+_SIG_QUOTED_RE = re.compile(r'"[^"]*"|\'[^\']*\'')
+_SIG_HEX_RE = re.compile(r"\b[0-9a-fA-F]{8,}\b")
+# Any digit run, not \b\d+\b: variable numbers routinely carry unit
+# suffixes ("382s", "48ms", "2MB") or id prefixes ("run4521"), and a
+# word-boundary pattern leaves those unmasked -- two events with the same
+# template would then get different signatures, defeating the signature's
+# whole purpose (caught live on the first M5 smoke test).
+_SIG_NUMBER_RE = re.compile(r"\d+")
+
+
+def mask_signature(text: str) -> str:
+    """Drain-style-lite template signature: mask variable-shaped
+    substrings (UUIDs, quoted strings, hex strings >= 8 chars, bare
+    numbers) to stable placeholders, so high-volume variable text
+    collapses to a shared signature (docs/implementation-plan.md
+    amendment 6, "substrate rule made explicit"). Order matters -- UUIDs
+    and quoted strings are masked whole before the looser hex/number
+    passes run, so a UUID's hyphen-separated segments don't get partially
+    masked and a number inside a quoted string doesn't leak out as a
+    separate placeholder.
+
+    This is NOT real template mining (no token clustering, no learned
+    templates, no external deps) -- it is a cheap, deterministic
+    normalization step good enough to collapse the obvious cases. A later
+    milestone can swap in Drain proper without changing the
+    fact_event.signature contract (one VARCHAR column).
+    """
+    masked = _SIG_UUID_RE.sub("<UUID>", text)
+    masked = _SIG_QUOTED_RE.sub("<STR>", masked)
+    masked = _SIG_HEX_RE.sub("<HEX>", masked)
+    masked = _SIG_NUMBER_RE.sub("<NUM>", masked)
+    return masked
+
+
+class JsonlEventAdapter:
+    """Reference IngestAdapter for newline-delimited JSON event streams:
+    one file per stream (native_stream_id = the file's path relative to
+    root), one JSON object per line: {id, type, timestamp, actor, payload}
+    plus an optional "text" field. The smallest possible proof that a
+    non-transcript source flows end-to-end into fact_event idempotently
+    (M5's goal). normalize() is the amendment-6 hook: ingest_events()
+    calls it (via hasattr) to fill Event.signature from content_text."""
+
+    def discover(
+        self, root: str | Path, since: datetime | None = None,
+    ) -> list[SourceUnit]:
+        root = Path(root)
+        if not root.is_dir():
+            return []
+        units = []
+        for path in sorted(root.rglob("*.jsonl")):
+            if since is not None:
+                mtime = datetime.fromtimestamp(path.stat().st_mtime)
+                if mtime < since:
+                    continue
+            rel = path.relative_to(root).as_posix()
+            units.append(SourceUnit(id=rel, path=path, native_stream_id=rel))
+        return units
+
+    def parse(self, unit: SourceUnit) -> Iterator[RawEvent]:
+        with open(unit.path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                yield RawEvent(
+                    id=str(row["id"]) if row.get("id") is not None else None,
+                    type=row.get("type") or "unknown",
+                    timestamp=_parse_ts(row.get("timestamp")),
+                    actor=row.get("actor"),
+                    payload=row.get("payload"),
+                    content_text=row.get("text"),
+                )
+
+    def normalize(self, text: str) -> str:
+        return mask_signature(text)
 
 
 def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tuple[int, int]:
@@ -282,6 +496,87 @@ def ingest_transcripts(
 
     return {
         "sessions": len(files),
+        "etl_run_id": stats.etl_run_id,
+        "rows_read": stats.rows_read,
+        "rows_written": stats.rows_written,
+        "rows_skipped": stats.rows_skipped,
+    }
+
+
+def _ensure_event_type(store: ExperimentStore, event_type: str) -> str:
+    """Register event_type if unseen; idempotent, mirrors couch's
+    register-before-write pattern for finding_type."""
+    existing = store.get_event_type(event_type)
+    if existing is not None:
+        return existing.event_type_key
+    return store.register_event_type(EventType(
+        event_type=event_type, record_source=RecordSource.EVENT_INGEST,
+    ))
+
+
+def ingest_events(
+    store: ExperimentStore,
+    *,
+    root: str | Path,
+    stream_type: str | None = None,
+    since: datetime | None = None,
+) -> dict:
+    """Ingest a generic newline-delimited JSON event stream into
+    fact_event via JsonlEventAdapter -- M5's proof that a non-transcript
+    source flows end-to-end through the same idempotent, lineage-stamped
+    path as transcripts. Registers each distinct event type in
+    dim_event_type (record_source=event_ingest) before writing rows.
+
+    stream_type is accepted but not yet used to select among adapters --
+    there is exactly one reference adapter today (JsonlEventAdapter); the
+    parameter is reserved so this function's shape doesn't need to change
+    when a second adapter lands.
+
+    Returns stats: {etl_run_id, streams, rows_read, rows_written,
+    rows_skipped}. The same numbers land in meta_load_log.
+    """
+    adapter = JsonlEventAdapter()
+    units = adapter.discover(root, since=since)
+
+    with store.load_run("ingest_events",
+                        record_source=RecordSource.EVENT_INGEST) as stats:
+        before = store.count_rows("fact_event")
+        attempted = 0
+        registered_types: set[str] = set()
+        for unit in units:
+            stream_key = store.stream_key_for(
+                RecordSource.EVENT_INGEST, unit.native_stream_id)
+            events: list[Event] = []
+            for seq, raw in enumerate(adapter.parse(unit)):
+                stats.rows_read += 1
+                if raw.type not in registered_types:
+                    _ensure_event_type(store, raw.type)
+                    registered_types.add(raw.type)
+                signature = None
+                if raw.content_text and hasattr(adapter, "normalize"):
+                    signature = adapter.normalize(raw.content_text)
+                events.append(Event(
+                    stream_key=stream_key,
+                    native_event_id=raw.id,
+                    event_type=raw.type,
+                    occurred_at=raw.timestamp,
+                    actor=raw.actor,
+                    payload=raw.payload,
+                    content_text=raw.content_text,
+                    signature=signature,
+                    sequence_num=seq,
+                    record_source=RecordSource.EVENT_INGEST,
+                    etl_run_id=stats.etl_run_id,
+                ))
+            with store.transaction():
+                store.insert_events(events)
+            attempted += len(events)
+        after = store.count_rows("fact_event")
+        stats.rows_written = after - before
+        stats.rows_skipped = max(0, attempted - stats.rows_written)
+
+    return {
+        "streams": len(units),
         "etl_run_id": stats.etl_run_id,
         "rows_read": stats.rows_read,
         "rows_written": stats.rows_written,
