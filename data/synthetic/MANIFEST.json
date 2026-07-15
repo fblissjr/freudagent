@@ -13,7 +13,7 @@
       "path": "README.md",
       "format": "markdown",
       "source_system": "corpus metadata",
-      "bytes": 5113,
+      "bytes": 8596,
       "records": null
     },
     {
@@ -199,6 +199,13 @@
       "records": null
     },
     {
+      "path": "internal/finance/ar_aging_2026-06-30.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 668,
+      "records": 10
+    },
+    {
       "path": "internal/finance/expense_reports.csv",
       "format": "csv",
       "source_system": "ERP / finance extracts",
@@ -232,6 +239,13 @@
       "source_system": "HRIS export",
       "bytes": 19975,
       "records": 124
+    },
+    {
+      "path": "internal/hris/headcount_monthly.csv",
+      "format": "csv",
+      "source_system": "HRIS export",
+      "bytes": 1758,
+      "records": 66
     },
     {
       "path": "internal/hris/pto_requests.csv",
@@ -274,6 +288,13 @@
       "source_system": "IT service management export",
       "bytes": 33517,
       "records": 84
+    },
+    {
+      "path": "internal/reporting/kpi_quarterly.csv",
+      "format": "csv",
+      "source_system": "BI / executive reporting extracts",
+      "bytes": 660,
+      "records": 14
     },
     {
       "path": "internal/security/phishing_sim_results.csv",
@@ -402,6 +423,13 @@
       "records": null
     },
     {
+      "path": "saas/marketing/web_sessions_weekly.csv",
+      "format": "csv",
+      "source_system": "marketing analytics SaaS export",
+      "bytes": 25219,
+      "records": 542
+    },
+    {
       "path": "saas/project_mgmt/issues.json",
       "format": "json",
       "source_system": "issue tracker (project-management SaaS export)",
@@ -428,6 +456,13 @@
       "source_system": "helpdesk (support-ticket SaaS export)",
       "bytes": 57685,
       "records": 60
+    },
+    {
+      "path": "saas/tickets/ticket_metrics_weekly.csv",
+      "format": "csv",
+      "source_system": "helpdesk (support-ticket SaaS export)",
+      "bytes": 611,
+      "records": 26
     },
     {
       "path": "unstructured/call-transcripts/2026-02-20-cobalt-games-downgrade-call.txt",

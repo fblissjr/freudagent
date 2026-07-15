@@ -1,0 +1,15 @@
+quarter,metric,value,unit,notes
+2026-Q1,subscription_revenue_usd,281385.00,usd,
+2026-Q1,arr_run_rate_usd,1125540.00,usd,
+2026-Q1,active_customers,25,count,
+2026-Q1,headcount_end,115,count,
+2026-Q1,avg_csat,3.50,score,
+2026-Q1,support_tickets_opened,30,count,
+2026-Q1,uptime_pct,99.71,percent,Reflects the 2026-03-11 ingestion incident (INC-2026-0311).
+2026-Q2,subscription_revenue_usd,281385.00,usd,
+2026-Q2,arr_run_rate_usd,1125540.00,usd,
+2026-Q2,active_customers,25,count,
+2026-Q2,headcount_end,118,count,
+2026-Q2,avg_csat,3.56,score,
+2026-Q2,support_tickets_opened,30,count,
+2026-Q2,uptime_pct,99.93,percent,No SEV incidents in the quarter.

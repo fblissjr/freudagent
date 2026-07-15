@@ -25,7 +25,23 @@ saas/
   crm/                      CRM export: accounts.csv, opportunities.csv
   knowledge_base/pages/     10 wiki-style pages (markdown + YAML frontmatter)
   status_page/              status-page SaaS export: incident_history.json
+  marketing/                web analytics keyed by visitor company domain
 api_specs/                  OpenAPI 3.1 spec for the fictional metering API
+internal/                   the company's OWN enterprise systems:
+  hris/                     employees.csv (124, incl. every named person),
+                            pto_requests.csv, headcount_monthly.csv
+  itsm/                     it_tickets.jsonl, assets.csv, changes.csv (incl.
+                            the failed change behind INC-2026-0311)
+  finance/                  vendors, purchase_orders, expense_reports,
+                            gl_monthly.csv (revenue ties to invoices.csv,
+                            T&E ties to expenses), ar_aging_2026-06-30.csv
+  iam/                      app_catalog.csv, access_review_2026q2.csv
+  security/                 phishing_sim_results.csv
+  reporting/                kpi_quarterly.csv (executive scorecard)
+  docs/                     corporate docs: SOC 2 readiness memo, expense /
+                            change-management / acceptable-use policies,
+                            laptop provisioning runbook, all-hands notes,
+                            onboarding checklist
 relational/                 OLTP extract of the fictional `acmedb` billing
                             database: schema.sql (DDL) + customers,
                             subscriptions, invoices, usage_daily CSVs
@@ -48,7 +64,9 @@ unstructured/
                             call, downgrade call, sales discovery
 events/                     generic JSONL event streams shaped for
                             `freud-schema ingest events` (JsonlEventAdapter:
-                            {id, type, timestamp, actor, payload, text})
+                            {id, type, timestamp, actor, payload, text}):
+                            product webhooks, admin audit, badge access,
+                            security alerts
 ```
 
 ## The connective tissue
@@ -72,9 +90,37 @@ cross-source reasoning has ground truth to be evaluated against:
 - **Secondary arcs**: the Cobalt Games / Halcyon Travel contractions
   (subscriptions.csv closed rows -> downgrade call, confirmation email,
   churn-review notes), the Tidewater Marine sales pipeline (discovery
-  transcript -> proposal email; deliberately absent from the CRM, which
-  only holds signed accounts), and the MSA section 6.3 dispute terms that
-  the Sable Financial email and ticket SUP-1063 invoke.
+  transcript -> proposal email -> rising web traffic; deliberately absent
+  from the CRM, which only holds signed accounts), and the MSA section 6.3
+  dispute terms that the Sable Financial email and ticket SUP-1063 invoke.
+- **The compliance arc (internal/)**: sales rep terminated 2026-03-31
+  (EMP-1042 in hris/employees.csv) -> offboarding ticket IT-2231 misses
+  SaaS deprovisioning -> Q2 access review revokes the leftover Saltmarsh
+  CRM entitlement -> laptop-provisioning runbook revised 2026-06-12 ->
+  finding #1 in the SOC 2 readiness memo. The March incident also has an
+  internal spine: change record CHG-2026-0023 (failed) -> emergency
+  rollback CHG-2026-0024 -> the change-management policy's 2026-03
+  revision.
+- **Financial reconciliation ties**: gl_monthly.csv account 4000 equals
+  invoices.csv summed per month; account 6300 equals expense_reports.csv
+  per month; 6100 is exactly 22% of 6000; kpi_quarterly.csv rolls the same
+  numbers up to quarters.
+
+## Granularity & join challenges
+
+Deliberate grain mismatches and imperfect keys, each with exact ground
+truth (guarded by `tests/test_synthetic_granularity.py`) so agent code for
+cross-grain joins and key derivation can be evaluated:
+
+| File | Grain | Joins to | What an agent must do |
+|------|-------|----------|-----------------------|
+| saas/tickets/ticket_metrics_weekly.csv | weekly | support_tickets.jsonl (event) | roll tickets up to ISO weeks; reconcile counts |
+| internal/hris/headcount_monthly.csv | monthly | employees.csv (entity) | effective-dated (SCD-style) point-in-time counting over hire/termination dates |
+| internal/reporting/kpi_quarterly.csv | quarterly | gl_monthly, subscriptions, csat_survey, employees | multi-source quarter rollups; ARR derived as quarter-end MRR x 12 |
+| saas/marketing/web_sessions_weekly.csv | weekly, keyed by company domain | accounts.csv | derive each account's domain from contact emails (no shared ID exists); tolerate noise domains that match nothing |
+| internal/finance/ar_aging_2026-06-30.csv | as-of snapshot, keyed by messy names | invoices/subscriptions/customers | entity resolution (case, punctuation, legal suffixes, &/and) plus multi-hop key bridging and date-bucket math |
+| events/badge_access.jsonl vs hris/pto_requests.csv | timestamp vs date-range | -- | interval overlap joins |
+| usage_daily.csv vs invoices.csv vs gl_monthly.csv | daily vs monthly | -- | grain conversion with billing-window semantics |
 
 ## Regeneration
 

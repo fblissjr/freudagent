@@ -2257,10 +2257,12 @@ def _write_security_alerts(out: Path, rng: random.Random,
     (ev / "security_alerts.jsonl").write_bytes(jsonl(rows))
 
 
-def write_internal(out: Path) -> None:
+def write_internal(out: Path) -> list[dict]:
     """Generate the INTERNAL-ENTERPRISE application corpus (HRIS / ITSM /
     finance / IAM / security). Uses its own independently seeded RNG so it
-    never perturbs the public-corpus byte stream produced above."""
+    never perturbs the public-corpus byte stream produced above. Returns the
+    employees list so the granularity step can re-aggregate it without
+    re-deriving (a pure addition -- output bytes and rng draws are unchanged)."""
     rng = random.Random(INTERNAL_SEED)
     employees = _build_internal_employees(rng)
     leader_email = _leader_email_map(employees)
@@ -2287,6 +2289,267 @@ def write_internal(out: Path) -> None:
 
     _write_badge_access(out, rng, employees)
     _write_security_alerts(out, rng, employees)
+    return employees
+
+
+# ---------------------------------------------------------------------------
+# Cross-granularity "join challenge" datasets. Everything here is DERIVED from
+# the fine-grained corpus written above (support tickets, HRIS employees, the
+# relational extract, GL, CSAT) and re-aggregated to coarser grains -- plus a
+# marketing stream keyed by a domain that must be derived from contact emails,
+# and an AR-aging snapshot keyed by messy free-text customer names that require
+# entity resolution. These exist so future agent code can be tested on grain
+# conversion, key derivation, and fuzzy joins; exact ground truth is enforced
+# by tests/test_synthetic_granularity.py. A fresh, independently seeded RNG
+# keeps these draws from perturbing anything above.
+# ---------------------------------------------------------------------------
+
+GRANULARITY_SEED = 20260313
+
+# Deterministic messy-name transforms (index rotation) for the AR-aging file.
+# Each normalizes back -- lowercase; &->and; strip punctuation; drop trailing
+# inc/llc/ltd/co/corp; collapse whitespace -- to exactly one account name.
+_NAME_TRANSFORMS = [
+    lambda n: n.upper(),
+    lambda n: f"{n} Inc.",
+    lambda n: f"{n} LLC",
+    lambda n: n.replace("&", "and"),
+    lambda n: f"{n.title()}.",
+    lambda n: f"{n}, Inc",
+]
+
+# 12 fictional domains that match nothing else in the corpus (the marketing
+# stream's noise floor for fuzzy-join tests).
+_NOISE_DOMAINS = [
+    "thornfield-partners.example", "greyloch-systems.example",
+    "marrowbrook-labs.example", "silverquay-holdings.example",
+    "hollowmere-group.example", "ashenford-dynamics.example",
+    "blackwater-ventures.example", "kirkwall-industries.example",
+    "netherby-solutions.example", "ravenscar-analytics.example",
+    "duskmoor-collective.example", "wexford-trading.example",
+]
+
+
+def _mondays(start: date, end: date) -> list[date]:
+    weeks = []
+    d = start
+    while d <= end:
+        weeks.append(d)
+        d += timedelta(days=7)
+    return weeks
+
+
+def _active_at(hire: date, term: str, ref: date) -> bool:
+    """Active as of `ref`: hired on/before ref and either not terminated or
+    terminated strictly after ref."""
+    if hire > ref:
+        return False
+    if term and _d(term) <= ref:
+        return False
+    return True
+
+
+def write_granularity(out: Path, accounts: list[dict], tickets: list[dict],
+                      employees: list[dict]) -> None:
+    rng = random.Random(GRANULARITY_SEED)
+    weeks = _mondays(date(2026, 1, 5), date(2026, 6, 29))
+
+    # --- 1. Weekly support-ticket metrics (saas/tickets) ------------------
+    sup = out / "saas" / "tickets"
+    sup.mkdir(parents=True, exist_ok=True)
+    with open(sup / "ticket_metrics_weekly.csv", "w", newline="",
+              encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["week_start", "tickets_opened", "tickets_resolved",
+                    "urgent_or_high_opened", "distinct_accounts_opened"])
+        for wk in weeks:
+            wk_end = wk + timedelta(days=7)
+            opened = [t for t in tickets
+                      if wk <= _d(t["created_at"][:10]) < wk_end]
+            resolved = [t for t in tickets
+                        if t["status"] in ("solved", "closed")
+                        and wk <= _d(t["updated_at"][:10]) < wk_end]
+            urgent_high = [t for t in opened
+                           if t["priority"] in ("urgent", "high")]
+            w.writerow([wk.isoformat(), len(opened), len(resolved),
+                        len(urgent_high),
+                        len({t["account_id"] for t in opened})])
+
+    # --- 2. Monthly headcount by department (internal/hris) ---------------
+    hris = out / "internal" / "hris"
+    hris.mkdir(parents=True, exist_ok=True)
+    depts = sorted({e["department"] for e in employees})
+    with open(hris / "headcount_monthly.csv", "w", newline="",
+              encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["month", "department", "headcount_end_of_month",
+                    "hires_in_month", "terminations_in_month"])
+        for month in range(1, 7):
+            mstr = f"2026-{month:02d}"
+            mstart = date(2026, month, 1)
+            mend = date(2026, month + 1, 1) - timedelta(days=1)
+            for dept in depts:
+                de = [e for e in employees if e["department"] == dept]
+                hc = sum(1 for e in de
+                         if _active_at(_d(e["hire_date"]),
+                                       e["termination_date"], mend))
+                if hc == 0:
+                    continue
+                hires = sum(1 for e in de
+                            if mstart <= _d(e["hire_date"]) <= mend)
+                terms = sum(1 for e in de if e["termination_date"]
+                            and mstart <= _d(e["termination_date"]) <= mend)
+                w.writerow([mstr, dept, hc, hires, terms])
+
+    # --- 3. Quarterly executive KPIs, long format (internal/reporting) ----
+    rep = out / "internal" / "reporting"
+    rep.mkdir(parents=True, exist_ok=True)
+
+    gl_4000: dict[str, float] = {}
+    with open(out / "internal" / "finance" / "gl_monthly.csv",
+              encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            if r["account_code"] == "4000":
+                gl_4000[r["month"]] = float(r["amount_usd"])
+    with open(out / "relational" / "subscriptions.csv", encoding="utf-8") as f:
+        subs = list(csv.DictReader(f))
+    with open(out / "feedback" / "csat_survey.csv", encoding="utf-8") as f:
+        csat = list(csv.DictReader(f))
+
+    quarters = [
+        ("2026-Q1", date(2026, 3, 31), ("2026-01", "2026-02", "2026-03"),
+         99.71, "Reflects the 2026-03-11 ingestion incident (INC-2026-0311)."),
+        ("2026-Q2", date(2026, 6, 30), ("2026-04", "2026-05", "2026-06"),
+         99.93, "No SEV incidents in the quarter."),
+    ]
+
+    def _fmt(metric: str, val: float) -> str:
+        if metric in ("active_customers", "headcount_end",
+                      "support_tickets_opened"):
+            return str(int(val))
+        return f"{val:.2f}"
+
+    with open(rep / "kpi_quarterly.csv", "w", newline="",
+              encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["quarter", "metric", "value", "unit", "notes"])
+        for qtr, qend, months, up_val, up_note in quarters:
+            active_subs = [s for s in subs
+                           if _d(s["started_at"]) <= qend
+                           and (not s["canceled_at"]
+                                or _d(s["canceled_at"]) > qend)]
+            arr = sum(float(s["mrr_usd"]) for s in active_subs) * 12.0
+            active_customers = len({s["customer_id"] for s in active_subs})
+            headcount = sum(1 for e in employees
+                            if _active_at(_d(e["hire_date"]),
+                                          e["termination_date"], qend))
+            scores = [int(r["score"]) for r in csat
+                      if r["submitted_at"][:7] in months]
+            avg_csat = round(sum(scores) / len(scores), 2) if scores else 0.0
+            sub_rev = round(sum(gl_4000.get(m, 0.0) for m in months), 2)
+            opened = sum(1 for t in tickets if t["created_at"][:7] in months)
+            metrics = [
+                ("subscription_revenue_usd", sub_rev, "usd", ""),
+                ("arr_run_rate_usd", arr, "usd", ""),
+                ("active_customers", active_customers, "count", ""),
+                ("headcount_end", headcount, "count", ""),
+                ("avg_csat", avg_csat, "score", ""),
+                ("support_tickets_opened", opened, "count", ""),
+                ("uptime_pct", up_val, "percent", up_note),
+            ]
+            for metric, val, unit, note in metrics:
+                w.writerow([qtr, metric, _fmt(metric, val), unit, note])
+
+    # --- 4. Weekly marketing web sessions by domain (saas/marketing) ------
+    mkt = out / "saas" / "marketing"
+    mkt.mkdir(parents=True, exist_ok=True)
+
+    def _session_row(dom: str, wk: date) -> list:
+        sessions = rng.randint(3, 60)
+        pageviews = sessions * rng.randint(2, 6)
+        trials = rng.choices([0, 1, 2, 3], weights=[82, 10, 5, 3])[0]
+        return [wk.isoformat(), dom, sessions, pageviews, trials]
+
+    def _domain_rows(dom: str, cand: list[date], skip_prob: float) -> list:
+        drows = [_session_row(dom, wk) for wk in cand
+                 if rng.random() >= skip_prob]
+        if not drows:                       # guarantee each domain appears once
+            drows.append(_session_row(dom, rng.choice(cand)))
+        return drows
+
+    session_rows = []
+    for a in accounts:                      # 25 customer-account domains
+        dom = a["contacts"][0]["email"].split("@")[1]
+        session_rows.extend(_domain_rows(dom, weeks, 0.30))
+
+    # tidewater-marine appears only from the week of 2026-04-06, ramping to 40
+    # sessions -- the sales-pipeline story visible in traffic before any CRM row.
+    tw_weeks = [wk for wk in weeks if wk >= date(2026, 4, 6)]
+    n_tw = len(tw_weeks)
+    for i, wk in enumerate(tw_weeks):
+        sessions = round(5 + (40 - 5) * i / (n_tw - 1))
+        pageviews = sessions * rng.randint(2, 6)
+        trials = rng.choices([0, 1, 2, 3], weights=[70, 18, 8, 4])[0]
+        session_rows.append([wk.isoformat(), "tidewater-marine.example",
+                             sessions, pageviews, trials])
+
+    for dom in _NOISE_DOMAINS:              # sporadic noise floor
+        session_rows.extend(_domain_rows(dom, weeks, 0.70))
+
+    session_rows.sort(key=lambda r: (r[0], r[1]))
+    with open(mkt / "web_sessions_weekly.csv", "w", newline="",
+              encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["week_start", "company_domain", "sessions", "pageviews",
+                    "trial_signups"])
+        w.writerows(session_rows)
+
+    # --- 5. AR-aging snapshot as-of 2026-06-30 (internal/finance) ---------
+    fin = out / "internal" / "finance"
+    fin.mkdir(parents=True, exist_ok=True)
+    asof = date(2026, 6, 30)
+
+    with open(out / "relational" / "customers.csv", encoding="utf-8") as f:
+        cust_name = {r["customer_id"]: r["company_name"]
+                     for r in csv.DictReader(f)}
+    with open(out / "relational" / "subscriptions.csv", encoding="utf-8") as f:
+        sub_customer = {r["subscription_id"]: r["customer_id"]
+                        for r in csv.DictReader(f)}
+
+    # customer_id -> [current, 1-30, 31-60, 61-90, 90+] of unpaid invoice $.
+    buckets: dict[str, list[float]] = {}
+    with open(out / "relational" / "invoices.csv", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            if r["status"] not in ("open", "past_due"):
+                continue
+            cid = sub_customer[r["subscription_id"]]
+            days = (asof - _d(r["issued_at"])).days
+            amt = float(r["amount_usd"])
+            b = buckets.setdefault(cid, [0.0, 0.0, 0.0, 0.0, 0.0])
+            if days <= 30:
+                b[1] += amt
+            elif days <= 60:
+                b[2] += amt
+            elif days <= 90:
+                b[3] += amt
+            else:
+                b[4] += amt
+
+    ar_rows = []
+    for cid, b in buckets.items():
+        base = cust_name[cid]
+        messy = _NAME_TRANSFORMS[(int(cid) - 1) % len(_NAME_TRANSFORMS)](base)
+        total = round(sum(b), 2)
+        ar_rows.append([messy, f"{b[0]:.2f}", f"{b[1]:.2f}", f"{b[2]:.2f}",
+                        f"{b[3]:.2f}", f"{b[4]:.2f}", f"{total:.2f}"])
+    ar_rows.sort(key=lambda r: r[0])
+    with open(fin / "ar_aging_2026-06-30.csv", "w", newline="",
+              encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["customer_name", "current_usd", "days_1_30_usd",
+                    "days_31_60_usd", "days_61_90_usd", "days_90_plus_usd",
+                    "total_usd"])
+        w.writerows(ar_rows)
 
 
 # ---------------------------------------------------------------------------
@@ -2303,6 +2566,7 @@ SOURCE_SYSTEM_BY_DIR = {
     "saas/tickets": "helpdesk (support-ticket SaaS export)",
     "saas/knowledge_base": "knowledge-management SaaS (wiki export)",
     "saas/crm": "CRM SaaS export",
+    "saas/marketing": "marketing analytics SaaS export",
     "saas/status_page": "status-page SaaS export",
     "api_specs": "API specifications (OpenAPI)",
     "relational": "relational OLTP database extract (acmedb)",
@@ -2319,6 +2583,7 @@ SOURCE_SYSTEM_BY_DIR = {
     "internal/iam": "identity & access management export",
     "internal/security": "security operations data",
     "internal/recruiting": "applicant-tracking export",
+    "internal/reporting": "BI / executive reporting extracts",
     "events": "generic event streams (freud-schema ingest events)",
 }
 
@@ -2392,7 +2657,8 @@ def generate(out: Path) -> dict:
     write_chat(out, rng)
     write_logs(out, rng)
     write_events(out, rng, accounts)
-    write_internal(out)
+    employees = write_internal(out)
+    write_granularity(out, accounts, tickets, employees)
     return write_manifest(out)
 
 

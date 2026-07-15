@@ -9,7 +9,7 @@ the private warehouse. No schema change.
 
 ### Added
 
-- `data/synthetic/` -- 50 files, ~712 KiB, one coherent scenario (a
+- `data/synthetic/` -- 77 files, ~1.2 MiB, one coherent scenario (a
   fictional B2B usage-analytics SaaS, 2026-01-05 to 2026-06-30) spanning:
   issue-tracker and helpdesk SaaS exports (JSON/JSONL with comment and
   message threads), CRM CSVs, wiki-style knowledge-base pages (markdown +
@@ -29,6 +29,25 @@ the private warehouse. No schema change.
   section 6.3 the invoice-dispute thread invokes), a customer-contraction
   arc matching the closed subscription rows, a sales-pipeline arc, an
   OpenAPI 3.1 spec, and a status-page incident-history export.
+- `data/synthetic/internal/` -- the fictional company's own enterprise
+  systems: HRIS (124 employees + PTO + monthly headcount), ITSM
+  (tickets/assets/change records, incl. the failed change behind the
+  incident), finance (vendors/POs/expenses/monthly GL/AR aging), IAM
+  (app catalog + Q2 access review), security (phishing sims), executive
+  KPI scorecard, and corporate docs (SOC 2 memo, policies, runbook,
+  all-hands, onboarding). GL reconciles to invoices and expenses; a
+  compliance arc threads termination -> offboarding gap -> access-review
+  revocation -> runbook fix -> SOC 2 finding. Badge-access and
+  security-alert JSONL streams join the ingest-ready `events/` set.
+- Cross-granularity "join challenge" datasets with exact ground truth
+  (weekly ticket metrics, monthly headcount, quarterly KPIs, domain-keyed
+  web analytics requiring key derivation, and a messy-name AR aging
+  snapshot requiring entity resolution), documented in the corpus README
+  and guarded by `tests/test_synthetic_granularity.py` and
+  `tests/test_synthetic_internal.py` (402 tests total).
+- `.gitignore`: anchored the `internal/` ignore to the repo root --
+  the unanchored pattern was silently ignoring
+  `data/synthetic/internal/`.
 - `scripts/generate_synthetic_data.py` -- deterministic generator for the
   structured/volume files (fixed seed, fixed dates, no wall-clock reads;
   byte-identical re-runs). Hand-authored documents are left untouched and
