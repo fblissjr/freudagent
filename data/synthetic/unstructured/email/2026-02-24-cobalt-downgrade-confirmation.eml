@@ -1,0 +1,47 @@
+From: Aisha Diallo <aisha.diallo@acme-analytics.example>
+To: Mei Suarez <mei.suarez@cobalt-games.example>
+Cc: Carlos Mendes <carlos.mendes@acme-analytics.example>
+Date: Tue, 24 Feb 2026 17:12:00 +0000
+Subject: Confirming your plan change - scale to growth effective March 1
+Message-ID: <c41b7e08.acme@acme-analytics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hi Mei,
+
+Following our call last Friday, here's the change in writing so we're all
+aligned before it takes effect.
+
+- Your scale subscription ($4,500/mo, 60 seats, annual) ends 2026-02-28.
+- Your growth subscription begins 2026-03-01: $1,200/mo, annual, 24 seats,
+  10M events/mo included.
+- The final scale invoice covers service through the end of February. There
+  is no early-termination fee - given the multi-year relationship, we're
+  transitioning you at the natural period boundary rather than treating this
+  as a break in the annual term.
+
+On the practical side, nothing about your data, dashboards, or exports
+changes. The one difference to keep in mind is the API rate limit at growth
+(300 req/min) - as we discussed, your nightly batch job runs well under
+that, so you shouldn't feel it.
+
+And to put it in writing too: the door is wide open on re-expansion. When
+your next title is in production and volume climbs back toward scale, come
+straight to us and we'll make the step-up seamless - no re-onboarding, no
+friction.
+
+Reply to confirm and I'll get the change processed on our side today.
+
+Warmly,
+
+Aisha Diallo
+Account Executive, Acme Analytics
+
+> From: Mei Suarez <mei.suarez@cobalt-games.example>
+> Date: Mon, 23 Feb 2026 10:26:00 +0000
+> Subject: Re: Plan review follow-up
+>
+> Hi Aisha - thanks again for Friday. Can you send me the change in
+> writing before it goes live? Just want the seat count, price, and the
+> effective date documented so my finance team has it on file. Growth
+> annual, 24 seats, March 1 as we discussed. Thanks, Mei

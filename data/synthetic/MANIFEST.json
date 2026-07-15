@@ -17,6 +17,34 @@
       "records": null
     },
     {
+      "path": "api_specs/openapi-metering-v1.yaml",
+      "format": "yaml",
+      "source_system": "API specifications (OpenAPI)",
+      "bytes": 15031,
+      "records": null
+    },
+    {
+      "path": "documents/contract-order-form-template.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 4025,
+      "records": null
+    },
+    {
+      "path": "documents/design-doc-consumer-decompression.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 6556,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-02-26-churn-review-q1.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2937,
+      "records": null
+    },
+    {
       "path": "documents/meeting-notes/2026-03-02-sprint-planning.md",
       "format": "markdown",
       "source_system": "internal documents",
@@ -56,6 +84,13 @@
       "format": "markdown",
       "source_system": "internal documents",
       "bytes": 2473,
+      "records": null
+    },
+    {
+      "path": "documents/release-notes-2026-h1.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 5100,
       "records": null
     },
     {
@@ -150,6 +185,27 @@
       "records": 40
     },
     {
+      "path": "saas/knowledge_base/pages/admin-api-key-management.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2601,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/alerting-guide.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2559,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/api-error-reference.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 3540,
+      "records": null
+    },
+    {
       "path": "saas/knowledge_base/pages/billing-and-invoicing-faq.md",
       "format": "markdown",
       "source_system": "knowledge-management SaaS (wiki export)",
@@ -171,6 +227,13 @@
       "records": null
     },
     {
+      "path": "saas/knowledge_base/pages/scheduled-report-exports-guide.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2844,
+      "records": null
+    },
+    {
       "path": "saas/knowledge_base/pages/sso-configuration-guide.md",
       "format": "markdown",
       "source_system": "knowledge-management SaaS (wiki export)",
@@ -182,6 +245,13 @@
       "format": "markdown",
       "source_system": "knowledge-management SaaS (wiki export)",
       "bytes": 1690,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/webhook-signing-and-delivery.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2834,
       "records": null
     },
     {
@@ -199,11 +269,25 @@
       "records": 12
     },
     {
+      "path": "saas/status_page/incident_history.json",
+      "format": "json",
+      "source_system": "status-page SaaS export",
+      "bytes": 5098,
+      "records": 4
+    },
+    {
       "path": "saas/tickets/support_tickets.jsonl",
       "format": "jsonl",
       "source_system": "helpdesk (support-ticket SaaS export)",
       "bytes": 57685,
       "records": 60
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-02-20-cobalt-games-downgrade-call.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 3783,
+      "records": null
     },
     {
       "path": "unstructured/call-transcripts/2026-03-19-kestrel-sso-support-call.txt",
@@ -217,6 +301,13 @@
       "format": "text",
       "source_system": "call transcripts",
       "bytes": 3164,
+      "records": null
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-05-07-tidewater-marine-discovery.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 5779,
       "records": null
     },
     {
@@ -234,6 +325,13 @@
       "records": null
     },
     {
+      "path": "unstructured/email/2026-02-24-cobalt-downgrade-confirmation.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1947,
+      "records": null
+    },
+    {
       "path": "unstructured/email/2026-03-11-incident-status-update.eml",
       "format": "email",
       "source_system": "email archive",
@@ -245,6 +343,13 @@
       "format": "email",
       "source_system": "email archive",
       "bytes": 1054,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-05-12-tidewater-proposal.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 2534,
       "records": null
     },
     {

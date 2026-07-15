@@ -1156,6 +1156,8 @@ SOURCE_SYSTEM_BY_DIR = {
     "saas/tickets": "helpdesk (support-ticket SaaS export)",
     "saas/knowledge_base": "knowledge-management SaaS (wiki export)",
     "saas/crm": "CRM SaaS export",
+    "saas/status_page": "status-page SaaS export",
+    "api_specs": "API specifications (OpenAPI)",
     "relational": "relational OLTP database extract (acmedb)",
     "documents": "internal documents",
     "feedback": "human feedback",
