@@ -5,247 +5,144 @@ info:
   description: >-
     Ingestion and reporting API for Acme Analytics, a B2B usage-analytics SaaS.
     Send usage events (singly or batched), then read aggregated usage, reports,
-    and exports. Authentication is a bearer API key. Every response carries a
-    freshness watermark (X-Acme-Freshness) and a correlation id (X-Request-Id).
-  contact:
-    name: Acme Analytics API Support
-    url: https://acme-analytics.example/support
-    email: api-support@acme-analytics.example
-  license:
-    name: Proprietary
-    url: https://acme-analytics.example/terms
+    and exports. Auth is a bearer API key. Every response carries a freshness
+    watermark (X-Acme-Freshness) and a correlation id (X-Request-Id).
+  contact: { name: Acme Analytics API Support, url: 'https://acme-analytics.example/support', email: api-support@acme-analytics.example }
+  license: { name: Proprietary, url: 'https://acme-analytics.example/terms' }
 servers:
-  - url: https://api.acme-analytics.example/v1
-    description: Production
+  - { url: 'https://api.acme-analytics.example/v1', description: Production }
 security:
   - bearerAuth: []
 tags:
-  - name: ingestion
-    description: Write usage events into the metering pipeline.
-  - name: reporting
-    description: Read aggregated usage, reports, and exports.
+  - { name: ingestion, description: Write usage events into the metering pipeline. }
+  - { name: reporting, description: Read aggregated usage, reports, and exports. }
 paths:
   /usage:
     post:
-      tags:
-        - ingestion
+      tags: [ingestion]
       summary: Ingest a single usage event
       description: >-
         Accepts one usage event. Events are deduplicated on
-        (source_id, idempotency_key) within a 48-hour window. Maximum event
+        (source_id, idempotency_key) within a 48-hour window. Max event
         payload size is 32 KB.
       operationId: postUsageEvent
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/UsageEvent'
+            schema: { $ref: '#/components/schemas/UsageEvent' }
       responses:
         '202':
           description: Event accepted and queued for processing.
           headers:
-            X-Acme-Freshness:
-              $ref: '#/components/headers/X-Acme-Freshness'
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
+            X-Acme-Freshness: { $ref: '#/components/headers/X-Acme-Freshness' }
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/IngestAck'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
+              schema: { $ref: '#/components/schemas/IngestAck' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
     get:
-      tags:
-        - reporting
+      tags: [reporting]
       summary: Query aggregated usage
       description: >-
         Returns aggregated usage grouped by day and metric, with optional
         dimension filters. Results are paginated.
       operationId: getUsage
       parameters:
-        - name: metric
-          in: query
-          description: Filter to a single metric name.
-          required: false
-          schema:
-            type: string
-        - name: from
-          in: query
-          description: Inclusive start of the window (RFC3339 date or timestamp).
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          description: Exclusive end of the window (RFC3339 date or timestamp).
-          required: false
-          schema:
-            type: string
-            format: date-time
+        - { name: metric, in: query, description: Filter to a single metric name., schema: { type: string } }
+        - { name: from, in: query, description: 'Inclusive start of the window (RFC3339).', schema: { type: string, format: date-time } }
+        - { name: to, in: query, description: 'Exclusive end of the window (RFC3339).', schema: { type: string, format: date-time } }
         - name: dimension
           in: query
-          description: >-
-            Dimension filter in key:value form, repeatable
-            (for example region:us-east).
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-        - name: per_page
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 100
+          description: 'Dimension filter in key:value form, repeatable (e.g. region:us-east).'
+          schema: { type: array, items: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 1000, default: 100 } }
       responses:
         '200':
           description: Aggregated usage rows.
           headers:
-            X-Acme-Freshness:
-              $ref: '#/components/headers/X-Acme-Freshness'
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
+            X-Acme-Freshness: { $ref: '#/components/headers/X-Acme-Freshness' }
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UsageAggregate'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
+              schema: { type: array, items: { $ref: '#/components/schemas/UsageAggregate' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /usage/batch:
     post:
-      tags:
-        - ingestion
+      tags: [ingestion]
       summary: Ingest a batch of usage events
       description: >-
-        Accepts up to 1000 usage events in a single request. The total request
-        body must not exceed 4 MB; each event must not exceed 32 KB. Requests
-        over the item or size limit are rejected with 413.
+        Accepts up to 1000 usage events per request. The total request body
+        must not exceed 4 MB; each event must not exceed 32 KB. Requests over
+        the item or size limit are rejected with 413.
       operationId: postUsageBatch
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/BatchRequest'
+            schema: { $ref: '#/components/schemas/BatchRequest' }
       responses:
         '202':
           description: Batch accepted and queued for processing.
           headers:
-            X-Acme-Freshness:
-              $ref: '#/components/headers/X-Acme-Freshness'
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
+            X-Acme-Freshness: { $ref: '#/components/headers/X-Acme-Freshness' }
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/IngestAck'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+              schema: { $ref: '#/components/schemas/IngestAck' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '413':
-          description: >-
-            Payload too large: more than 1000 events, or request body over 4 MB.
+          description: 'Payload too large: more than 1000 events, or request body over 4 MB.'
           headers:
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '429':
-          $ref: '#/components/responses/RateLimited'
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /reports:
     get:
-      tags:
-        - reporting
+      tags: [reporting]
       summary: List generated reports
       description: Returns previously generated usage reports, newest first.
       operationId: getReports
       parameters:
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
       responses:
         '200':
           description: A page of reports.
           headers:
-            X-Acme-Freshness:
-              $ref: '#/components/headers/X-Acme-Freshness'
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
+            X-Acme-Freshness: { $ref: '#/components/headers/X-Acme-Freshness' }
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Report'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
+              schema: { type: array, items: { $ref: '#/components/schemas/Report' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /exports:
     get:
-      tags:
-        - reporting
+      tags: [reporting]
       summary: List export jobs
       description: Returns export jobs and their download status, newest first.
       operationId: getExports
       parameters:
-        - name: status
-          in: query
-          required: false
-          schema:
-            type: string
-            enum:
-              - pending
-              - running
-              - completed
-              - failed
+        - { name: status, in: query, schema: { type: string, enum: [pending, running, completed, failed] } }
       responses:
         '200':
           description: A list of export jobs.
           headers:
-            X-Acme-Freshness:
-              $ref: '#/components/headers/X-Acme-Freshness'
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
+            X-Acme-Freshness: { $ref: '#/components/headers/X-Acme-Freshness' }
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Export'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
+              schema: { type: array, items: { $ref: '#/components/schemas/Export' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 components:
   securitySchemes:
     bearerAuth:
@@ -253,261 +150,130 @@ components:
       scheme: bearer
       description: >-
         Provide your Acme Analytics API key as a bearer token in the
-        Authorization header: "Authorization: Bearer <api-key>". The bearer
+        Authorization header ("Authorization: Bearer <api-key>"). The bearer
         token is the API key itself.
   headers:
-    X-Acme-Freshness:
-      description: RFC3339 timestamp watermark for the data returned.
-      schema:
-        type: string
-        format: date-time
-    X-Request-Id:
-      description: Unique correlation id for this request.
-      schema:
-        type: string
-    X-RateLimit-Limit:
-      description: Per-minute request ceiling for the caller's plan.
-      schema:
-        type: integer
-    X-RateLimit-Remaining:
-      description: Requests remaining in the current window.
-      schema:
-        type: integer
-    X-RateLimit-Reset:
-      description: Unix epoch seconds when the current window resets.
-      schema:
-        type: integer
+    X-Acme-Freshness: { description: RFC3339 timestamp watermark for the data returned., schema: { type: string, format: date-time } }
+    X-Request-Id: { description: Unique correlation id for this request., schema: { type: string } }
+    X-RateLimit-Limit: { description: Per-minute request ceiling for the caller's plan., schema: { type: integer } }
+    X-RateLimit-Remaining: { description: Requests remaining in the current window., schema: { type: integer } }
+    X-RateLimit-Reset: { description: Unix epoch seconds when the current window resets., schema: { type: integer } }
   responses:
     BadRequest:
       description: The request was malformed or failed validation.
       headers:
-        X-Request-Id:
-          $ref: '#/components/headers/X-Request-Id'
+        X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
       content:
         application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+          schema: { $ref: '#/components/schemas/Error' }
     Unauthorized:
       description: Missing or invalid API key.
       headers:
-        X-Request-Id:
-          $ref: '#/components/headers/X-Request-Id'
+        X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
       content:
         application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+          schema: { $ref: '#/components/schemas/Error' }
     RateLimited:
       description: >-
         Rate limit exceeded. Per-plan limits: starter 60/min, growth 300/min,
         scale 1200/min.
       headers:
-        X-RateLimit-Limit:
-          $ref: '#/components/headers/X-RateLimit-Limit'
-        X-RateLimit-Remaining:
-          $ref: '#/components/headers/X-RateLimit-Remaining'
-        X-RateLimit-Reset:
-          $ref: '#/components/headers/X-RateLimit-Reset'
-        X-Request-Id:
-          $ref: '#/components/headers/X-Request-Id'
+        X-RateLimit-Limit: { $ref: '#/components/headers/X-RateLimit-Limit' }
+        X-RateLimit-Remaining: { $ref: '#/components/headers/X-RateLimit-Remaining' }
+        X-RateLimit-Reset: { $ref: '#/components/headers/X-RateLimit-Reset' }
+        X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
       content:
         application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+          schema: { $ref: '#/components/schemas/Error' }
   schemas:
     UsageEvent:
       type: object
       description: >-
         A single metered usage event. The serialized event payload must not
         exceed 32 KB. Deduplicated on (source_id, idempotency_key) within 48h.
-      required:
-        - source_id
-        - idempotency_key
-        - metric
-        - value
-        - occurred_at
+      required: [source_id, idempotency_key, metric, value, occurred_at]
       properties:
-        source_id:
-          type: string
-          description: Identifier of the emitting source or account.
-        idempotency_key:
-          type: string
-          description: Caller-supplied dedup key, unique per source within 48h.
-        metric:
-          type: string
-          description: Metric name, for example api_calls or seats_active.
-        value:
-          type: number
-          description: Numeric quantity for the metric.
-        occurred_at:
-          type: string
-          format: date-time
-          description: RFC3339 timestamp when the usage occurred.
+        source_id: { type: string, description: Identifier of the emitting source or account. }
+        idempotency_key: { type: string, description: Caller-supplied dedup key, unique per source within 48h. }
+        metric: { type: string, description: 'Metric name, for example api_calls or seats_active.' }
+        value: { type: number, description: Numeric quantity for the metric. }
+        occurred_at: { type: string, format: date-time, description: RFC3339 timestamp when the usage occurred. }
         dimensions:
           type: object
           description: Free-form string key/value labels for slicing.
-          additionalProperties:
-            type: string
+          additionalProperties: { type: string }
       example:
         source_id: acct_8f2a
         idempotency_key: evt-2026-03-11-0001
         metric: api_calls
         value: 42
         occurred_at: '2026-03-11T14:00:00Z'
-        dimensions:
-          region: us-east
-          plan: growth
+        dimensions: { region: us-east, plan: growth }
     BatchRequest:
       type: object
       description: A batch of usage events, at most 1000 per request.
-      required:
-        - events
+      required: [events]
       properties:
         events:
           type: array
           minItems: 1
           maxItems: 1000
-          items:
-            $ref: '#/components/schemas/UsageEvent'
+          items: { $ref: '#/components/schemas/UsageEvent' }
       example:
         events:
-          - source_id: acct_8f2a
-            idempotency_key: evt-2026-03-11-0001
-            metric: api_calls
-            value: 42
-            occurred_at: '2026-03-11T14:00:00Z'
-            dimensions:
-              region: us-east
-          - source_id: acct_8f2a
-            idempotency_key: evt-2026-03-11-0002
-            metric: seats_active
-            value: 7
-            occurred_at: '2026-03-11T14:01:00Z'
-            dimensions:
-              region: us-east
+          - { source_id: acct_8f2a, idempotency_key: evt-2026-03-11-0001, metric: api_calls, value: 42, occurred_at: '2026-03-11T14:00:00Z', dimensions: { region: us-east } }
+          - { source_id: acct_8f2a, idempotency_key: evt-2026-03-11-0002, metric: seats_active, value: 7, occurred_at: '2026-03-11T14:01:00Z', dimensions: { region: us-east } }
     IngestAck:
       type: object
       description: Acknowledgement that events were accepted for processing.
-      required:
-        - accepted
+      required: [accepted]
       properties:
-        accepted:
-          type: integer
-          description: Number of events accepted into the queue.
-        deduplicated:
-          type: integer
-          description: Number of events dropped as duplicates.
-      example:
-        accepted: 2
-        deduplicated: 0
+        accepted: { type: integer, description: Number of events accepted into the queue. }
+        deduplicated: { type: integer, description: Number of events dropped as duplicates. }
+      example: { accepted: 2, deduplicated: 0 }
     UsageAggregate:
       type: object
       description: One aggregated usage row for a day and metric.
-      required:
-        - day
-        - metric
-        - value
+      required: [day, metric, value]
       properties:
-        day:
-          type: string
-          format: date
-          description: UTC day of the aggregate.
-        metric:
-          type: string
-        value:
-          type: number
-          description: Summed metric value for the day.
-        dimensions:
-          type: object
-          additionalProperties:
-            type: string
-      example:
-        day: '2026-03-11'
-        metric: api_calls
-        value: 10432
-        dimensions:
-          region: us-east
+        day: { type: string, format: date, description: UTC day of the aggregate. }
+        metric: { type: string }
+        value: { type: number, description: Summed metric value for the day. }
+        dimensions: { type: object, additionalProperties: { type: string } }
+      example: { day: '2026-03-11', metric: api_calls, value: 10432, dimensions: { region: us-east } }
     Report:
       type: object
       description: A generated usage report.
-      required:
-        - id
-        - name
-        - created_at
+      required: [id, name, created_at]
       properties:
-        id:
-          type: string
-        name:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        period_start:
-          type: string
-          format: date
-        period_end:
-          type: string
-          format: date
-      example:
-        id: rpt_2026_q1
-        name: Q1 2026 usage summary
-        created_at: '2026-04-01T00:00:00Z'
-        period_start: '2026-01-01'
-        period_end: '2026-03-31'
+        id: { type: string }
+        name: { type: string }
+        created_at: { type: string, format: date-time }
+        period_start: { type: string, format: date }
+        period_end: { type: string, format: date }
+      example: { id: rpt_2026_q1, name: Q1 2026 usage summary, created_at: '2026-04-01T00:00:00Z', period_start: '2026-01-01', period_end: '2026-03-31' }
     Export:
       type: object
       description: An export job producing a downloadable file.
-      required:
-        - id
-        - status
-        - format
+      required: [id, status, format]
       properties:
-        id:
-          type: string
-        status:
-          type: string
-          enum:
-            - pending
-            - running
-            - completed
-            - failed
-        format:
-          type: string
-          enum:
-            - csv
-            - pdf
-            - parquet
-        download_url:
-          type: string
-          format: uri
-        created_at:
-          type: string
-          format: date-time
-      example:
-        id: exp_5c31
-        status: completed
-        format: csv
-        download_url: https://api.acme-analytics.example/v1/exports/exp_5c31/download
-        created_at: '2026-06-10T09:00:00Z'
+        id: { type: string }
+        status: { type: string, enum: [pending, running, completed, failed] }
+        format: { type: string, enum: [csv, pdf, parquet] }
+        download_url: { type: string, format: uri }
+        created_at: { type: string, format: date-time }
+      example: { id: exp_5c31, status: completed, format: csv, download_url: 'https://api.acme-analytics.example/v1/exports/exp_5c31/download', created_at: '2026-06-10T09:00:00Z' }
     Error:
       type: object
       description: Standard error envelope.
-      required:
-        - error
+      required: [error]
       properties:
         error:
           type: object
-          required:
-            - code
-            - message
+          required: [code, message]
           properties:
-            code:
-              type: string
-            message:
-              type: string
-            request_id:
-              type: string
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
       example:
-        error:
-          code: payload_too_large
-          message: Batch exceeds the maximum of 1000 events per request.
-          request_id: req_9a7b3c
+        error: { code: payload_too_large, message: Batch exceeds the maximum of 1000 events per request., request_id: req_9a7b3c }

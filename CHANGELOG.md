@@ -9,7 +9,7 @@ the private warehouse. No schema change.
 
 ### Added
 
-- `data/synthetic/` -- 35 files, ~646 KiB, one coherent scenario (a
+- `data/synthetic/` -- 50 files, ~712 KiB, one coherent scenario (a
   fictional B2B usage-analytics SaaS, 2026-01-05 to 2026-06-30) spanning:
   issue-tracker and helpdesk SaaS exports (JSON/JSONL with comment and
   message threads), CRM CSVs, wiki-style knowledge-base pages (markdown +
@@ -23,7 +23,12 @@ the private warehouse. No schema change.
   usage, events, a postmortem, and NPS -- ground truth for multi-source
   reasoning evals. Planted extraction traps (deprecated limits table,
   split retention tiers) pair with the corrections file. `MANIFEST.json`
-  is the machine-readable inventory.
+  is the machine-readable inventory. The hand-authored layer also covers
+  ten knowledge-base pages, H1-2026 release notes keyed to real tracker
+  issues, an engineering design doc, an order-form/MSA template (whose
+  section 6.3 the invoice-dispute thread invokes), a customer-contraction
+  arc matching the closed subscription rows, a sales-pipeline arc, an
+  OpenAPI 3.1 spec, and a status-page incident-history export.
 - `scripts/generate_synthetic_data.py` -- deterministic generator for the
   structured/volume files (fixed seed, fixed dates, no wall-clock reads;
   byte-identical re-runs). Hand-authored documents are left untouched and

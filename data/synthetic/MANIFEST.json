@@ -13,28 +13,28 @@
       "path": "README.md",
       "format": "markdown",
       "source_system": "corpus metadata",
-      "bytes": 4173,
+      "bytes": 5113,
       "records": null
     },
     {
       "path": "api_specs/openapi-metering-v1.yaml",
       "format": "yaml",
       "source_system": "API specifications (OpenAPI)",
-      "bytes": 15031,
+      "bytes": 12943,
       "records": null
     },
     {
       "path": "documents/contract-order-form-template.md",
       "format": "markdown",
       "source_system": "internal documents",
-      "bytes": 4025,
+      "bytes": 3947,
       "records": null
     },
     {
       "path": "documents/design-doc-consumer-decompression.md",
       "format": "markdown",
       "source_system": "internal documents",
-      "bytes": 6556,
+      "bytes": 6351,
       "records": null
     },
     {
@@ -286,7 +286,7 @@
       "path": "unstructured/call-transcripts/2026-02-20-cobalt-games-downgrade-call.txt",
       "format": "text",
       "source_system": "call transcripts",
-      "bytes": 3783,
+      "bytes": 3456,
       "records": null
     },
     {
@@ -307,7 +307,7 @@
       "path": "unstructured/call-transcripts/2026-05-07-tidewater-marine-discovery.txt",
       "format": "text",
       "source_system": "call transcripts",
-      "bytes": 5779,
+      "bytes": 4496,
       "records": null
     },
     {

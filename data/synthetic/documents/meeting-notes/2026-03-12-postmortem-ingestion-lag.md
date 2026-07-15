@@ -55,7 +55,7 @@ senders in EU/US-overlap hours. The canary fleet saw only small batches.
 |-------|--------|-------|
 | DATA-88 | Move batch decompression off the partition lock; commit offsets after downstream write | elena.sokolova |
 | ACME-247 | Dashboard staleness banner from the freshness watermark | dana.kim |
-| DATA-91* | Canary traffic replay with production batch-size distribution | noah.lindqvist |
+| DATA-95* | Canary traffic replay with production batch-size distribution | noah.lindqvist |
 | BILL* | Tag replayed events `replay=true`, exclude from billable series | marcus.webb |
 
 *Filed after the meeting; keys assigned in the tracker.

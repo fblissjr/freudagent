@@ -23,13 +23,17 @@ saas/
   tickets/                  helpdesk export: support_tickets.jsonl (60 tickets
                             with threaded public replies + internal notes)
   crm/                      CRM export: accounts.csv, opportunities.csv
-  knowledge_base/pages/     wiki-style pages (markdown + YAML frontmatter)
+  knowledge_base/pages/     10 wiki-style pages (markdown + YAML frontmatter)
+  status_page/              status-page SaaS export: incident_history.json
+api_specs/                  OpenAPI 3.1 spec for the fictional metering API
 relational/                 OLTP extract of the fictional `acmedb` billing
                             database: schema.sql (DDL) + customers,
                             subscriptions, invoices, usage_daily CSVs
 documents/                  internal docs: product spec, incident runbook,
-                            CS onboarding guide, retention policy, meeting
-                            notes (incl. the 2026-03-12 postmortem)
+                            CS onboarding guide, retention policy, release
+                            notes, DATA-88 design doc, order-form/MSA
+                            template, meeting notes (incl. the 2026-03-12
+                            postmortem and the Q1 churn review)
 feedback/                   human feedback: csat_survey.csv, nps_comments.jsonl,
                             annotation_corrections.jsonl (typed corrections on
                             simulated agent extractions over this corpus,
@@ -37,8 +41,11 @@ feedback/                   human feedback: csat_survey.csv, nps_comments.jsonl,
 unstructured/
   chat/                     team chat export (JSONL, Slack-like shape)
   logs/                     api-gateway log covering the incident window
-  email/                    .eml messages (RFC 822-ish)
-  call-transcripts/         plain-text call transcripts
+  email/                    .eml messages (RFC 822-ish): incident status,
+                            invoice dispute, beta announcement, downgrade
+                            confirmation, sales proposal
+  call-transcripts/         plain-text call transcripts: QBR, SSO support
+                            call, downgrade call, sales discovery
 events/                     generic JSONL event streams shaped for
                             `freud-schema ingest events` (JsonlEventAdapter:
                             {id, type, timestamp, actor, payload, text})
@@ -62,6 +69,12 @@ cross-source reasoning has ground truth to be evaluated against:
   limits table, and the retention policy splits retention across hot and
   cold tiers -- `feedback/annotation_corrections.jsonl` records the human
   corrections an agent that falls for them should receive.
+- **Secondary arcs**: the Cobalt Games / Halcyon Travel contractions
+  (subscriptions.csv closed rows -> downgrade call, confirmation email,
+  churn-review notes), the Tidewater Marine sales pipeline (discovery
+  transcript -> proposal email; deliberately absent from the CRM, which
+  only holds signed accounts), and the MSA section 6.3 dispute terms that
+  the Sable Financial email and ticket SUP-1063 invoke.
 
 ## Regeneration
 

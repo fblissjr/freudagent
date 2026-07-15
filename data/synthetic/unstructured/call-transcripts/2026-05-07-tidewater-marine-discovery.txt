@@ -5,115 +5,74 @@ Participants: Rosa Kandari (Tidewater Marine, VP Operations Technology),
 Ben Okonkwo (Tidewater Marine, lead platform engineer), Aisha Diallo
 (Acme, AE)
 
-[00:00:35] AISHA DIALLO: Thanks both for making the time. I know Rosa and
-I traded a couple of notes, but Ben, this is our first call - so I'd love
-to just hear how your port-terminal platform meters usage today and where
-it hurts. Then I'll be honest about where we fit and where we don't.
+[00:00:35] AISHA DIALLO: Thanks both. Ben, first call for us, so I'd love
+to hear how your port-terminal platform meters usage today and where it
+hurts - then I'll be honest about where we fit and where we don't.
 
-[00:01:50] ROSA KANDARI: Short version: we bill partners - carriers,
-freight forwarders, terminal operators - off API usage against our
-port-logistics platform. About three years ago we built an in-house
-metering pipeline to count those calls. It worked. But two of the people
-who built it have left, and it undercounts during traffic spikes. Finance
-no longer trusts the numbers we invoice partners with.
+[00:01:50] ROSA KANDARI: We bill partners - carriers, forwarders, terminal
+operators - off API usage. Three years ago we built an in-house metering
+pipeline to count those calls. Two of the people who built it have left, it
+undercounts during traffic spikes, and finance no longer trusts the numbers
+we invoice partners with.
 
-[00:03:22] AISHA DIALLO: That last sentence is the one that matters. When
-finance stops trusting the meter, every invoice becomes a negotiation. Can
-you put rough shape on the undercount - is it dropped events, or
-double-counting you correct for, or you're just not sure?
+[00:04:10] BEN OKONKWO: Mostly dropped events. Under load the collector
+sheds them and nothing catches it. We reconcile monthly against gateway
+logs and we're a few percent light, worse during peak vessel arrivals. So
+we leak revenue, can't prove the number either direction, and my team
+babysits it on-call.
 
-[00:04:10] BEN OKONKWO: Mostly dropped. Under load our collector sheds
-events and nothing catches it. We reconcile monthly against gateway logs
-and we're consistently a few percent light. During peak vessel arrivals it
-can be worse. So we're leaving money on the table and we can't prove the
-number either direction.
+[00:06:30] AISHA DIALLO: That finance-trust part is what matters - an
+untrusted meter turns every invoice into a negotiation. We ingest,
+deduplicate, aggregate into billable usage, and serve it with an audit
+trail. Correctness is asymmetric: if we're unsure we undercount and
+reconcile rather than overbill, because an overcount is a trust incident.
 
-[00:05:44] ROSA KANDARI: And the on-call burden is real. Ben's team babysits
-this thing. That's not what I want senior platform engineers doing.
+[00:08:15] BEN OKONKWO: Batch ingest ceiling per request? And if our
+collector retries on a timeout and sends the same events twice?
 
-[00:06:30] AISHA DIALLO: Understood. Let me frame what we do and then Ben,
-push on the technical parts. We ingest events, deduplicate them, aggregate
-into billable usage, and serve it back with an audit trail. Correctness is
-deliberately asymmetric - if we're ever unsure we undercount and reconcile
-rather than overbill, because an overcount is a trust incident.
+[00:08:40] AISHA DIALLO: A thousand events per batch request. For retries
+you attach an idempotency key per event; we deduplicate on it within a
+48-hour window, so a retry inside two days is a no-op. Past 48 hours a
+repeat counts as new, so keep retries in the window.
 
-[00:08:15] BEN OKONKWO: Okay, technical then. Batch ingest - what's the
-ceiling per request?
+[00:10:40] BEN OKONKWO: And when the delay is on your side - Acme slow or
+mid-incident - do events queue or drop like ours do?
 
-[00:08:28] AISHA DIALLO: A thousand events per batch request. Single-event
-endpoint too, but at your volume you'll batch.
+[00:11:05] AISHA DIALLO: They queue, they don't drop - accepted events are
+durable before we acknowledge. If aggregation lags, dashboards show a
+staleness banner instead of quietly serving old numbers, and the API
+exposes a freshness watermark so you know exactly how current the data is.
 
-[00:09:02] BEN OKONKWO: Dedup. If our collector retries on a timeout and
-sends the same events twice, what happens?
+[00:13:30] ROSA KANDARI: We run critical port infrastructure - are you
+single-region, and what happens if that region has a bad day?
 
-[00:09:20] AISHA DIALLO: You attach an idempotency key per event. We
-deduplicate on that within a 48-hour window, so a retry inside two days is
-a no-op - it won't double-count. Past 48 hours a repeat is treated as new,
-so keep retries inside the window.
+[00:14:12] AISHA DIALLO: Honest answer: single region today, with
+cross-region disaster recovery - replicated storage and a tested restore.
+But a full regional event means downtime, not seamless failover.
+Active-active is roadmap; I won't pretend it's shipped. I can share our last
+DR exercise summary under NDA - honest, rare downtime, not silent loss.
 
-[00:10:40] BEN OKONKWO: And when the delay is on your side? If Acme is slow
-or mid-incident, do events queue or do they get dropped like ours do today?
+[00:17:20] BEN OKONKWO: Migration is my worry - I can't flip partner
+billing onto a new meter overnight and hope.
 
-[00:11:05] AISHA DIALLO: They queue, they don't drop. Accepted events are
-durable before we acknowledge. If our aggregation lags, the dashboards show
-a staleness banner instead of quietly serving old numbers, and the API
-exposes a freshness watermark so your side knows exactly how current the
-data is. You decide what staleness you tolerate.
-
-[00:12:48] BEN OKONKWO: That's the opposite of our current failure mode,
-which is silent. Good.
-
-[00:13:30] ROSA KANDARI: I have to ask the resilience question. We run
-critical port infrastructure. Are you single-region? What happens if your
-region has a bad day?
-
-[00:14:12] AISHA DIALLO: Honest answer: yes, single region today, with
-cross-region disaster recovery - replicated storage and a tested restore
-procedure. But a full regional event means downtime, not seamless failover.
-Active-active is on our roadmap and I won't pretend it's shipped. What I
-will commit to is sharing our last DR exercise summary under NDA so you can
-judge the restore for yourself.
-
-[00:15:50] ROSA KANDARI: I appreciate you not overselling it. Downtime we
-can plan around if it's honest and rare. Silent undercounting we can't.
-
-[00:17:20] BEN OKONKWO: Migration is my worry. I can't flip partner billing
-onto a new meter overnight and hope.
-
-[00:17:48] AISHA DIALLO: Agreed, and we don't ask you to. The pattern we
-recommend is a dual-run: you keep your in-house pipeline live and run ours
-in parallel for a quarter, feeding both. Each period you reconcile totals -
-ours against yours against the gateway logs - until the deltas are boring
-and explainable. Only then do you cut over and retire the old system.
+[00:17:48] AISHA DIALLO: We don't ask you to. The pattern is a dual-run:
+keep your pipeline live and run ours in parallel for a quarter, feeding
+both. Each period you reconcile totals - ours against yours against gateway
+logs - until the deltas are boring and explainable. Only then do you cut
+over and retire the old system.
 
 [00:19:30] ROSA KANDARI: A quarter of dual-run is exactly the proof finance
-would need to trust it.
-
-[00:20:15] AISHA DIALLO: On volume - you said forty to sixty million events
-a month?
-
-[00:20:30] BEN OKONKWO: Forty to sixty, trending up. Spiky around vessel
-schedules.
+would need. On volume we're at forty to sixty million events a month,
+trending up, spiky around vessel schedules.
 
 [00:20:52] AISHA DIALLO: That lands squarely in our scale tier - I'll put
-exact pricing in the proposal rather than quote loosely on the call, but
-scale is the likely fit and it covers the headroom for your spikes.
-
-[00:22:40] ROSA KANDARI: Good. What are next steps?
-
-[00:23:05] AISHA DIALLO: Two things. I'll send a written proposal this week
-- plan, terms, and an onboarding plan built around that dual-run. And I'd
-like to set up a technical deep-dive with one of our platform engineers so
-Ben can go deep on ingest, dedup, and the reconciliation workflow. No sales
-in that room, just engineering.
-
-[00:24:20] BEN OKONKWO: That works. I'll come with the collector's shed
-behavior and our reconciliation queries so we can compare apples to apples.
+exact pricing in the proposal rather than quote loosely, but scale is the
+likely fit with headroom for spikes. Next steps: a written proposal this
+week with an onboarding plan built around the dual-run, plus a technical
+deep-dive with an Acme platform engineer so Ben can go deep on ingest,
+dedup, and reconciliation.
 
 [00:24:55] ROSA KANDARI: Send the proposal and let's find a deep-dive slot.
-Thank you, Aisha - this was straighter than most of these calls.
-
-[00:25:18] AISHA DIALLO: Thank you both. Proposal by end of week, and I'll
-include a couple of deep-dive times.
+Thanks, Aisha - straighter than most of these calls.
 
 [END OF TRANSCRIPT]
