@@ -1,0 +1,67 @@
+month,department,headcount_end_of_month,hires_in_month,terminations_in_month
+2026-01,Customer Experience,18,0,0
+2026-01,Engineering,36,2,0
+2026-01,Executive,1,0,0
+2026-01,Finance,7,1,0
+2026-01,IT,5,0,0
+2026-01,Legal & Compliance,3,0,0
+2026-01,Marketing,8,0,0
+2026-01,People,6,0,0
+2026-01,Product,7,0,0
+2026-01,Sales,17,3,0
+2026-01,Security,4,0,0
+2026-02,Customer Experience,19,1,0
+2026-02,Engineering,37,2,1
+2026-02,Executive,1,0,0
+2026-02,Finance,7,0,0
+2026-02,IT,5,0,0
+2026-02,Legal & Compliance,3,0,0
+2026-02,Marketing,8,0,0
+2026-02,People,6,0,0
+2026-02,Product,7,0,0
+2026-02,Sales,17,0,0
+2026-02,Security,4,0,0
+2026-03,Customer Experience,19,0,0
+2026-03,Engineering,38,1,0
+2026-03,Executive,1,0,0
+2026-03,Finance,7,0,0
+2026-03,IT,5,0,0
+2026-03,Legal & Compliance,3,0,0
+2026-03,Marketing,8,0,0
+2026-03,People,6,0,0
+2026-03,Product,7,0,0
+2026-03,Sales,17,1,1
+2026-03,Security,4,0,0
+2026-04,Customer Experience,19,0,0
+2026-04,Engineering,40,2,0
+2026-04,Executive,1,0,0
+2026-04,Finance,7,0,0
+2026-04,IT,5,0,0
+2026-04,Legal & Compliance,3,0,0
+2026-04,Marketing,8,0,0
+2026-04,People,6,0,0
+2026-04,Product,7,0,0
+2026-04,Sales,17,0,0
+2026-04,Security,4,0,0
+2026-05,Customer Experience,19,0,0
+2026-05,Engineering,41,1,0
+2026-05,Executive,1,0,0
+2026-05,Finance,7,0,0
+2026-05,IT,5,0,0
+2026-05,Legal & Compliance,3,0,0
+2026-05,Marketing,8,0,0
+2026-05,People,6,0,0
+2026-05,Product,7,0,0
+2026-05,Sales,17,0,0
+2026-05,Security,4,0,0
+2026-06,Customer Experience,19,0,0
+2026-06,Engineering,41,0,0
+2026-06,Executive,1,0,0
+2026-06,Finance,7,0,0
+2026-06,IT,5,0,0
+2026-06,Legal & Compliance,3,0,0
+2026-06,Marketing,8,0,0
+2026-06,People,6,0,0
+2026-06,Product,7,0,0
+2026-06,Sales,17,0,0
+2026-06,Security,4,0,0

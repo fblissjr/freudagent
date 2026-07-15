@@ -1,0 +1,552 @@
+{
+  "corpus": "acme-analytics-synthetic",
+  "version": 1,
+  "description": "Fully synthetic public corpus for developing and evaluating the FreudAgent flywheel. Fictional company (Acme Analytics), fictional people, fictional customers; all domains use the reserved .example TLD. Structured files are generated deterministically by scripts/generate_synthetic_data.py; documents are hand-authored and cross-reference generated IDs.",
+  "generator": "scripts/generate_synthetic_data.py",
+  "seed": 20260311,
+  "time_range": [
+    "2026-01-05T09:00:00Z",
+    "2026-06-30T18:00:00Z"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "format": "markdown",
+      "source_system": "corpus metadata",
+      "bytes": 8596,
+      "records": null
+    },
+    {
+      "path": "api_specs/openapi-metering-v1.yaml",
+      "format": "yaml",
+      "source_system": "API specifications (OpenAPI)",
+      "bytes": 12943,
+      "records": null
+    },
+    {
+      "path": "documents/contract-order-form-template.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 3947,
+      "records": null
+    },
+    {
+      "path": "documents/design-doc-consumer-decompression.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 6012,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-02-26-churn-review-q1.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2937,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-03-02-sprint-planning.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 1205,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-03-12-postmortem-ingestion-lag.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2750,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-04-14-qbr-prep-bluewater.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 1471,
+      "records": null
+    },
+    {
+      "path": "documents/onboarding-guide-customer-success.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2066,
+      "records": null
+    },
+    {
+      "path": "documents/policy-data-retention.txt",
+      "format": "text",
+      "source_system": "internal documents",
+      "bytes": 1394,
+      "records": null
+    },
+    {
+      "path": "documents/product-spec-usage-metering.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2473,
+      "records": null
+    },
+    {
+      "path": "documents/release-notes-2026-h1.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 5100,
+      "records": null
+    },
+    {
+      "path": "documents/runbook-incident-response.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2131,
+      "records": null
+    },
+    {
+      "path": "events/admin_audit.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 95643,
+      "records": 360
+    },
+    {
+      "path": "events/badge_access.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 226460,
+      "records": 908
+    },
+    {
+      "path": "events/product_webhooks.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 146077,
+      "records": 647
+    },
+    {
+      "path": "events/security_alerts.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 78262,
+      "records": 249
+    },
+    {
+      "path": "feedback/annotation_corrections.jsonl",
+      "format": "jsonl",
+      "source_system": "human feedback",
+      "bytes": 3672,
+      "records": 8
+    },
+    {
+      "path": "feedback/csat_survey.csv",
+      "format": "csv",
+      "source_system": "human feedback",
+      "bytes": 1328,
+      "records": 15
+    },
+    {
+      "path": "feedback/nps_comments.jsonl",
+      "format": "jsonl",
+      "source_system": "human feedback",
+      "bytes": 9258,
+      "records": 36
+    },
+    {
+      "path": "internal/docs/acceptable-use-policy.txt",
+      "format": "text",
+      "source_system": "internal documents (corporate)",
+      "bytes": 3790,
+      "records": null
+    },
+    {
+      "path": "internal/docs/all-hands-2026-04-24-notes.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 4017,
+      "records": null
+    },
+    {
+      "path": "internal/docs/change-management-policy.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 4341,
+      "records": null
+    },
+    {
+      "path": "internal/docs/expense-policy.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 3782,
+      "records": null
+    },
+    {
+      "path": "internal/docs/new-hire-onboarding-checklist.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 2860,
+      "records": null
+    },
+    {
+      "path": "internal/docs/runbook-laptop-provisioning.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 3640,
+      "records": null
+    },
+    {
+      "path": "internal/docs/soc2-audit-prep-memo.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 4700,
+      "records": null
+    },
+    {
+      "path": "internal/finance/ar_aging_2026-06-30.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 668,
+      "records": 10
+    },
+    {
+      "path": "internal/finance/expense_reports.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 15870,
+      "records": 120
+    },
+    {
+      "path": "internal/finance/gl_monthly.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 4762,
+      "records": 84
+    },
+    {
+      "path": "internal/finance/purchase_orders.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 6739,
+      "records": 41
+    },
+    {
+      "path": "internal/finance/vendors.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 1050,
+      "records": 18
+    },
+    {
+      "path": "internal/hris/employees.csv",
+      "format": "csv",
+      "source_system": "HRIS export",
+      "bytes": 19975,
+      "records": 124
+    },
+    {
+      "path": "internal/hris/headcount_monthly.csv",
+      "format": "csv",
+      "source_system": "HRIS export",
+      "bytes": 1758,
+      "records": 66
+    },
+    {
+      "path": "internal/hris/pto_requests.csv",
+      "format": "csv",
+      "source_system": "HRIS export",
+      "bytes": 12214,
+      "records": 150
+    },
+    {
+      "path": "internal/iam/access_review_2026q2.csv",
+      "format": "csv",
+      "source_system": "identity & access management export",
+      "bytes": 23072,
+      "records": 150
+    },
+    {
+      "path": "internal/iam/app_catalog.csv",
+      "format": "csv",
+      "source_system": "identity & access management export",
+      "bytes": 782,
+      "records": 14
+    },
+    {
+      "path": "internal/itsm/assets.csv",
+      "format": "csv",
+      "source_system": "IT service management export",
+      "bytes": 11401,
+      "records": 138
+    },
+    {
+      "path": "internal/itsm/changes.csv",
+      "format": "csv",
+      "source_system": "IT service management export",
+      "bytes": 10623,
+      "records": 34
+    },
+    {
+      "path": "internal/itsm/it_tickets.jsonl",
+      "format": "jsonl",
+      "source_system": "IT service management export",
+      "bytes": 33517,
+      "records": 84
+    },
+    {
+      "path": "internal/reporting/kpi_quarterly.csv",
+      "format": "csv",
+      "source_system": "BI / executive reporting extracts",
+      "bytes": 660,
+      "records": 14
+    },
+    {
+      "path": "internal/security/phishing_sim_results.csv",
+      "format": "csv",
+      "source_system": "security operations data",
+      "bytes": 21270,
+      "records": 232
+    },
+    {
+      "path": "relational/customers.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 2286,
+      "records": 25
+    },
+    {
+      "path": "relational/invoices.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 11376,
+      "records": 150
+    },
+    {
+      "path": "relational/schema.sql",
+      "format": "sql",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 1682,
+      "records": null
+    },
+    {
+      "path": "relational/subscriptions.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 1277,
+      "records": 27
+    },
+    {
+      "path": "relational/usage_daily.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 69484,
+      "records": 2250
+    },
+    {
+      "path": "saas/crm/accounts.csv",
+      "format": "csv",
+      "source_system": "CRM SaaS export",
+      "bytes": 4175,
+      "records": 25
+    },
+    {
+      "path": "saas/crm/opportunities.csv",
+      "format": "csv",
+      "source_system": "CRM SaaS export",
+      "bytes": 4532,
+      "records": 40
+    },
+    {
+      "path": "saas/knowledge_base/pages/admin-api-key-management.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2601,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/alerting-guide.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2559,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/api-error-reference.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 3540,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/billing-and-invoicing-faq.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1702,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/dashboard-sharing-permissions.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1193,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/metering-api-overview.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1803,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/scheduled-report-exports-guide.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2844,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/sso-configuration-guide.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1528,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/troubleshooting-data-delays.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1690,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/webhook-signing-and-delivery.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 2834,
+      "records": null
+    },
+    {
+      "path": "saas/marketing/web_sessions_weekly.csv",
+      "format": "csv",
+      "source_system": "marketing analytics SaaS export",
+      "bytes": 25219,
+      "records": 542
+    },
+    {
+      "path": "saas/project_mgmt/issues.json",
+      "format": "json",
+      "source_system": "issue tracker (project-management SaaS export)",
+      "bytes": 74980,
+      "records": 76
+    },
+    {
+      "path": "saas/project_mgmt/sprints.json",
+      "format": "json",
+      "source_system": "issue tracker (project-management SaaS export)",
+      "bytes": 2489,
+      "records": 12
+    },
+    {
+      "path": "saas/status_page/incident_history.json",
+      "format": "json",
+      "source_system": "status-page SaaS export",
+      "bytes": 5098,
+      "records": 4
+    },
+    {
+      "path": "saas/tickets/support_tickets.jsonl",
+      "format": "jsonl",
+      "source_system": "helpdesk (support-ticket SaaS export)",
+      "bytes": 57685,
+      "records": 60
+    },
+    {
+      "path": "saas/tickets/ticket_metrics_weekly.csv",
+      "format": "csv",
+      "source_system": "helpdesk (support-ticket SaaS export)",
+      "bytes": 611,
+      "records": 26
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-02-20-cobalt-games-downgrade-call.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 3498,
+      "records": null
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-03-19-kestrel-sso-support-call.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 2119,
+      "records": null
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-04-16-bluewater-qbr.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 3164,
+      "records": null
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-05-07-tidewater-marine-discovery.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 3901,
+      "records": null
+    },
+    {
+      "path": "unstructured/chat/eng-observability.jsonl",
+      "format": "jsonl",
+      "source_system": "team chat export",
+      "bytes": 39007,
+      "records": 258
+    },
+    {
+      "path": "unstructured/email/2026-02-09-scheduled-exports-beta.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1024,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-02-24-cobalt-downgrade-confirmation.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1947,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-03-11-incident-status-update.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1225,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-04-03-sable-invoice-dispute.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1054,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-05-12-tidewater-proposal.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 2534,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-05-21-phishing-awareness.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 2281,
+      "records": null
+    },
+    {
+      "path": "unstructured/logs/api-gateway-2026-03-11.log",
+      "format": "log",
+      "source_system": "application logs",
+      "bytes": 102484,
+      "records": null
+    }
+  ]
+}

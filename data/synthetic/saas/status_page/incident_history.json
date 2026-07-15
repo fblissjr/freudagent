@@ -1,0 +1,138 @@
+{
+  "page": {
+    "name": "Acme Analytics Status",
+    "url": "https://status.acme-analytics.example",
+    "exported_at": "2026-07-01T00:00:00Z"
+  },
+  "incidents": [
+    {
+      "id": "INC-2026-0610",
+      "name": "Webhook delivery delays",
+      "severity": "SEV3",
+      "status": "resolved",
+      "started_at": "2026-06-10T09:14:00Z",
+      "resolved_at": "2026-06-10T10:02:00Z",
+      "components": [
+        "webhooks"
+      ],
+      "postmortem_summary": "A burst of export.completed events produced a delivery queue backlog, delaying webhooks by up to 20 minutes. No events were lost and all deliveries caught up.",
+      "updates": [
+        {
+          "at": "2026-06-10T09:14:00Z",
+          "status": "investigating",
+          "body": "We are investigating delayed webhook deliveries following a spike in event volume."
+        },
+        {
+          "at": "2026-06-10T09:38:00Z",
+          "status": "identified",
+          "body": "Identified a delivery queue backlog after a burst of export.completed events. Deliveries are delayed up to 20 minutes; no events have been lost."
+        },
+        {
+          "at": "2026-06-10T10:02:00Z",
+          "status": "resolved",
+          "body": "The backlog has drained and webhook deliveries have caught up. Resolved."
+        }
+      ]
+    },
+    {
+      "id": "INC-2026-0429",
+      "name": "Elevated login latency",
+      "severity": "SEV3",
+      "status": "resolved",
+      "started_at": "2026-04-29T07:50:00Z",
+      "resolved_at": "2026-04-29T08:35:00Z",
+      "components": [
+        "web app",
+        "auth"
+      ],
+      "postmortem_summary": "A config change misconfigured the auth-provider cache, raising login latency to about 8s at p95. We rolled back the change and latency returned to normal.",
+      "updates": [
+        {
+          "at": "2026-04-29T07:50:00Z",
+          "status": "investigating",
+          "body": "We are investigating reports of slow logins on the web app."
+        },
+        {
+          "at": "2026-04-29T08:07:00Z",
+          "status": "identified",
+          "body": "Identified an auth-provider cache misconfiguration introduced by a recent config change. Login p95 is around 8s. Rolling back."
+        },
+        {
+          "at": "2026-04-29T08:35:00Z",
+          "status": "resolved",
+          "body": "The config change has been rolled back and login latency is back to normal. Resolved."
+        }
+      ]
+    },
+    {
+      "id": "INC-2026-0311",
+      "name": "Ingestion lag and usage API errors",
+      "severity": "SEV2",
+      "status": "resolved",
+      "started_at": "2026-03-11T14:02:00Z",
+      "resolved_at": "2026-03-11T15:47:00Z",
+      "components": [
+        "ingestion",
+        "usage api",
+        "dashboards"
+      ],
+      "postmortem_summary": "A routine deploy of our ingestion consumer introduced a performance regression under large batched payloads; we rolled it back. No customer data was lost.",
+      "updates": [
+        {
+          "at": "2026-03-11T14:15:00Z",
+          "status": "investigating",
+          "body": "We are investigating ingestion delays and elevated errors on the usage API."
+        },
+        {
+          "at": "2026-03-11T14:31:00Z",
+          "status": "identified",
+          "body": "Identified an ingestion delay; dashboards may show stale data and /v1/usage is returning elevated 502s."
+        },
+        {
+          "at": "2026-03-11T15:12:00Z",
+          "status": "identified",
+          "body": "We have identified a recent deploy as the cause and are rolling it back."
+        },
+        {
+          "at": "2026-03-11T15:41:00Z",
+          "status": "monitoring",
+          "body": "The rollback is complete and we are monitoring recovery. Consumer lag is draining."
+        },
+        {
+          "at": "2026-03-11T15:47:00Z",
+          "status": "resolved",
+          "body": "Consumer lag is at zero and error rates are back to normal. Queued events were backfilled with no data loss. Resolved."
+        }
+      ]
+    },
+    {
+      "id": "INC-2026-0122",
+      "name": "Export rendering failures",
+      "severity": "SEV3",
+      "status": "resolved",
+      "started_at": "2026-01-22T18:05:00Z",
+      "resolved_at": "2026-01-22T19:10:00Z",
+      "components": [
+        "exports"
+      ],
+      "postmortem_summary": "A renderer dependency upgrade caused about 30% of PDF and CSV export jobs to fail. We pinned the previous version and re-ran the failed jobs.",
+      "updates": [
+        {
+          "at": "2026-01-22T18:05:00Z",
+          "status": "investigating",
+          "body": "We are investigating failures in PDF and CSV export jobs."
+        },
+        {
+          "at": "2026-01-22T18:32:00Z",
+          "status": "identified",
+          "body": "Identified a renderer dependency upgrade causing roughly 30% of export jobs to fail. Pinning the previous version."
+        },
+        {
+          "at": "2026-01-22T19:10:00Z",
+          "status": "resolved",
+          "body": "The previous renderer version has been pinned and failed export jobs have been re-run. Resolved."
+        }
+      ]
+    }
+  ]
+}

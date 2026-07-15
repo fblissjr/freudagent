@@ -1,0 +1,46 @@
+CALL TRANSCRIPT (auto-generated, lightly cleaned)
+Title: Support call - Kestrel Health SSO rollout planning
+Date: 2026-03-19, 17:00-17:24 UTC
+Participants: Mei Nakagawa (Kestrel Health, identity engineering),
+Sam Osei (Acme, support engineer)
+
+[00:00:22] SAM OSEI: Thanks for hopping on. You're planning the org-wide
+SSO enforcement and wanted to walk the sequence before flipping it.
+
+[00:01:03] MEI NAKAGAWA: Right. We have about nine hundred clinicians and
+staff. SAML works in testing for most users, but we're seeing that
+assertion invalid error for people with big group lists. Compliance won't
+let us trim group memberships, so I need to know where that fix stands
+before we enforce.
+
+[00:02:41] SAM OSEI: Understood. The failing case is when the identity
+provider splits a large groups list across multiple attribute value
+elements - our mapper currently reads only the first chunk. Engineering
+has it reproduced with the redacted assertion you sent, which was
+genuinely helpful.
+
+[00:04:15] MEI NAKAGAWA: Is there a workaround that doesn't mean touching
+group membership itself?
+
+[00:04:32] SAM OSEI: Yes - filter the groups claim at the IdP so the
+assertion only carries the groups you actually map to roles here. That's
+usually five to ten groups, well under the chunking threshold. Membership
+stays untouched; only the claim is filtered.
+
+[00:06:50] MEI NAKAGAWA: That could pass our review since it's
+presentation, not authorization data. If we enforce SSO with that filter
+and the fix ships later, do we have to undo anything?
+
+[00:07:12] SAM OSEI: No. The filter stays valid after the fix; it's also
+just good hygiene. I'd still keep your break-glass admin accounts on
+hardware keys before enforcing - that's our standard recommendation.
+
+[00:12:38] MEI NAKAGAWA: Okay. Plan is: apply the claim filter this week,
+pilot with the cardiology group, enforce org-wide the first week of April
+unless the pilot surprises us.
+
+[00:13:01] SAM OSEI: I'll note the plan on your ticket and keep it open
+until enforcement lands. You'll also get an update there the moment the
+chunking fix ships.
+
+[END OF TRANSCRIPT]

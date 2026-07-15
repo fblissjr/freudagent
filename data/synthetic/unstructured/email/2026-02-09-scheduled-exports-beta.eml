@@ -1,0 +1,29 @@
+From: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+To: beta-customers@acme-analytics.example
+Date: Mon, 9 Feb 2026 15:20:00 +0000
+Subject: Scheduled report exports - private beta opening this month
+Message-ID: <exports-beta-announce@acme-analytics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hi all,
+
+You asked for usage reports that arrive without anyone logging in - the
+private beta for scheduled report exports opens this month for scale and
+enterprise plans.
+
+What's in the beta:
+- Recurrence rules (daily/weekly/monthly, timezone-aware)
+- CSV and parquet output
+- Delivery via time-limited signed URL, with an audit event per delivery
+
+What's not (yet): delivery straight into your object storage bucket, and
+row counts beyond the current export caps. Both are on the list and your
+feedback sets the order.
+
+Reply to this note if you want in and we'll enable the flag on your
+account. Betas are covered by your existing agreement; no SLA on beta
+features.
+
+Ingrid
+Product, Acme Analytics

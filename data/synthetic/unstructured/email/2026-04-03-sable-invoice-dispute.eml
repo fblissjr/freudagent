@@ -1,0 +1,27 @@
+From: Henrik Petrov <henrik.petrov@sable-financial.example>
+To: billing@acme-analytics.example
+Cc: procurement@sable-financial.example
+Date: Fri, 3 Apr 2026 09:38:00 +0000
+Subject: Disputing invoice INV-202603-0063 - overage during your March 11 outage
+Message-ID: <7f31a9c2.sable@sable-financial.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+To whom it may concern,
+
+We are disputing the ingestion overage line on invoice INV-202603-0063
+(March 2026, $12,500 base plus overage).
+
+Our own metering shows March volume within our committed allocation. The
+excess on your side appears the day after your March 11 incident, which
+your status page attributes to recovery processing on your pipeline. We
+should not be billed for events your systems replayed internally.
+
+Per our MSA section 6.3 we are withholding payment on this invoice
+pending resolution. Please confirm receipt and expected timeline. I have
+also opened a ticket via your support portal for tracking.
+
+Regards,
+
+Henrik Petrov
+VP Engineering Operations, Sable Financial

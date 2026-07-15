@@ -1,0 +1,65 @@
+CALL TRANSCRIPT (auto-generated, lightly cleaned)
+Title: Quarterly business review - Bluewater Logistics / Acme Analytics
+Date: 2026-04-16, 15:00-15:52 UTC
+Participants: Jordan Whitfield (Bluewater, ops lead), Sana Iqbal (Bluewater,
+data engineering manager), Carlos Mendes (Acme, CSM), Aisha Diallo (Acme, AE)
+
+[00:00:41] CARLOS MENDES: Thanks both for the time. Agenda: usage review,
+the March incident and what we changed, product updates, and whatever you
+want to put on the table.
+
+[00:03:12] CARLOS MENDES: Usage first. You're running at about ninety
+percent of committed volume, very steady week over week. No overage
+exposure this quarter, and dashboard engagement on your exec views has
+roughly doubled since January.
+
+[00:05:47] JORDAN WHITFIELD: The exec views are the reason the March
+outage stung, honestly. The dashboards froze the same afternoon we had a
+board-adjacent review.
+
+[00:06:15] CARLOS MENDES: Completely fair, and I want to walk through it
+rather than around it. Root cause was a deploy of our ingestion consumer
+that degraded under large batches. We rolled back within the hour, no data
+was lost, and two fixes shipped since: dashboards now show an explicit
+staleness banner instead of silently serving old data, and the consumer
+fix has been in production since late March with clean lag metrics since.
+
+[00:08:02] SANA IQBAL: We noticed the banner actually. It fired for about
+six minutes two weeks ago and then cleared. Better than guessing.
+
+[00:08:20] CARLOS MENDES: That's exactly the intended behavior - it reads
+the same freshness watermark the API exposes.
+
+[00:14:33] SANA IQBAL: On exports - we're pulling daily parquet into our
+lakehouse now. The scheduled exports beta has been solid. What we want
+next is delivery straight to our bucket instead of the signed URL hop.
+
+[00:15:10] AISHA DIALLO: That's on the roadmap and honestly your usage
+pattern is the argument for it. Let me get you into the design partner
+conversation with product.
+
+[00:31:58] JORDAN WHITFIELD: One thing from our infra review board. When
+the incident happened, everything recovered fine, but it did make us ask -
+you're single-region today, right? What happens to our data feed if that
+region has a bad day, not just a bad deploy?
+
+[00:32:41] CARLOS MENDES: Honest answer: yes, we serve from one region
+with cross-region disaster recovery - replicated storage and a tested
+restore procedure, but a regional event would mean downtime, not seamless
+failover. Active-active is a roadmap conversation and I'd rather connect
+you with our product team than hand-wave a date.
+
+[00:33:30] JORDAN WHITFIELD: Appreciate the straight answer. For the
+renewal conversation it would help to see the DR test results.
+
+[00:34:02] CARLOS MENDES: We can share the last DR exercise summary under
+NDA, I'll send it with the follow-ups.
+
+[00:47:19] CARLOS MENDES: Recapping actions. Us: DR exercise summary,
+design-partner intro for bucket delivery, invite for the metering API
+paginated reads. You: list of the three exec views that matter most so we
+can set alert thresholds on their freshness.
+
+[00:48:05] JORDAN WHITFIELD: Works. Good session.
+
+[END OF TRANSCRIPT]

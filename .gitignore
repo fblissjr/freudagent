@@ -7,7 +7,9 @@ __pycache__/
 # etc
 .claude/settings.local.json
 .claude/agent-memory/
-internal/
+# Repo-root internal docs only (anchored): data/synthetic/internal/ is the
+# committed synthetic internal-enterprise data and must NOT match this.
+/internal/
 *.duckdb
 *.duckdb.wal
 coderef/
@@ -219,3 +221,8 @@ __marimo__/
 
 # Local paper/source corpora (registered as dim_source rows; content stays local)
 data/papers/
+
+# NOTE: data/synthetic/ is the PUBLIC synthetic corpus and stays committed
+# (see data/synthetic/README.md). Private data is covered by *.duckdb above
+# and data/papers/ -- do not add real transcript or personal content under
+# data/synthetic/.

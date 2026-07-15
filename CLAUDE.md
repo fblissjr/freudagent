@@ -49,16 +49,28 @@ src/freud_schema/
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Live warehouse incl. ingested personal transcripts (gitignored)
+  synthetic/         - PUBLIC synthetic corpus (committed, all fictional; see its
+                       README): SaaS exports, relational extracts, documents,
+                       human feedback, unstructured streams, and JSONL event
+                       streams shaped for `ingest events` -- dev/eval data for
+                       the flywheel. Volume files regenerate deterministically
+                       via scripts/generate_synthetic_data.py; documents are
+                       hand-authored and cross-reference generated IDs
 tests/
   conftest.py        - Shared fixtures (in-memory DuckDB store)
   test_schema.py     - Corpus, archetypes, harness composition
   test_experiment.py - Schema, store, context assembly, providers, CLI
   test_rlm.py        - RLM provider tests
+  test_synthetic_data.py - Synthetic-corpus guards: generator determinism,
+                       manifest/disk parity, cross-source references, event
+                       streams ingest idempotently
 skill/
   skill.md           - L2: CLI reference, routing table to L3 references
   reference/         - L3: schema, archetypes, hierarchy, flywheel, retrieval thesis, trace-capture, etc.
 scripts/
   trace-hook.sh      - PostToolUse hook for automatic tool_call trace capture
+  generate_synthetic_data.py - Deterministic generator for data/synthetic/
+                       (fixed seed, fixed dates -- byte-identical re-runs)
 docs/
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
   tutorial-rlm-provider.md     - RLM provider tutorial

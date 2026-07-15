@@ -1,0 +1,52 @@
+From: Ravi Chandran <ravi.chandran@acme-analytics.example>
+To: all-hands@acme-analytics.example
+Date: Thu, 21 May 2026 09:15:00 +0000
+Subject: You caught a real one yesterday - thank you
+Message-ID: <phishing-2026-05-20-followup@acme-analytics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hi everyone,
+
+Quick note about yesterday morning. This was not a drill.
+
+What happened: an invoice-themed phishing email landed in a bunch of
+inboxes, dressed up to look like it came from our expense tool. It was
+sent from lanternfell-expense-invoices.example -- a lookalike domain that
+has nothing to do with us. Worth saying plainly: the real Lanternfell
+Expense never emails you from that domain, and it never asks you to sign
+in from a link in an invoice notice.
+
+The good news, and the reason I'm writing: you handled it exactly right.
+At least eight of you reported it within minutes using the report button,
+two also opened Torchstone Desk tickets, and that gave us what we needed to
+block the sender fast. No accounts were compromised. Nothing to clean up.
+That's the system working the way it's supposed to.
+
+Three tells this one had, so you can spot the next one:
+
+- Urgency: "action required," "invoice overdue," a deadline meant to make
+  you click before you think.
+- A lookalike domain: close to a real name but not quite -- always check
+  the full sender address, not just the display name.
+- A sign-in prompt: a link that wants your credentials on a page you didn't
+  navigate to yourself.
+
+What to do when something looks off:
+
+- Use the report button in your mail client. That's the fastest path and it
+  loops us in automatically.
+- Not sure? Ask in #security on Glimmerfen Chat before you click. There is
+  no dumb question here.
+- Reporting is never punished. Ever. We would rather chase ten false alarms
+  than miss one real lure. If you clicked before you reported, tell us
+  anyway -- you're not in trouble, we just want to check.
+
+One heads-up: our next phishing simulation campaign is coming in June.
+February's numbers were 14% clicked and 22% reported, and yesterday shows
+we can do a lot better than that. Let's beat both.
+
+Thanks again for the fast reporting. This is exactly the muscle we want.
+
+Ravi
+Security Engineering, Acme Analytics

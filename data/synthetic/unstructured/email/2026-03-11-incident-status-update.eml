@@ -1,0 +1,30 @@
+From: Acme Analytics Status <status@acme-analytics.example>
+To: subscribers@status.acme-analytics.example
+Date: Wed, 11 Mar 2026 16:05:00 +0000
+Subject: [Resolved] Ingestion delays and usage API errors, 2026-03-11
+Message-ID: <inc-2026-0311-final@acme-analytics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Final update - Resolved
+
+Between 14:02 and 15:47 UTC today, event ingestion ran behind and
+dashboards showed stale data. During the same window, requests to the
+usage API intermittently returned 502 errors (peaking at roughly 18% of
+requests to /v1/usage).
+
+No data was lost. Events received during the incident were queued and
+have been fully processed; dashboards are current as of 15:47 UTC.
+
+Cause: a routine deploy of our ingestion consumer introduced a
+performance regression under large batched payloads. We rolled the
+deploy back, which resolved the incident. A full postmortem is underway
+and follow-up fixes are already scheduled.
+
+If your invoice for March looks inconsistent with your own metering as a
+result of our recovery processing, contact support and reference this
+incident - we will recompute affected months.
+
+We apologize for the disruption.
+
+- Acme Analytics engineering

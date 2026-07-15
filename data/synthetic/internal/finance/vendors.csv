@@ -1,0 +1,19 @@
+vendor_id,vendor_name,category,payment_terms,active
+VEN-001,Nimbostrat Cloud,cloud infrastructure,net-30,true
+VEN-002,Fernwake Software,HRIS,net-45,true
+VEN-003,Torchstone Systems,ITSM,net-45,true
+VEN-004,Quillbrook Financial Software,ERP,due-on-receipt,true
+VEN-005,Lanternfell Inc,expense management,net-45,true
+VEN-006,Saltmarsh Software,CRM,net-30,true
+VEN-007,Harrowgate Talent Systems,ATS,net-45,true
+VEN-008,Nightledger Security,SIEM,net-30,true
+VEN-009,Doorstile Access Systems,badge/physical access,due-on-receipt,true
+VEN-010,Corvid Hardware Supply,IT hardware,net-30,true
+VEN-011,Harbor City Properties,facilities/rent,due-on-receipt,true
+VEN-012,Ironquay Office Services,office services,net-45,true
+VEN-013,Bluecrest Insurance Brokers,insurance,net-30,false
+VEN-014,Ashgrove Audit & Assurance,audit,net-45,true
+VEN-015,Glimmerfen Communications,comms tools,net-30,true
+VEN-016,Stoneferry DevTools,CI/CD,net-30,true
+VEN-017,Bramblehold Networks,VPN/network,net-45,true
+VEN-018,Wrenfield Travel,travel agency,net-30,true

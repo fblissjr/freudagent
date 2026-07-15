@@ -1,0 +1,57 @@
+From: Aisha Diallo <aisha.diallo@acme-analytics.example>
+To: Rosa Kandari <rosa.kandari@tidewater-marine.example>
+Cc: Ben Okonkwo <ben.okonkwo@tidewater-marine.example>, Carlos Mendes <carlos.mendes@acme-analytics.example>
+Date: Tue, 12 May 2026 16:05:00 +0000
+Subject: Acme Analytics proposal - Tidewater Marine usage metering
+Message-ID: <tidewater-proposal-202605@acme-analytics.example>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hi Rosa,
+
+Thank you both again for the discovery call last week - the picture of
+where your in-house meter is undercounting and why finance has stopped
+trusting the partner-billing numbers was exactly what I needed. Here is the
+proposal we discussed.
+
+Plan
+- Scale plan: $4,500/mo, billed annually ($54,000/yr).
+- Includes 75M events/mo, comfortably above your estimated 40-60M with
+  headroom for vessel-schedule spikes.
+- SSO (SAML) included at this tier.
+
+Overage
+- Usage above the 75M included volume is billed as overage.
+- 5% grace threshold: any month that exceeds the included volume by 5% or
+  less incurs no overage charge - so a normal spiky month won't surprise
+  you. Exact per-1M overage rate is on the attached order form.
+
+Onboarding plan (built around the dual-run we talked about)
+- Weeks 1-2: integration. Wire your collector to our batch ingest (up to
+  1,000 events/request) with idempotency keys, validate end to end.
+- Weeks 3-14: dual-run and reconciliation. Your in-house pipeline stays
+  live; we run in parallel and reconcile totals each period - ours against
+  yours against your gateway logs - until the deltas are boring and
+  explainable.
+- Cutover: after one clean reconciled month, we retire the old pipeline and
+  Acme becomes the system of record for partner billing.
+
+I've attached our standard order form and MSA. A couple of things worth
+flagging directly rather than burying: we're single-region today with
+tested cross-region disaster recovery, so a regional event means downtime,
+not seamless failover - I'd rather you have that in writing. Section 6.3 of
+the MSA also covers fee disputes, which given your history with untrusted
+numbers is worth Ben and your finance team reading.
+
+To keep momentum, I'd like to book the technical deep-dive with one of our
+platform engineers so Ben can go deep on ingest, dedup, and the
+reconciliation workflow. I have slots the week of May 19 - reply with what
+works and I'll send an invite.
+
+Looking forward to it.
+
+Best,
+
+Aisha Diallo
+Account Executive, Acme Analytics
+aisha.diallo@acme-analytics.example

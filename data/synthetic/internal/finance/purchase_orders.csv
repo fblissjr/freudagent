@@ -1,0 +1,42 @@
+po_id,vendor_id,description,amount_usd,requested_by,approved_by,created_date,status
+PO-2026-001,VEN-003,Quarterly true-up - Torchstone Systems,9122.88,theo.marchand@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-01-08,paid
+PO-2026-002,VEN-014,Annual subscription - Ashgrove Audit & Assurance,37397.63,theo.marchand@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-01-13,paid
+PO-2026-003,VEN-001,Renewal - Nimbostrat Cloud,84109.10,maya.kaplan@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-01-22,paid
+PO-2026-004,VEN-012,Renewal - Ironquay Office Services,8258.45,diego.fuentes@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-01-22,received
+PO-2026-005,VEN-009,Services engagement - Doorstile Access Systems,17562.25,theo.marchand@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-01-25,received
+PO-2026-006,VEN-017,Services engagement - Bramblehold Networks,12158.33,lena.fischer@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-01-26,received
+PO-2026-007,VEN-014,Quarterly true-up - Ashgrove Audit & Assurance,21366.14,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-01-26,paid
+PO-2026-008,VEN-001,Renewal - Nimbostrat Cloud,40762.36,diego.fuentes@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-01-28,received
+PO-2026-009,VEN-003,Annual subscription - Torchstone Systems,9170.59,maya.kaplan@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-01-29,received
+PO-2026-010,VEN-006,Quarterly true-up - Saltmarsh Software,41574.94,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-02-18,open
+PO-2026-011,VEN-013,Renewal - Bluecrest Insurance Brokers,14807.04,theo.marchand@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-02-19,paid
+PO-2026-012,VEN-015,Quarterly true-up - Glimmerfen Communications,9758.96,diego.fuentes@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-02-22,open
+PO-2026-013,VEN-012,Quarterly true-up - Ironquay Office Services,6694.36,diego.fuentes@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-03-04,received
+PO-2026-014,VEN-014,Services engagement - Ashgrove Audit & Assurance,25855.08,diego.fuentes@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-03-06,received
+PO-2026-015,VEN-006,Services engagement - Saltmarsh Software,19085.81,grace.adeyemi@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-03-06,paid
+PO-2026-016,VEN-004,Annual subscription - Quillbrook Financial Software,18733.66,grace.adeyemi@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-03-08,received
+PO-2026-017,VEN-005,Quarterly true-up - Lanternfell Inc,16957.64,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-03-15,received
+PO-2026-018,VEN-012,Quarterly true-up - Ironquay Office Services,3960.45,omar.haddad@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-03-16,received
+PO-2026-019,VEN-016,Quarterly true-up - Stoneferry DevTools,9323.52,theo.marchand@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-04-02,received
+PO-2026-020,VEN-005,Quarterly true-up - Lanternfell Inc,15628.77,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-04-03,received
+PO-2026-021,VEN-002,Renewal - Fernwake Software,19261.07,lena.fischer@acme-analytics.example,maya.kaplan@acme-analytics.example,2026-04-03,paid
+PO-2026-022,VEN-014,Services engagement - Ashgrove Audit & Assurance,33730.06,theo.marchand@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-04-05,paid
+PO-2026-023,VEN-009,Annual subscription - Doorstile Access Systems,11595.95,theo.marchand@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-04-06,received
+PO-2026-024,VEN-008,Services engagement - Nightledger Security,29411.10,ingrid.bauer@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-04-06,paid
+PO-2026-025,VEN-018,Quarterly true-up - Wrenfield Travel,6055.20,theo.marchand@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-04-18,paid
+PO-2026-026,VEN-001,Quarterly true-up - Nimbostrat Cloud,82119.36,theo.marchand@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-04-23,paid
+PO-2026-027,VEN-015,Services engagement - Glimmerfen Communications,9320.05,theo.marchand@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-05-04,received
+PO-2026-028,VEN-018,Annual subscription - Wrenfield Travel,15848.00,diego.fuentes@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-05-05,open
+PO-2026-029,VEN-011,Quarterly true-up - Harbor City Properties,37226.28,omar.haddad@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-05-08,paid
+PO-2026-030,VEN-009,Renewal - Doorstile Access Systems,13310.50,theo.marchand@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-05-08,received
+PO-2026-031,VEN-008,Renewal - Nightledger Security,23983.72,diego.fuentes@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-05-09,received
+PO-2026-032,VEN-012,Annual subscription - Ironquay Office Services,14250.66,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-05-14,received
+PO-2026-033,VEN-006,Annual subscription - Saltmarsh Software,21225.08,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-05-16,paid
+PO-2026-034,VEN-007,Quarterly true-up - Harrowgate Talent Systems,10221.07,ingrid.bauer@acme-analytics.example,maya.kaplan@acme-analytics.example,2026-05-22,received
+PO-2026-035,VEN-001,Quarterly true-up - Nimbostrat Cloud,82451.40,grace.adeyemi@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-05-22,open
+PO-2026-036,VEN-012,Quarterly true-up - Ironquay Office Services,4158.85,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-06-01,received
+PO-2026-037,VEN-013,Annual subscription - Bluecrest Insurance Brokers,12683.59,ingrid.bauer@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-06-12,open
+PO-2026-038,VEN-018,Renewal - Wrenfield Travel,10463.57,omar.haddad@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-06-14,open
+PO-2026-039,VEN-015,Quarterly true-up - Glimmerfen Communications,6295.59,maya.kaplan@acme-analytics.example,grace.adeyemi@acme-analytics.example,2026-06-14,received
+PO-2026-040,VEN-010,Quarterly true-up - Corvid Hardware Supply,3832.96,ingrid.bauer@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-06-19,open
+PO-2026-041,VEN-010,Laptop refresh + new-hire batch (5x Corvid Book 14),9450.00,lena.fischer@acme-analytics.example,diego.fuentes@acme-analytics.example,2026-04-28,received

@@ -1,0 +1,85 @@
+month,account_code,account_name,account_type,amount_usd,notes
+2026-01,4000,Subscription revenue,revenue,93795.00,
+2026-01,5000,Cloud infrastructure,expense,203376.23,Nimbostrat Cloud
+2026-01,5100,Third-party software,expense,47926.18,
+2026-01,6000,Salaries & wages,expense,1344833.33,
+2026-01,6100,Payroll taxes & benefits,expense,295863.33,
+2026-01,6200,Contractors,expense,18154.28,
+2026-01,6300,Travel & entertainment,expense,1867.12,
+2026-01,6400,Rent & facilities,expense,62000.00,Harbor City Properties
+2026-01,6500,Marketing programs,expense,55831.23,
+2026-01,6600,Recruiting,expense,14965.75,
+2026-01,6700,Insurance,expense,9800.00,Bluecrest Insurance Brokers
+2026-01,6800,Office & equipment,expense,16819.31,
+2026-01,7100,Professional services,expense,6834.24,
+2026-01,7200,Depreciation,expense,14500.00,
+2026-02,4000,Subscription revenue,revenue,93795.00,
+2026-02,5000,Cloud infrastructure,expense,200649.87,Nimbostrat Cloud
+2026-02,5100,Third-party software,expense,43795.90,
+2026-02,6000,Salaries & wages,expense,1379083.33,
+2026-02,6100,Payroll taxes & benefits,expense,303398.33,
+2026-02,6200,Contractors,expense,34627.61,
+2026-02,6300,Travel & entertainment,expense,4522.35,
+2026-02,6400,Rent & facilities,expense,62000.00,Harbor City Properties
+2026-02,6500,Marketing programs,expense,56737.19,
+2026-02,6600,Recruiting,expense,8417.86,
+2026-02,6700,Insurance,expense,9800.00,Bluecrest Insurance Brokers
+2026-02,6800,Office & equipment,expense,7851.50,
+2026-02,7100,Professional services,expense,9201.72,
+2026-02,7200,Depreciation,expense,14500.00,
+2026-03,4000,Subscription revenue,revenue,93795.00,
+2026-03,5000,Cloud infrastructure,expense,213989.94,Nimbostrat Cloud
+2026-03,5100,Third-party software,expense,46432.55,
+2026-03,6000,Salaries & wages,expense,1401750.00,
+2026-03,6100,Payroll taxes & benefits,expense,308385.00,
+2026-03,6200,Contractors,expense,27579.70,
+2026-03,6300,Travel & entertainment,expense,4369.88,
+2026-03,6400,Rent & facilities,expense,62000.00,Harbor City Properties
+2026-03,6500,Marketing programs,expense,47690.95,
+2026-03,6600,Recruiting,expense,20397.54,
+2026-03,6700,Insurance,expense,9800.00,Bluecrest Insurance Brokers
+2026-03,6800,Office & equipment,expense,12240.74,
+2026-03,7100,Professional services,expense,11000.10,
+2026-03,7200,Depreciation,expense,14500.00,
+2026-04,4000,Subscription revenue,revenue,93795.00,
+2026-04,5000,Cloud infrastructure,expense,213230.38,Nimbostrat Cloud
+2026-04,5100,Third-party software,expense,48156.49,
+2026-04,6000,Salaries & wages,expense,1427333.33,
+2026-04,6100,Payroll taxes & benefits,expense,314013.33,
+2026-04,6200,Contractors,expense,24357.09,
+2026-04,6300,Travel & entertainment,expense,2731.38,
+2026-04,6400,Rent & facilities,expense,62000.00,Harbor City Properties
+2026-04,6500,Marketing programs,expense,26605.04,
+2026-04,6600,Recruiting,expense,18887.72,
+2026-04,6700,Insurance,expense,9800.00,Bluecrest Insurance Brokers
+2026-04,6800,Office & equipment,expense,5612.38,
+2026-04,7100,Professional services,expense,36110.80,SOC 2 Type II fieldwork - Ashgrove Audit & Assurance
+2026-04,7200,Depreciation,expense,14500.00,
+2026-05,4000,Subscription revenue,revenue,93795.00,
+2026-05,5000,Cloud infrastructure,expense,189214.97,Nimbostrat Cloud
+2026-05,5100,Third-party software,expense,48812.73,
+2026-05,6000,Salaries & wages,expense,1438000.00,
+2026-05,6100,Payroll taxes & benefits,expense,316360.00,
+2026-05,6200,Contractors,expense,21437.88,
+2026-05,6300,Travel & entertainment,expense,3924.15,
+2026-05,6400,Rent & facilities,expense,62000.00,Harbor City Properties
+2026-05,6500,Marketing programs,expense,40490.11,
+2026-05,6600,Recruiting,expense,20912.56,
+2026-05,6700,Insurance,expense,9800.00,Bluecrest Insurance Brokers
+2026-05,6800,Office & equipment,expense,16478.55,
+2026-05,7100,Professional services,expense,32752.34,SOC 2 Type II fieldwork - Ashgrove Audit & Assurance
+2026-05,7200,Depreciation,expense,14500.00,
+2026-06,4000,Subscription revenue,revenue,93795.00,
+2026-06,5000,Cloud infrastructure,expense,203851.78,Nimbostrat Cloud
+2026-06,5100,Third-party software,expense,46473.20,
+2026-06,6000,Salaries & wages,expense,1438000.00,
+2026-06,6100,Payroll taxes & benefits,expense,316360.00,
+2026-06,6200,Contractors,expense,24204.90,
+2026-06,6300,Travel & entertainment,expense,4068.98,
+2026-06,6400,Rent & facilities,expense,62000.00,Harbor City Properties
+2026-06,6500,Marketing programs,expense,38092.34,
+2026-06,6600,Recruiting,expense,9259.29,
+2026-06,6700,Insurance,expense,9800.00,Bluecrest Insurance Brokers
+2026-06,6800,Office & equipment,expense,12612.19,
+2026-06,7100,Professional services,expense,9962.39,
+2026-06,7200,Depreciation,expense,14500.00,

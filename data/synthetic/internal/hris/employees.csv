@@ -1,0 +1,125 @@
+employee_id,full_name,email,department,team,title,manager_employee_id,location,hire_date,employment_type,status,termination_date,salary_band,base_salary_usd
+EMP-1001,Renata Voss,renata.voss@acme-analytics.example,Executive,executive,CEO,,Harbor City HQ,2022-03-01,full_time,active,,B5,320000
+EMP-1002,Grace Adeyemi,grace.adeyemi@acme-analytics.example,Finance,finance,CFO,EMP-1001,Remote,2022-09-12,full_time,active,,B5,245000
+EMP-1003,Johan Brandt,johan.brandt@acme-analytics.example,Engineering,engineering,VP Engineering,EMP-1001,Remote,2022-06-06,full_time,active,,B5,254000
+EMP-1004,Maya Kaplan,maya.kaplan@acme-analytics.example,People,people,VP People,EMP-1001,Harbor City HQ,2023-01-16,full_time,active,,B5,215000
+EMP-1005,Diego Fuentes,diego.fuentes@acme-analytics.example,IT,it,Head of IT,EMP-1002,Harbor City HQ,2022-11-07,full_time,active,,B5,268000
+EMP-1006,Sylvia Ngata,sylvia.ngata@acme-analytics.example,Legal & Compliance,legal,General Counsel,EMP-1001,Remote,2023-05-22,full_time,active,,B5,259000
+EMP-1007,Ravi Chandran,ravi.chandran@acme-analytics.example,Security,security,Security Engineer,EMP-1005,Harbor City HQ,2024-02-05,full_time,active,,B3,133000
+EMP-1008,Nora Vasquez,nora.vasquez@acme-analytics.example,Customer Experience,customer-experience,VP Customer Experience,EMP-1001,Remote,2023-03-13,full_time,active,,B5,248000
+EMP-1009,Theo Marchand,theo.marchand@acme-analytics.example,Sales,sales,VP Sales,EMP-1001,Remote,2023-08-28,full_time,active,,B5,225000
+EMP-1010,Priya Raghavan,priya.raghavan@acme-analytics.example,Engineering,platform,Engineering Manager,EMP-1003,Remote,2023-04-03,full_time,active,,B4,175000
+EMP-1011,Marcus Webb,marcus.webb@acme-analytics.example,Engineering,platform,Senior Backend Engineer,EMP-1010,Harbor City HQ,2023-10-09,full_time,active,,B4,161000
+EMP-1012,Elena Sokolova,elena.sokolova@acme-analytics.example,Engineering,pipeline,Data Engineer,EMP-1010,Harbor City HQ,2024-01-15,full_time,active,,B3,141000
+EMP-1013,Dana Kim,dana.kim@acme-analytics.example,Engineering,platform,Frontend Engineer,EMP-1010,Harbor City HQ,2024-05-20,full_time,active,,B3,113000
+EMP-1014,Tom Alvarez,tom.alvarez@acme-analytics.example,Engineering,infra,Site Reliability Engineer,EMP-1010,Harbor City HQ,2023-07-17,full_time,active,,B3,139000
+EMP-1015,Yuki Tanaka,yuki.tanaka@acme-analytics.example,Customer Experience,support,Support Lead,EMP-1008,Remote,2023-09-04,full_time,active,,B4,158000
+EMP-1016,Sam Osei,sam.osei@acme-analytics.example,Customer Experience,support,Support Engineer,EMP-1015,Remote,2024-08-12,full_time,active,,B2,106000
+EMP-1017,Ingrid Bauer,ingrid.bauer@acme-analytics.example,Product,product,Product Manager,EMP-1001,Remote,2023-11-27,full_time,active,,B4,182000
+EMP-1018,Carlos Mendes,carlos.mendes@acme-analytics.example,Customer Experience,success,Customer Success Manager,EMP-1008,Harbor City HQ,2024-03-04,full_time,active,,B3,111000
+EMP-1019,Aisha Diallo,aisha.diallo@acme-analytics.example,Sales,sales,Account Executive,EMP-1009,Harbor City HQ,2024-06-10,full_time,active,,B3,138000
+EMP-1020,Noah Lindqvist,noah.lindqvist@acme-analytics.example,Engineering,pipeline,Data Engineer,EMP-1010,Remote,2024-09-23,full_time,active,,B3,107000
+EMP-1021,Fatima al-Rashid,fatima.alrashid@acme-analytics.example,Engineering,platform,QA Engineer,EMP-1010,Remote,2025-01-06,full_time,active,,B2,107000
+EMP-1022,Uma Tremblay,uma.tremblay@acme-analytics.example,Engineering,platform,Senior Backend Engineer,EMP-1010,Remote,2026-01-23,full_time,active,,B4,200000
+EMP-1023,Idris Oyelaran,idris.oyelaran@acme-analytics.example,Engineering,pipeline,Senior Frontend Engineer,EMP-1003,Remote,2024-02-16,full_time,active,,B4,169000
+EMP-1024,Ophelia Jansen,ophelia.jansen@acme-analytics.example,Engineering,pipeline,QA Engineer,EMP-1003,Harbor City HQ,2023-03-16,full_time,terminated,2025-11-12,B2,85000
+EMP-1025,Dahlia Castellano,dahlia.castellano@acme-analytics.example,Engineering,pipeline,Backend Engineer,EMP-1003,Harbor City HQ,2024-11-17,full_time,active,,B3,148000
+EMP-1026,Jasper Ishikawa,jasper.ishikawa@acme-analytics.example,Engineering,pipeline,Senior Frontend Engineer,EMP-1010,Harbor City HQ,2023-06-03,full_time,active,,B4,170000
+EMP-1028,Yusuf Mistry,yusuf.mistry@acme-analytics.example,Engineering,pipeline,Backend Engineer,EMP-1003,Harbor City HQ,2024-07-08,full_time,active,,B3,124000
+EMP-1029,Viktor Lindholm,viktor.lindholm@acme-analytics.example,Engineering,pipeline,Machine Learning Engineer,EMP-1010,Remote,2026-03-01,full_time,active,,B4,194000
+EMP-1030,Omar Haddad,omar.haddad@acme-analytics.example,IT,it,IT Support Specialist,EMP-1005,Harbor City HQ,2024-04-08,full_time,active,,B2,85000
+EMP-1031,Lena Fischer,lena.fischer@acme-analytics.example,IT,it,IT Systems Engineer,EMP-1005,Harbor City HQ,2023-12-11,full_time,active,,B3,136000
+EMP-1032,Wanda Rasmussen,wanda.rasmussen@acme-analytics.example,Engineering,pipeline,Data Engineer,EMP-1010,Remote,2023-07-08,full_time,terminated,2025-11-16,B3,138000
+EMP-1033,Imani Engberg,imani.engberg@acme-analytics.example,Engineering,infra,Machine Learning Engineer,EMP-1010,Harbor City HQ,2025-05-23,full_time,active,,B4,162000
+EMP-1034,Niko Xu,niko.xu@acme-analytics.example,Engineering,infra,Staff Engineer,EMP-1003,Harbor City HQ,2023-07-16,full_time,active,,B4,182000
+EMP-1036,Celeste Zielinski,celeste.zielinski@acme-analytics.example,Engineering,infra,Frontend Engineer,EMP-1010,Remote,2025-08-06,full_time,active,,B3,132000
+EMP-1037,Petra Wilder,petra.wilder@acme-analytics.example,Engineering,infra,Senior Frontend Engineer,EMP-1003,Harbor City HQ,2024-11-07,full_time,active,,B4,168000
+EMP-1038,Liora Larsen,liora.larsen@acme-analytics.example,Engineering,platform,Platform Engineer,EMP-1003,Harbor City HQ,2022-04-07,full_time,active,,B3,114000
+EMP-1039,Wesley Varga,wesley.varga@acme-analytics.example,Engineering,pipeline,Machine Learning Engineer,EMP-1010,Harbor City HQ,2022-08-09,full_time,active,,B4,151000
+EMP-1040,Cedric Ashby,cedric.ashby@acme-analytics.example,Engineering,infra,Senior Backend Engineer,EMP-1003,Harbor City HQ,2023-08-07,full_time,active,,B4,169000
+EMP-1042,Derek Mun,derek.mun@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Remote,2025-08-04,full_time,terminated,2026-03-31,B2,99000
+EMP-1043,Selim Ibsen,selim.ibsen@acme-analytics.example,Engineering,platform,Senior Frontend Engineer,EMP-1003,Harbor City HQ,2023-10-06,full_time,active,,B4,176000
+EMP-1044,Gustavo Grimaldi,gustavo.grimaldi@acme-analytics.example,Engineering,infra,QA Engineer,EMP-1010,Harbor City HQ,2022-12-12,full_time,terminated,2026-02-05,B2,97000
+EMP-1045,Zoe Xu,zoe.xu@acme-analytics.example,Engineering,infra,Backend Engineer,EMP-1003,Remote,2022-11-01,full_time,active,,B3,144000
+EMP-1046,Ulric Kovac,ulric.kovac@acme-analytics.example,Engineering,pipeline,Frontend Engineer,EMP-1010,Harbor City HQ,2025-06-20,full_time,active,,B3,146000
+EMP-1047,Bruno Jovergaard,bruno.jovergaard@acme-analytics.example,Engineering,infra,Frontend Engineer,EMP-1010,Harbor City HQ,2022-06-18,full_time,active,,B3,121000
+EMP-1048,Lorenzo Rourke,lorenzo.rourke@acme-analytics.example,Engineering,pipeline,Data Engineer,EMP-1010,Remote,2025-12-29,full_time,active,,B3,108000
+EMP-1050,Felipe Castellano,felipe.castellano@acme-analytics.example,Engineering,infra,Frontend Engineer,EMP-1003,Harbor City HQ,2024-11-06,full_time,active,,B3,114000
+EMP-1051,Quentin Mistry,quentin.mistry@acme-analytics.example,Engineering,pipeline,Senior Frontend Engineer,EMP-1003,Harbor City HQ,2026-04-09,full_time,active,,B4,203000
+EMP-1052,Rania Ueno,rania.ueno@acme-analytics.example,Engineering,platform,Frontend Engineer,EMP-1003,Harbor City HQ,2026-02-01,full_time,active,,B3,147000
+EMP-1054,Ulric Jovergaard,ulric.jovergaard@acme-analytics.example,Engineering,pipeline,Senior Frontend Engineer,EMP-1003,Harbor City HQ,2025-06-30,full_time,active,,B4,158000
+EMP-1055,Mateo Pereira,mateo.pereira@acme-analytics.example,Engineering,pipeline,Site Reliability Engineer,EMP-1010,Harbor City HQ,2023-02-15,full_time,active,,B3,141000
+EMP-1056,Viktor Gutierrez,viktor.gutierrez@acme-analytics.example,Engineering,platform,Senior Frontend Engineer,EMP-1003,Remote,2024-08-10,full_time,active,,B4,163000
+EMP-1057,Oscar Ishikawa,oscar.ishikawa@acme-analytics.example,Engineering,platform,Backend Engineer,EMP-1010,Harbor City HQ,2022-07-12,full_time,active,,B3,134000
+EMP-1058,Mateo Abara,mateo.abara@acme-analytics.example,Engineering,infra,Site Reliability Engineer,EMP-1003,Harbor City HQ,2025-03-03,full_time,active,,B3,144000
+EMP-1060,Hana Tremblay,hana.tremblay@acme-analytics.example,Engineering,pipeline,Machine Learning Engineer,EMP-1003,Harbor City HQ,2026-04-27,full_time,active,,B4,203000
+EMP-1061,Mateo Ashby,mateo.ashby@acme-analytics.example,Engineering,pipeline,Senior Backend Engineer,EMP-1003,Remote,2025-11-27,full_time,active,,B4,176000
+EMP-1062,Uma Ibsen,uma.ibsen@acme-analytics.example,Engineering,platform,Senior Frontend Engineer,EMP-1010,Remote,2026-01-09,full_time,active,,B4,194000
+EMP-1063,Farah Grimaldi,farah.grimaldi@acme-analytics.example,Engineering,pipeline,Platform Engineer,EMP-1003,Remote,2026-02-07,full_time,active,,B3,143000
+EMP-1064,Ximena Zabel,ximena.zabel@acme-analytics.example,Engineering,platform,Platform Engineer,EMP-1003,Harbor City HQ,2024-08-28,full_time,active,,B3,111000
+EMP-1066,Emilio Nunez,emilio.nunez@acme-analytics.example,Engineering,pipeline,Backend Engineer,EMP-1003,Harbor City HQ,2024-06-30,full_time,active,,B3,142000
+EMP-1067,Rosa Ortega,rosa.ortega@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Remote,2022-04-08,full_time,active,,B2,83000
+EMP-1068,Rosa Nunez,rosa.nunez@acme-analytics.example,Sales,sales,Senior Account Executive,EMP-1009,Harbor City HQ,2025-07-22,full_time,active,,B4,201000
+EMP-1070,Viktor Pereira,viktor.pereira@acme-analytics.example,Sales,sales,Account Executive,EMP-1009,Harbor City HQ,2023-09-09,full_time,active,,B3,133000
+EMP-1071,Imani Sandoval,imani.sandoval@acme-analytics.example,Sales,sales,Sales Engineer,EMP-1009,Remote,2026-01-14,full_time,active,,B3,109000
+EMP-1072,Esme Vasilenko,esme.vasilenko@acme-analytics.example,Sales,sales,Senior Account Executive,EMP-1009,Remote,2023-12-03,full_time,active,,B4,155000
+EMP-1073,Aaron Moreau,aaron.moreau@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Harbor City HQ,2024-10-09,full_time,active,,B2,110000
+EMP-1074,Greta Abara,greta.abara@acme-analytics.example,Sales,sales,Account Executive,EMP-1009,Remote,2026-01-13,full_time,active,,B3,112000
+EMP-1075,Wanda Falk,wanda.falk@acme-analytics.example,Sales,sales,Sales Engineer,EMP-1009,Remote,2024-03-18,full_time,active,,B3,145000
+EMP-1077,Anika Haas,anika.haas@acme-analytics.example,Sales,sales,Senior Account Executive,EMP-1009,Remote,2023-11-10,full_time,active,,B4,192000
+EMP-1078,Idris Jovergaard,idris.jovergaard@acme-analytics.example,Sales,sales,Sales Engineer,EMP-1009,Harbor City HQ,2022-06-11,full_time,active,,B3,136000
+EMP-1079,Zane Novak,zane.novak@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Harbor City HQ,2024-01-18,full_time,active,,B2,90000
+EMP-1080,Tara Kovac,tara.kovac@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Remote,2023-04-19,full_time,active,,B2,106000
+EMP-1081,Ophelia Eberhardt,ophelia.eberhardt@acme-analytics.example,Sales,sales,Senior Account Executive,EMP-1009,Harbor City HQ,2026-03-08,full_time,active,,B4,175000
+EMP-1082,Kai Zabel,kai.zabel@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Remote,2026-01-06,full_time,active,,B2,109000
+EMP-1083,Greta Zielinski,greta.zielinski@acme-analytics.example,Sales,sales,Sales Development Representative,EMP-1009,Harbor City HQ,2022-10-26,full_time,active,,B2,87000
+EMP-1084,Pablo Ortega,pablo.ortega@acme-analytics.example,Customer Experience,support,Senior Support Engineer,EMP-1008,Remote,2023-06-11,full_time,active,,B3,106000
+EMP-1085,Jasper Haas,jasper.haas@acme-analytics.example,Customer Experience,support,Customer Success Manager,EMP-1008,Remote,2025-08-27,full_time,active,,B3,125000
+EMP-1086,Anika Dvorak,anika.dvorak@acme-analytics.example,Customer Experience,support,Senior Support Engineer,EMP-1008,Harbor City HQ,2022-07-09,full_time,active,,B3,139000
+EMP-1087,Kira Thorne,kira.thorne@acme-analytics.example,Customer Experience,success,Support Engineer,EMP-1008,Harbor City HQ,2022-05-05,full_time,active,,B2,109000
+EMP-1088,Kira Nunez,kira.nunez@acme-analytics.example,Customer Experience,support,Customer Success Manager,EMP-1008,Harbor City HQ,2023-12-09,full_time,active,,B3,121000
+EMP-1089,Selim Varga,selim.varga@acme-analytics.example,Customer Experience,support,Onboarding Specialist,EMP-1008,Harbor City HQ,2024-07-24,full_time,active,,B2,95000
+EMP-1092,Rania Eberhardt,rania.eberhardt@acme-analytics.example,Customer Experience,success,Onboarding Specialist,EMP-1008,Harbor City HQ,2024-01-06,full_time,active,,B2,101000
+EMP-1093,Cedric Halloran,cedric.halloran@acme-analytics.example,Customer Experience,success,Senior Support Engineer,EMP-1008,Remote,2024-07-28,full_time,active,,B3,114000
+EMP-1094,Selim Halloran,selim.halloran@acme-analytics.example,Customer Experience,success,Customer Success Manager,EMP-1008,Remote,2023-07-07,full_time,active,,B3,108000
+EMP-1095,Idris Quist,idris.quist@acme-analytics.example,Customer Experience,success,Senior Support Engineer,EMP-1008,Remote,2026-02-01,full_time,active,,B3,121000
+EMP-1096,Zoe Ishikawa,zoe.ishikawa@acme-analytics.example,Customer Experience,support,Senior Support Engineer,EMP-1008,Harbor City HQ,2023-07-08,full_time,active,,B3,142000
+EMP-1097,Thea Derevko,thea.derevko@acme-analytics.example,Customer Experience,success,Onboarding Specialist,EMP-1008,Remote,2025-01-18,full_time,active,,B2,89000
+EMP-1098,Felipe Grimaldi,felipe.grimaldi@acme-analytics.example,Customer Experience,success,Customer Success Manager,EMP-1008,Harbor City HQ,2025-10-22,full_time,active,,B3,132000
+EMP-1100,Juno Wilder,juno.wilder@acme-analytics.example,Customer Experience,success,Customer Success Manager,EMP-1008,Remote,2025-05-04,full_time,active,,B3,137000
+EMP-1101,Cedric Rourke,cedric.rourke@acme-analytics.example,Customer Experience,support,Senior Support Engineer,EMP-1008,Remote,2024-05-11,full_time,active,,B3,106000
+EMP-1102,Viktor Varga,viktor.varga@acme-analytics.example,Product,product,Product Designer,EMP-1017,Harbor City HQ,2023-01-24,full_time,active,,B3,124000
+EMP-1103,Sven Yamada,sven.yamada@acme-analytics.example,Product,product,Product Manager,EMP-1017,Harbor City HQ,2024-04-04,full_time,active,,B4,203000
+EMP-1105,Cedric Moreau,cedric.moreau@acme-analytics.example,Product,product,Senior Product Manager,EMP-1017,Harbor City HQ,2024-03-14,full_time,active,,B4,204000
+EMP-1107,Talia Reyes,talia.reyes@acme-analytics.example,Engineering,pipeline,Data Engineer,EMP-1010,Harbor City HQ,2026-05-11,full_time,active,,B3,128000
+EMP-1108,Mateo Varga,mateo.varga@acme-analytics.example,Product,product,Product Designer,EMP-1017,Harbor City HQ,2022-06-02,full_time,active,,B3,122000
+EMP-1109,Thea Yamada,thea.yamada@acme-analytics.example,Product,product,UX Researcher,EMP-1017,Harbor City HQ,2025-07-26,full_time,active,,B3,147000
+EMP-1110,Lorenzo Ueno,lorenzo.ueno@acme-analytics.example,Product,product,Product Manager,EMP-1017,Harbor City HQ,2025-12-23,full_time,active,,B4,172000
+EMP-1111,Zoe Gutierrez,zoe.gutierrez@acme-analytics.example,Marketing,marketing,Head of Marketing,EMP-1001,Remote,2022-04-24,full_time,active,,B5,256000
+EMP-1112,Bruno Mistry,bruno.mistry@acme-analytics.example,Marketing,marketing,Marketing Coordinator,EMP-1111,Harbor City HQ,2023-08-16,full_time,active,,B1,71000
+EMP-1113,Farah Abara,farah.abara@acme-analytics.example,Marketing,marketing,Demand Generation Specialist,EMP-1111,Harbor City HQ,2022-11-28,full_time,active,,B3,118000
+EMP-1114,Lorenzo Sandoval,lorenzo.sandoval@acme-analytics.example,Marketing,marketing,Product Marketing Manager,EMP-1111,Remote,2024-02-01,full_time,active,,B4,160000
+EMP-1116,Mira Lindholm,mira.lindholm@acme-analytics.example,Marketing,marketing,Product Marketing Manager,EMP-1111,Remote,2024-05-17,full_time,active,,B4,164000
+EMP-1117,Liora Nunez,liora.nunez@acme-analytics.example,Marketing,marketing,Product Marketing Manager,EMP-1111,Harbor City HQ,2024-05-02,full_time,active,,B4,183000
+EMP-1118,Wanda Nunez,wanda.nunez@acme-analytics.example,Marketing,marketing,Product Marketing Manager,EMP-1111,Harbor City HQ,2023-01-19,full_time,active,,B4,184000
+EMP-1119,Dahlia Tremblay,dahlia.tremblay@acme-analytics.example,Marketing,marketing,Marketing Coordinator,EMP-1111,Remote,2023-09-05,full_time,active,,B1,72000
+EMP-1120,Petra Xu,petra.xu@acme-analytics.example,Finance,finance,Accounts Payable Specialist,EMP-1002,Harbor City HQ,2024-12-08,full_time,active,,B1,75000
+EMP-1121,Cedric Dvorak,cedric.dvorak@acme-analytics.example,Finance,finance,Senior Financial Analyst,EMP-1002,Harbor City HQ,2025-09-15,full_time,active,,B4,178000
+EMP-1122,Sven Ashby,sven.ashby@acme-analytics.example,Finance,finance,Financial Analyst,EMP-1002,Harbor City HQ,2023-07-28,full_time,active,,B3,132000
+EMP-1123,Niko Derevko,niko.derevko@acme-analytics.example,Finance,finance,Financial Analyst,EMP-1002,Remote,2026-01-03,full_time,active,,B3,141000
+EMP-1125,Ulric Quist,ulric.quist@acme-analytics.example,Finance,finance,Senior Financial Analyst,EMP-1002,Harbor City HQ,2022-07-12,full_time,active,,B4,171000
+EMP-1126,Hana Engberg,hana.engberg@acme-analytics.example,Finance,finance,Financial Analyst,EMP-1002,Harbor City HQ,2023-07-17,full_time,active,,B3,128000
+EMP-1127,Cedric Thorne,cedric.thorne@acme-analytics.example,People,people,HR Business Partner,EMP-1004,Remote,2025-12-12,full_time,active,,B3,118000
+EMP-1128,Nadine Nunez,nadine.nunez@acme-analytics.example,People,people,Recruiter,EMP-1004,Harbor City HQ,2025-03-26,full_time,active,,B2,102000
+EMP-1129,Kai Wilder,kai.wilder@acme-analytics.example,People,people,HR Business Partner,EMP-1004,Remote,2022-09-24,full_time,active,,B3,119000
+EMP-1130,Niko Ishikawa,niko.ishikawa@acme-analytics.example,People,people,People Operations Specialist,EMP-1004,Remote,2024-08-01,full_time,active,,B2,97000
+EMP-1131,Bruno Yoon,bruno.yoon@acme-analytics.example,People,people,Talent Acquisition Lead,EMP-1004,Remote,2023-12-16,full_time,active,,B3,113000
+EMP-1132,Bruno Bellini,bruno.bellini@acme-analytics.example,IT,it,IT Support Specialist,EMP-1005,Harbor City HQ,2022-04-04,full_time,active,,B2,100000
+EMP-1133,Ximena Jovergaard,ximena.jovergaard@acme-analytics.example,IT,it,IT Support Specialist,EMP-1005,Harbor City HQ,2023-01-04,full_time,terminated,2025-06-10,B2,97000
+EMP-1134,Yara Ishikawa,yara.ishikawa@acme-analytics.example,IT,it,IT Support Specialist,EMP-1005,Harbor City HQ,2025-05-22,full_time,active,,B2,85000
+EMP-1135,Wanda Mistry,wanda.mistry@acme-analytics.example,IT,it,IT Systems Engineer,EMP-1005,Harbor City HQ,2024-04-14,full_time,terminated,2025-08-08,B3,121000
+EMP-1136,Emilio Thorne,emilio.thorne@acme-analytics.example,Legal & Compliance,legal,Corporate Counsel,EMP-1006,Harbor City HQ,2025-06-01,full_time,active,,B4,183000
+EMP-1137,Juno Halloran,juno.halloran@acme-analytics.example,Legal & Compliance,legal,Compliance Analyst,EMP-1006,Harbor City HQ,2023-07-31,full_time,active,,B3,136000
+EMP-1138,Wanda Kovac,wanda.kovac@acme-analytics.example,Security,security,Security Operations Analyst,EMP-1007,Harbor City HQ,2023-03-18,full_time,active,,B3,137000
+EMP-1139,Bianca Tremblay,bianca.tremblay@acme-analytics.example,Security,security,Security Analyst,EMP-1007,Remote,2025-05-10,full_time,active,,B3,128000
+EMP-1140,Nadine Ustinov,nadine.ustinov@acme-analytics.example,Security,security,Security Operations Analyst,EMP-1007,Remote,2023-01-14,full_time,active,,B3,140000

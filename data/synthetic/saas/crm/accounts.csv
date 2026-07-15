@@ -1,0 +1,26 @@
+account_id,account_name,industry,segment,plan,arr_usd,owner_email,primary_contact,primary_contact_email,signup_date
+ACCT-1001,Bluewater Logistics,logistics,enterprise,enterprise,150000,aisha.diallo@acme-analytics.example,Anouk Trask,anouk.trask@bluewater-logistics.example,2023-04-26
+ACCT-1002,Kestrel Health,healthcare,enterprise,enterprise,150000,carlos.mendes@acme-analytics.example,Nadia Nakagawa,nadia.nakagawa@kestrel-health.example,2023-09-10
+ACCT-1003,Orchard Retail Group,retail,mid-market,scale,54000,aisha.diallo@acme-analytics.example,Grace Moreno,grace.moreno@orchard-retail-group.example,2023-06-16
+ACCT-1004,Nimbus Media,media,mid-market,scale,54000,aisha.diallo@acme-analytics.example,Omar Duval,omar.duval@nimbus-media.example,2023-04-12
+ACCT-1005,Ferrostar Manufacturing,manufacturing,enterprise,scale,54000,carlos.mendes@acme-analytics.example,Malik Nakagawa,malik.nakagawa@ferrostar-manufacturing.example,2025-07-30
+ACCT-1006,Pinewood Insurance,insurance,mid-market,scale,54000,carlos.mendes@acme-analytics.example,Grace Nakagawa,grace.nakagawa@pinewood-insurance.example,2025-04-06
+ACCT-1007,Cobalt Games,gaming,smb,growth,14400,aisha.diallo@acme-analytics.example,Mei Suarez,mei.suarez@cobalt-games.example,2024-01-20
+ACCT-1008,Harborview Hospitality,hospitality,mid-market,growth,14400,carlos.mendes@acme-analytics.example,Kenji Kavanagh,kenji.kavanagh@harborview-hospitality.example,2024-03-28
+ACCT-1009,Quill & Sable Publishing,media,smb,growth,14400,carlos.mendes@acme-analytics.example,Wren Njoku,wren.njoku@quill-sable-publishing.example,2024-07-03
+ACCT-1010,Redwood Robotics,manufacturing,smb,growth,14400,aisha.diallo@acme-analytics.example,Ibrahim Petrov,ibrahim.petrov@redwood-robotics.example,2025-10-22
+ACCT-1011,Atlas Freight,logistics,mid-market,scale,54000,aisha.diallo@acme-analytics.example,Tessa Marchetti,tessa.marchetti@atlas-freight.example,2024-09-11
+ACCT-1012,Meridian Energy,energy,enterprise,enterprise,150000,carlos.mendes@acme-analytics.example,Amara Marchetti,amara.marchetti@meridian-energy.example,2023-09-29
+ACCT-1013,Sable Financial,financial-services,enterprise,enterprise,150000,carlos.mendes@acme-analytics.example,Paulo Nakagawa,paulo.nakagawa@sable-financial.example,2023-08-14
+ACCT-1014,Larkspur Biotech,biotech,smb,growth,14400,aisha.diallo@acme-analytics.example,Malik Whitfield,malik.whitfield@larkspur-biotech.example,2024-01-13
+ACCT-1015,Copperline Telecom,telecom,enterprise,scale,54000,carlos.mendes@acme-analytics.example,Ravi Nakagawa,ravi.nakagawa@copperline-telecom.example,2023-04-27
+ACCT-1016,Juniper Foods,food-beverage,mid-market,growth,14400,aisha.diallo@acme-analytics.example,Devon Iversen,devon.iversen@juniper-foods.example,2023-04-05
+ACCT-1017,Vantage Legal,legal,smb,starter,3588,aisha.diallo@acme-analytics.example,Grace Delacroix,grace.delacroix@vantage-legal.example,2023-06-06
+ACCT-1018,Brightwater Utilities,energy,mid-market,scale,54000,aisha.diallo@acme-analytics.example,Malik Holloway,malik.holloway@brightwater-utilities.example,2024-12-12
+ACCT-1019,Stonebridge Construction,construction,smb,starter,3588,aisha.diallo@acme-analytics.example,Devon Duval,devon.duval@stonebridge-construction.example,2023-07-15
+ACCT-1020,Halcyon Travel,travel,smb,growth,14400,aisha.diallo@acme-analytics.example,Nadia Duval,nadia.duval@halcyon-travel.example,2025-02-22
+ACCT-1021,Verdant Agritech,agriculture,smb,starter,3588,carlos.mendes@acme-analytics.example,Malik Castellanos,malik.castellanos@verdant-agritech.example,2025-05-20
+ACCT-1022,Northgate Security,security,mid-market,growth,14400,carlos.mendes@acme-analytics.example,Ravi Duval,ravi.duval@northgate-security.example,2025-07-14
+ACCT-1023,Lumen Cinemas,entertainment,smb,starter,3588,carlos.mendes@acme-analytics.example,Felix Ashworth,felix.ashworth@lumen-cinemas.example,2024-12-13
+ACCT-1024,Cascadia Outfitters,retail,smb,growth,14400,aisha.diallo@acme-analytics.example,Jordan Lindgren,jordan.lindgren@cascadia-outfitters.example,2025-11-04
+ACCT-1025,Ironwood Furniture,manufacturing,smb,starter,3588,carlos.mendes@acme-analytics.example,Devon Ashworth,devon.ashworth@ironwood-furniture.example,2025-06-12

@@ -1,0 +1,70 @@
+CALL TRANSCRIPT (auto-generated, lightly cleaned)
+Title: Plan review - Cobalt Games / Acme Analytics
+Date: 2026-02-20, 16:00-16:38 UTC
+Participants: Mei Suarez (Cobalt Games, head of platform), Aisha Diallo
+(Acme, AE), Carlos Mendes (Acme, CSM)
+
+[00:00:38] AISHA DIALLO: Thanks for the time, Mei. You flagged you wanted to
+talk about the plan before the annual comes up, so let's just talk - no
+agenda beyond that.
+
+[00:01:22] MEI SUAREZ: Appreciate that, and I'll be straight because you've
+both earned it. Our live-service title didn't land - the January content
+launch was meant to be the inflection point and it underperformed badly. So
+the studio downsized. We're about forty percent smaller than in the fall.
+
+[00:02:44] CARLOS MENDES: That's hard, Mei. Genuinely sorry - you all put a
+lot into that launch. Whatever we do here, we do around what you actually
+need, not around a renewal number.
+
+[00:03:31] MEI SUAREZ: Thank you. That's why I wanted to talk early rather
+than let it auto-renew. Our event volume has fallen off a cliff - we were
+provisioned on scale for seventy-five million events a month and we're now
+well under ten. The scale tier just doesn't map to us anymore.
+
+[00:05:40] CARLOS MENDES: That makes sense, and we won't try to talk you
+back into a tier your usage doesn't support - let's right-size it. To put
+numbers down: you're on scale at forty-five hundred a month, sixty seats,
+annual. Growth is twelve hundred and includes ten million events - real
+headroom for where you are. What's the real number of people who'd log in?
+
+[00:07:48] MEI SUAREZ: Realistically twenty-four - the platform team, a few
+producers, and the analytics folks who survived the cut. Nowhere near sixty.
+
+[00:08:30] AISHA DIALLO: Then let's write it as growth annual, twenty-four
+seats, effective March 1. Your scale subscription runs through the end of
+February and we transition clean into March.
+
+[00:09:19] MEI SUAREZ: One practical question. On scale we had a batch job
+pulling aggregates every morning. Does anything change at growth on the API
+side?
+
+[00:10:02] CARLOS MENDES: Mainly the rate limit. Growth is three hundred
+requests per minute where scale gave you more headroom. For an interactive
+app that matters; for a nightly batch job it usually doesn't.
+
+[00:10:51] MEI SUAREZ: Ours is sequential and runs in the small hours -
+nowhere near three hundred a minute, so that's fine. And I don't want the
+team to feel like they're losing the product. They love it. This is a budget
+contraction, not a we're-unhappy one.
+
+[00:14:05] CARLOS MENDES: That comes through, and it's mutual. Forward-
+looking question - what would bring you back up to scale down the road?
+
+[00:15:11] MEI SUAREZ: A new title. We've got something early in production,
+and if it ships and finds an audience the volume comes back and then some.
+Late 2026 at the earliest, and I won't pretend the timeline is firm - but
+it's real. And honestly, thank you both for not making this awkward.
+
+[00:17:19] AISHA DIALLO: That's exactly the kind of runway to keep open. When
+it firms up, come straight to us and we'll make the step-up painless - no
+pressure between now and then.
+
+[00:18:04] CARLOS MENDES: We'd rather earn the next expansion than squeeze
+the current one. I'll send written confirmation this week - scale ends Feb
+28, growth annual starts March 1, twenty-four seats, twelve hundred a month,
+ten million included.
+
+[00:18:47] MEI SUAREZ: Perfect. Send it over and I'll confirm.
+
+[END OF TRANSCRIPT]
