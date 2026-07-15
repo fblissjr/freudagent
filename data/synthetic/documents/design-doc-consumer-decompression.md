@@ -9,20 +9,17 @@
 ## Context
 
 On 2026-03-11 (14:02–15:47 UTC) we ran incident INC-2026-0311 (SEV2). Consumer
-build 2026.3.4, deployed at 08:40 UTC that morning, changed how the usage-events
-consumer handled batched payloads: it decompressed each batch **while holding the
-Kafka partition lock**. Under normal batch sizes this went unnoticed; under large
-batches, decompression held the lock for seconds at a time, and the effect
-compounded on the hot partitions. Partitions 3, 7, and 11 of the usage-events
-topic were starved as lock hold times stacked up; consumer lag peaked at roughly
-41 minutes. Because dashboards read aggregates without any staleness signal at
-the time, they served stale numbers silently, and once upstream latency breached
-the API gateway timeout the gateway returned 502 on up to 18% of `/v1/usage`
-requests. We resolved it by rolling back to build 2026.3.3 (rollback complete
-15:41 UTC; lag back to zero at 15:47 UTC). The next-day backlog replay inflated
-billable counts, mitigated by tagging replayed events `replay=true` and excluding
-them from billing. This doc addresses the root cause: **decompression must not
-run under the partition lock.**
+build 2026.3.4, deployed at 08:40 UTC that morning, decompressed each batched
+payload **while holding the Kafka partition lock**. Under large batches this held
+the lock for seconds, starving the hot partitions — 3, 7, and 11 of the
+usage-events topic — and consumer lag peaked at roughly 41 minutes. Dashboards
+read aggregates with no staleness signal at the time, so they served stale
+numbers silently; once upstream latency breached the API gateway timeout, the
+gateway returned 502 on up to 18% of `/v1/usage` requests. We rolled back to
+build 2026.3.3 (rollback complete 15:41 UTC; lag zero at 15:47 UTC). The next-day
+backlog replay inflated billable counts, mitigated by tagging replayed events
+`replay=true` and excluding them from billing. Root cause: **decompression must
+not run under the partition lock.**
 
 ## Problem statement
 
@@ -36,8 +33,8 @@ large batch cannot starve a partition.
 - Decompression never runs while the partition lock is held; lock hold time is
   bounded and independent of batch payload size.
 - No event loss and no double-commit under load or worker saturation.
-- In-partition ordering guarantees preserved.
-- Verifiable improvement at 3x normal volume before fleet rollout.
+- In-partition ordering preserved; verifiable improvement at 3x volume before
+  fleet rollout.
 
 ## Non-goals
 
@@ -74,11 +71,11 @@ offset. Design parameters:
 | Commit ordering         | strictly in offset order per partition  |
 
 Rationale: 4x partitions gives enough concurrency to keep partitions moving
-while bounding in-flight work. The 64 MB cap is the backpressure knob — once
-in-flight bytes hit it, the consumer stops handing out new work rather than
-growing memory unbounded. Committing offsets **only after the downstream write**
-guarantees at-least-once delivery; with ingest-time dedup on `(source_id,
-idempotency_key)` (DATA-83), effective processing is idempotent.
+while bounding in-flight work. The 64 MB cap is the backpressure knob — at the
+cap the consumer stops handing out new work rather than growing memory unbounded.
+Committing offsets **only after the downstream write** guarantees at-least-once
+delivery; with ingest-time dedup on `(source_id, idempotency_key)` (DATA-83),
+processing is effectively idempotent.
 
 ## Failure modes considered
 
@@ -88,7 +85,7 @@ idempotency_key)` (DATA-83), effective processing is idempotent.
   dropped and no offset is committed ahead of its write.
 - **Poison batch (undecompressable / malformed).** Routed to a dead-letter
   destination with a reason code rather than blocking the partition; the offset
-  advances past it so one bad payload cannot stall a partition. Dead-lettered
+  advances past it so one bad payload cannot stall a partition, and dead-lettered
   batches are counted and alertable.
 - **Ordering within a partition.** Preserved. Workers may finish out of order,
   but offsets commit strictly in offset order per partition, so the committed
@@ -102,8 +99,8 @@ Replayed against a synthetic stream at 3x normal volume:
 | ------------------ | ----------------------- | ----- |
 | p99 commit latency | 2.1s                    | 140ms |
 
-Lock hold time became flat with respect to batch size — the design target. No
-dropped events and no duplicate downstream writes were seen across the run.
+Lock hold time became flat with respect to batch size — the design target — and
+no dropped events or duplicate downstream writes were seen across the run.
 
 ## Rollout plan
 
@@ -118,7 +115,6 @@ dropped events and no duplicate downstream writes were seen across the run.
 
 ## Follow-ups
 
-- Add a dashboard staleness signal so stale aggregates can never again be served
-  silently (tracked as ACME-247).
-- Tune the 64 MB in-flight cap per hardware profile once we have fleet data, and
-  revisit worker-pool sizing if partition count changes materially.
+- Add a dashboard staleness signal so silent staleness can't recur (ACME-247).
+- Tune the 64 MB cap per hardware profile once we have fleet data; revisit
+  worker-pool sizing if partition count changes materially.

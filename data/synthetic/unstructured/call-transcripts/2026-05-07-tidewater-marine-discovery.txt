@@ -1,9 +1,8 @@
 CALL TRANSCRIPT (auto-generated, lightly cleaned)
 Title: Discovery call - Tidewater Marine / Acme Analytics
 Date: 2026-05-07, 14:00-14:55 UTC
-Participants: Rosa Kandari (Tidewater Marine, VP Operations Technology),
-Ben Okonkwo (Tidewater Marine, lead platform engineer), Aisha Diallo
-(Acme, AE)
+Participants: Rosa Kandari (Tidewater, VP Operations Technology), Ben
+Okonkwo (Tidewater, lead platform engineer), Aisha Diallo (Acme, AE)
 
 [00:00:35] AISHA DIALLO: Thanks both. Ben, first call for us, so I'd love
 to hear how your port-terminal platform meters usage today and where it
@@ -11,9 +10,9 @@ hurts - then I'll be honest about where we fit and where we don't.
 
 [00:01:50] ROSA KANDARI: We bill partners - carriers, forwarders, terminal
 operators - off API usage. Three years ago we built an in-house metering
-pipeline to count those calls. Two of the people who built it have left, it
-undercounts during traffic spikes, and finance no longer trusts the numbers
-we invoice partners with.
+pipeline to count those calls. Two of its builders have since left, it
+undercounts during traffic spikes, and finance no longer trusts the
+partner-billing numbers.
 
 [00:04:10] BEN OKONKWO: Mostly dropped events. Under load the collector
 sheds them and nothing catches it. We reconcile monthly against gateway
@@ -49,30 +48,28 @@ single-region, and what happens if that region has a bad day?
 [00:14:12] AISHA DIALLO: Honest answer: single region today, with
 cross-region disaster recovery - replicated storage and a tested restore.
 But a full regional event means downtime, not seamless failover.
-Active-active is roadmap; I won't pretend it's shipped. I can share our last
-DR exercise summary under NDA - honest, rare downtime, not silent loss.
+Active-active is roadmap; I won't pretend it's shipped. I can share the last
+DR exercise summary under NDA - honest, rare downtime beats silent loss.
 
 [00:17:20] BEN OKONKWO: Migration is my worry - I can't flip partner
 billing onto a new meter overnight and hope.
 
 [00:17:48] AISHA DIALLO: We don't ask you to. The pattern is a dual-run:
-keep your pipeline live and run ours in parallel for a quarter, feeding
-both. Each period you reconcile totals - ours against yours against gateway
-logs - until the deltas are boring and explainable. Only then do you cut
-over and retire the old system.
+keep your pipeline live and run ours in parallel for a quarter, reconciling
+totals each period - ours, yours, and the gateway logs - until the deltas
+are boring. Only then do you cut over and retire the old system.
 
 [00:19:30] ROSA KANDARI: A quarter of dual-run is exactly the proof finance
 would need. On volume we're at forty to sixty million events a month,
 trending up, spiky around vessel schedules.
 
-[00:20:52] AISHA DIALLO: That lands squarely in our scale tier - I'll put
-exact pricing in the proposal rather than quote loosely, but scale is the
+[00:20:52] AISHA DIALLO: That lands squarely in our scale tier - exact
+pricing goes in the proposal rather than a loose quote, but scale is the
 likely fit with headroom for spikes. Next steps: a written proposal this
-week with an onboarding plan built around the dual-run, plus a technical
-deep-dive with an Acme platform engineer so Ben can go deep on ingest,
-dedup, and reconciliation.
+week with a dual-run onboarding plan, plus a technical deep-dive with an
+Acme platform engineer on ingest, dedup, and the reconciliation workflow.
 
 [00:24:55] ROSA KANDARI: Send the proposal and let's find a deep-dive slot.
-Thanks, Aisha - straighter than most of these calls.
+Thanks, Aisha - this was straighter than most of these calls.
 
 [END OF TRANSCRIPT]
