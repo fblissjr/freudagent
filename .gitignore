@@ -7,7 +7,9 @@ __pycache__/
 # etc
 .claude/settings.local.json
 .claude/agent-memory/
-internal/
+# Repo-root internal docs only (anchored): data/synthetic/internal/ is the
+# committed synthetic internal-enterprise data and must NOT match this.
+/internal/
 *.duckdb
 *.duckdb.wal
 coderef/

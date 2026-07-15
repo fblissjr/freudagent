@@ -1,0 +1,83 @@
+ACME ANALYTICS -- ACCEPTABLE USE POLICY
+Version 2.1 (approved 2026-02-10)
+Owner: Sylvia Ngata (General Counsel), with Security
+
+1. SCOPE AND PRINCIPLE
+This policy covers all company equipment, accounts, networks, and data, and
+everyone who uses them -- employees, contractors, and vendors. Company
+equipment and accounts are provided for business use. Limited, reasonable
+personal use is permitted so long as it does not interfere with work,
+consume meaningful resources, or violate any part of this policy.
+
+2. AUTHENTICATION
+2.1 Multi-factor authentication (MFA) is required on every account,
+    everywhere it is offered. Provisioning is SSO-first through the app
+    catalog.
+2.2 Administrative and privileged roles must use hardware security keys.
+    Software-only factors are not sufficient for admin access.
+2.3 Never share credentials, MFA codes, or hardware keys. Each person
+    authenticates as themselves.
+
+3. DATA HANDLING
+3.1 No customer data on local disks. Work with customer data only inside
+    approved systems; do not export it to laptops, personal drives, or
+    email.
+3.2 Secrets -- API keys, tokens, passwords, connection strings -- live only
+    in Marrowgate Vault. Never in source code, Glimmerfen Chat, Torchstone
+    Desk tickets, wiki pages, or email. A secret that touches any of those
+    is treated as compromised and rotated.
+3.3 Classify and store records per the Data Retention Policy; do not keep
+    shadow copies.
+
+4. SOFTWARE AND SERVICES
+4.1 No personal cloud storage (personal drives, sync tools) for company
+    data.
+4.2 No unapproved SaaS or software. To adopt a new tool, request it through
+    a Torchstone Desk ticket so IT and Security can review it first.
+    Unapproved tools are shadow IT and are removed when found.
+4.3 Do not disable or evade endpoint security, the VPN, or update
+    mechanisms.
+
+5. NETWORK ACCESS
+5.1 The Bramblehold VPN is required whenever you access company systems from
+    off-network.
+5.2 Do not connect company equipment to untrusted networks without the VPN,
+    and do not bridge company and personal networks.
+
+6. PHISHING AND REPORTING
+6.1 Report suspected phishing using the mail-client report button, or to
+    security@acme-analytics.example, or in the Glimmerfen Chat #security
+    channel.
+6.2 Reporting is never punished, including reporting your own mistake. What
+    is punished is clicking a suspicious link or opening a suspect
+    attachment and then hiding it. Speed of reporting limits damage.
+6.3 Acme runs periodic phishing simulations (campaigns run in February and
+    June 2026). Treat every message as if it could be real; report, do not
+    click.
+
+7. PHYSICAL ACCESS AND BADGES
+7.1 Doorstile badges are personal and non-transferable. Do not lend or
+    borrow a badge.
+7.2 No tailgating: everyone badges in individually. Do not hold secured
+    doors for people you do not know.
+7.3 Visitors are signed in and escorted at all times by their host.
+7.4 Report a lost or stolen badge to IT immediately so it can be
+    deactivated.
+
+8. MONITORING
+Company systems, networks, and accounts are monitored and logged for
+security and operational purposes (including via Nightledger SIEM). Users
+should have no expectation of privacy in company systems. Monitoring is
+proportionate and used for security, compliance, and troubleshooting -- not
+for casual surveillance.
+
+9. ENFORCEMENT
+Violations are handled by People and Legal in proportion to severity, from
+coaching to termination, and may involve law enforcement where laws are
+broken. Good-faith reports of security concerns are protected, not
+penalized.
+
+10. ACKNOWLEDGMENT
+Every employee acknowledges this policy annually in Fernwake People, and
+again on any material revision. Not acknowledging does not exempt anyone
+from the policy.
