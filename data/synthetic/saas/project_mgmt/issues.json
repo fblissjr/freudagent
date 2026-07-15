@@ -1,0 +1,2166 @@
+{
+  "export_kind": "issue_tracker_export",
+  "generated_by": "scripts/generate_synthetic_data.py",
+  "projects": [
+    {
+      "key": "ACME",
+      "name": "Acme Platform"
+    },
+    {
+      "key": "DATA",
+      "name": "Data Pipeline"
+    }
+  ],
+  "issues": [
+    {
+      "key": "DATA-73",
+      "issue_type": "story",
+      "summary": "Schema registry: reject producer schema changes without version bump (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Schema registry: reject producer schema changes without version bump.",
+      "status": "in_progress",
+      "priority": "P1",
+      "assignee": "fatima.alrashid",
+      "reporter": "marcus.webb",
+      "labels": [
+        "ingestion",
+        "governance"
+      ],
+      "sprint": "SPR-2026-01",
+      "story_points": 5,
+      "created": "2026-01-05T11:45:16Z",
+      "updated": "2026-01-06T18:45:16Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-01-09T13:45:16Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-01-13T17:45:16Z",
+          "body": "PR is up, waiting on review from the ingestion owners."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-01-17T23:45:16Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-163",
+      "issue_type": "story",
+      "summary": "Add CSV export to the usage explorer (exports, follow-up)",
+      "description": "Filed against the exports component. Add CSV export to the usage explorer.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "fatima.alrashid",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "exports"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": 1,
+      "created": "2026-01-05T12:57:15Z",
+      "updated": "2026-01-16T16:57:15Z",
+      "resolved": "2026-01-16T16:57:15Z",
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-01-09T18:57:15Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "dana.kim",
+          "created": "2026-01-12T23:57:15Z",
+          "body": "Reproduced on staging with the exports fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-17T03:57:15Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "DATA-89",
+      "issue_type": "story",
+      "summary": "Schema registry: reject producer schema changes without version bump (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Schema registry: reject producer schema changes without version bump.",
+      "status": "backlog",
+      "priority": "P4",
+      "assignee": null,
+      "reporter": "tom.alvarez",
+      "labels": [
+        "ingestion",
+        "governance"
+      ],
+      "sprint": null,
+      "story_points": 1,
+      "created": "2026-01-07T10:50:57Z",
+      "updated": "2026-01-16T12:50:57Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-10T15:50:57Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-01-12T19:50:57Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    },
+    {
+      "key": "ACME-172",
+      "issue_type": "bug",
+      "summary": "SAML assertion with multi-value groups attribute fails to map roles (auth, follow-up)",
+      "description": "Filed against the auth component. SAML assertion with multi-value groups attribute fails to map roles.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "tom.alvarez",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "auth",
+        "sso"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": null,
+      "created": "2026-01-08T14:48:19Z",
+      "updated": "2026-01-23T14:48:19Z",
+      "resolved": "2026-01-23T14:48:19Z",
+      "comments": []
+    },
+    {
+      "key": "DATA-45",
+      "issue_type": "bug",
+      "summary": "Late-arriving events older than 48h dropped without dead-letter record",
+      "description": "Filed against the ingestion component. Late-arriving events older than 48h dropped without dead-letter record.",
+      "status": "backlog",
+      "priority": "P1",
+      "assignee": null,
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "ingestion"
+      ],
+      "sprint": null,
+      "story_points": null,
+      "created": "2026-01-09T08:03:57Z",
+      "updated": "2026-01-27T09:03:57Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-11T12:03:57Z",
+          "body": "Root cause is in the ingestion path: we assume the payload is already normalized, and it is not when the batch API is used."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-13T14:03:57Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-180",
+      "issue_type": "epic",
+      "summary": "Scheduled report exports (Q1-Q2 initiative)",
+      "description": "Customers on scale and enterprise plans want recurring usage reports delivered without logging in. Covers recurrence rules, rendering, delivery via signed URL, and audit events.",
+      "status": "in_progress",
+      "priority": "P2",
+      "assignee": "ingrid.bauer",
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "exports",
+        "initiative"
+      ],
+      "sprint": null,
+      "story_points": null,
+      "created": "2026-01-12T10:04:00Z",
+      "updated": "2026-06-18T15:22:00Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-129",
+      "issue_type": "bug",
+      "summary": "Dashboard tiles render blank when a saved filter references a deleted metric (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Dashboard tiles render blank when a saved filter references a deleted metric.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "dana.kim",
+      "reporter": "marcus.webb",
+      "labels": [
+        "dashboards",
+        "regression"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": null,
+      "created": "2026-01-19T16:32:53Z",
+      "updated": "2026-01-21T17:32:53Z",
+      "resolved": "2026-01-21T17:32:53Z",
+      "comments": []
+    },
+    {
+      "key": "DATA-59",
+      "issue_type": "bug",
+      "summary": "Hourly rollup misses events landing in the final 5 minutes of the hour",
+      "description": "Filed against the aggregation component. Hourly rollup misses events landing in the final 5 minutes of the hour.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "marcus.webb",
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "aggregation"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": null,
+      "created": "2026-01-20T12:29:03Z",
+      "updated": "2026-02-01T14:29:03Z",
+      "resolved": "2026-02-01T14:29:03Z",
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-01-24T18:29:03Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-26T01:29:03Z",
+          "body": "This is blocking Larkspur Biotech -- support thread linked. Raising priority."
+        },
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-01-28T04:29:03Z",
+          "body": "Adding a regression test that pins the old behavior so this cannot silently return."
+        }
+      ]
+    },
+    {
+      "key": "ACME-176",
+      "issue_type": "bug",
+      "summary": "Timezone selector resets to UTC after saving dashboard preferences (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Timezone selector resets to UTC after saving dashboard preferences.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "dana.kim",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "dashboards"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": null,
+      "created": "2026-01-22T15:06:15Z",
+      "updated": "2026-02-05T19:06:15Z",
+      "resolved": "2026-02-05T19:06:15Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-01-25T20:06:15Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-01-26T21:06:15Z",
+          "body": "PR is up, waiting on review from the dashboards owners."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-29T02:06:15Z",
+          "body": "PR is up, waiting on review from the dashboards owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-117",
+      "issue_type": "bug",
+      "summary": "Invoice PDF omits usage overage line items for annual plans",
+      "description": "Filed against the billing component. Invoice PDF omits usage overage line items for annual plans.",
+      "status": "in_review",
+      "priority": "P2",
+      "assignee": "noah.lindqvist",
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "billing"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": null,
+      "created": "2026-01-23T14:03:47Z",
+      "updated": "2026-02-02T17:03:47Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-27T17:03:47Z",
+          "body": "Reproduced on staging with the billing fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-01-29T19:03:47Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "ACME-144",
+      "issue_type": "bug",
+      "summary": "Invoice PDF omits usage overage line items for annual plans (billing, follow-up)",
+      "description": "Filed against the billing component. Invoice PDF omits usage overage line items for annual plans.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "noah.lindqvist",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "billing"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": null,
+      "created": "2026-01-25T09:01:19Z",
+      "updated": "2026-01-28T09:01:19Z",
+      "resolved": "2026-01-28T09:01:19Z",
+      "comments": [
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-01-26T15:01:19Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "ACME-160",
+      "issue_type": "bug",
+      "summary": "Dashboard tiles render blank when a saved filter references a deleted metric (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Dashboard tiles render blank when a saved filter references a deleted metric.",
+      "status": "in_review",
+      "priority": "P4",
+      "assignee": "priya.raghavan",
+      "reporter": "dana.kim",
+      "labels": [
+        "dashboards",
+        "regression"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": null,
+      "created": "2026-01-27T12:26:09Z",
+      "updated": "2026-02-11T12:26:09Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-01-29T17:26:09Z",
+          "body": "Reproduced on staging with the dashboards fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-02-01T00:26:09Z",
+          "body": "PR is up, waiting on review from the dashboards owners."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-02-04T04:26:09Z",
+          "body": "PR is up, waiting on review from the dashboards owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-178",
+      "issue_type": "story",
+      "summary": "Rate-limit headers on all public metering endpoints (api, follow-up)",
+      "description": "Filed against the api component. Rate-limit headers on all public metering endpoints.",
+      "status": "in_progress",
+      "priority": "P4",
+      "assignee": "marcus.webb",
+      "reporter": "dana.kim",
+      "labels": [
+        "metering-api"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": 8,
+      "created": "2026-01-28T14:06:56Z",
+      "updated": "2026-02-08T22:06:56Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-01-30T15:06:56Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-03T16:06:56Z",
+          "body": "This is blocking Harborview Hospitality -- support thread linked. Raising priority."
+        }
+      ]
+    },
+    {
+      "key": "ACME-137",
+      "issue_type": "bug",
+      "summary": "SAML assertion with multi-value groups attribute fails to map roles (auth, follow-up)",
+      "description": "Filed against the auth component. SAML assertion with multi-value groups attribute fails to map roles.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "noah.lindqvist",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "auth",
+        "sso"
+      ],
+      "sprint": "SPR-2026-09",
+      "story_points": null,
+      "created": "2026-01-29T15:19:45Z",
+      "updated": "2026-02-12T16:19:45Z",
+      "resolved": "2026-02-12T16:19:45Z",
+      "comments": [
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-02-01T16:19:45Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-02-02T17:19:45Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "dana.kim",
+          "created": "2026-02-05T21:19:45Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        }
+      ]
+    },
+    {
+      "key": "ACME-166",
+      "issue_type": "story",
+      "summary": "Scheduled report exports: recurrence rules UI (exports, follow-up)",
+      "description": "Filed against the exports component. Scheduled report exports: recurrence rules UI.",
+      "status": "in_review",
+      "priority": "P3",
+      "assignee": "tom.alvarez",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "exports",
+        "epic:ACME-180"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": 2,
+      "created": "2026-01-30T11:10:50Z",
+      "updated": "2026-02-16T12:10:50Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-01-31T18:10:50Z",
+          "body": "Reproduced on staging with the exports fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-02-04T21:10:50Z",
+          "body": "PR is up, waiting on review from the exports owners."
+        }
+      ]
+    },
+    {
+      "key": "DATA-83",
+      "issue_type": "story",
+      "summary": "Deduplicate events on (source_id, idempotency_key) at ingest (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Deduplicate events on (source_id, idempotency_key) at ingest.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "elena.sokolova",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": 8,
+      "created": "2026-01-31T08:56:29Z",
+      "updated": "2026-02-18T15:56:29Z",
+      "resolved": "2026-02-18T15:56:29Z",
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-02-02T09:56:29Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-02-06T12:56:29Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "ACME-136",
+      "issue_type": "story",
+      "summary": "Scheduled report exports: delivery via signed URL (exports, follow-up)",
+      "description": "Filed against the exports component. Scheduled report exports: delivery via signed URL.",
+      "status": "in_review",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "marcus.webb",
+      "labels": [
+        "exports",
+        "epic:ACME-180"
+      ],
+      "sprint": "SPR-2026-09",
+      "story_points": 8,
+      "created": "2026-02-08T16:06:37Z",
+      "updated": "2026-02-19T16:06:37Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-10T23:06:37Z",
+          "body": "This is blocking Larkspur Biotech -- support thread linked. Raising priority."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-15T02:06:37Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "DATA-91",
+      "issue_type": "bug",
+      "summary": "Hourly rollup misses events landing in the final 5 minutes of the hour (aggregation, follow-up)",
+      "description": "Filed against the aggregation component. Hourly rollup misses events landing in the final 5 minutes of the hour.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "fatima.alrashid",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "aggregation"
+      ],
+      "sprint": "SPR-2026-09",
+      "story_points": null,
+      "created": "2026-02-10T10:05:18Z",
+      "updated": "2026-02-22T10:05:18Z",
+      "resolved": "2026-02-22T10:05:18Z",
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-11T16:05:18Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-02-14T19:05:18Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-19T01:05:18Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    },
+    {
+      "key": "DATA-53",
+      "issue_type": "bug",
+      "summary": "Aggregation job double-counts events replayed during compaction",
+      "description": "Filed against the aggregation component. Aggregation job double-counts events replayed during compaction.",
+      "status": "backlog",
+      "priority": "P3",
+      "assignee": null,
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "aggregation"
+      ],
+      "sprint": null,
+      "story_points": null,
+      "created": "2026-02-10T16:22:32Z",
+      "updated": "2026-02-25T21:22:32Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-13T22:22:32Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    },
+    {
+      "key": "DATA-80",
+      "issue_type": "task",
+      "summary": "Backfill tooling: replay events from object storage by date range (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Backfill tooling: replay events from object storage by date range.",
+      "status": "done",
+      "priority": "P1",
+      "assignee": "tom.alvarez",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "ingestion",
+        "tooling"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": 5,
+      "created": "2026-02-15T11:53:45Z",
+      "updated": "2026-03-05T14:53:45Z",
+      "resolved": "2026-03-05T14:53:45Z",
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-02-16T14:53:45Z",
+          "body": "This is blocking Harborview Hospitality -- support thread linked. Raising priority."
+        },
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-02-17T17:53:45Z",
+          "body": "PR is up, waiting on review from the ingestion owners."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-02-20T21:53:45Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-155",
+      "issue_type": "bug",
+      "summary": "Usage explorer date picker off-by-one across DST boundary (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Usage explorer date picker off-by-one across DST boundary.",
+      "status": "in_review",
+      "priority": "P2",
+      "assignee": "tom.alvarez",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "dashboards"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": null,
+      "created": "2026-02-24T12:19:27Z",
+      "updated": "2026-02-25T20:19:27Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "priya.raghavan",
+          "created": "2026-02-25T18:19:27Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-02-28T19:19:27Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-03-05T00:19:27Z",
+          "body": "This is blocking Nimbus Media -- support thread linked. Raising priority."
+        }
+      ]
+    },
+    {
+      "key": "DATA-71",
+      "issue_type": "task",
+      "summary": "Consumer lag dashboards per topic partition (observability, follow-up)",
+      "description": "Filed against the observability component. Consumer lag dashboards per topic partition.",
+      "status": "in_progress",
+      "priority": "P2",
+      "assignee": "fatima.alrashid",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "kafka",
+        "observability"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": 3,
+      "created": "2026-03-02T13:33:57Z",
+      "updated": "2026-03-21T17:33:57Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "DATA-47",
+      "issue_type": "task",
+      "summary": "Backfill tooling: replay events from object storage by date range",
+      "description": "Filed against the ingestion component. Backfill tooling: replay events from object storage by date range.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "priya.raghavan",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "ingestion",
+        "tooling"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": 2,
+      "created": "2026-03-06T12:59:37Z",
+      "updated": "2026-03-18T15:59:37Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-114",
+      "issue_type": "bug",
+      "summary": "Timezone selector resets to UTC after saving dashboard preferences",
+      "description": "Filed against the dashboards component. Timezone selector resets to UTC after saving dashboard preferences.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "noah.lindqvist",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "dashboards"
+      ],
+      "sprint": "SPR-2026-09",
+      "story_points": null,
+      "created": "2026-03-08T17:03:52Z",
+      "updated": "2026-03-21T00:03:52Z",
+      "resolved": "2026-03-21T00:03:52Z",
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-03-10T21:03:52Z",
+          "body": "This is blocking Juniper Foods -- support thread linked. Raising priority."
+        }
+      ]
+    },
+    {
+      "key": "ACME-231",
+      "issue_type": "bug",
+      "summary": "Metering API 5xx spike and stale dashboards during 2026-03-11 ingestion incident",
+      "description": "During INC-2026-0311 the usage consumer group fell 40+ minutes behind, dashboards served stale aggregates, and the metering API returned 502s at the gateway once upstream latency breached the timeout. Tracking the customer-facing symptoms; root cause work is DATA-88.",
+      "status": "done",
+      "priority": "P1",
+      "assignee": "tom.alvarez",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "incident",
+        "metering-api",
+        "dashboards"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": 3,
+      "created": "2026-03-11T14:31:00Z",
+      "updated": "2026-03-13T11:05:00Z",
+      "resolved": "2026-03-13T11:05:00Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-03-11T14:48:00Z",
+          "body": "Gateway 502 rate at 18% for /v1/usage. Consumer lag on usage-events partitions 3, 7, 11 climbing ~90s/min. Declared SEV2, incident channel open."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-03-11T15:20:00Z",
+          "body": "Lag traced to the 08:40 deploy of consumer build 2026.3.4: the new batch decompression path holds the partition lock while decompressing. Rolling back."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-03-11T15:52:00Z",
+          "body": "Rollback complete 15:41, lag drained by 15:47. Keeping this open for the postmortem and the follow-up fix (DATA-88)."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-03-13T11:05:00Z",
+          "body": "Postmortem published (see 2026-03-12 notes). Closing; remediation tracked on DATA-88 and ACME-247."
+        }
+      ]
+    },
+    {
+      "key": "DATA-88",
+      "issue_type": "story",
+      "summary": "Move batch decompression off the consumer partition lock",
+      "description": "Root-cause fix from INC-2026-0311: decompression of batched event payloads must not run under the partition lock. Decompress in a bounded worker pool, commit offsets only after downstream write.",
+      "status": "done",
+      "priority": "P1",
+      "assignee": "elena.sokolova",
+      "reporter": "priya.raghavan",
+      "labels": [
+        "ingestion",
+        "kafka",
+        "incident-followup"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": 5,
+      "created": "2026-03-12T09:15:00Z",
+      "updated": "2026-03-24T16:40:00Z",
+      "resolved": "2026-03-24T16:40:00Z",
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-03-18T13:02:00Z",
+          "body": "Worker pool sized at 4x partitions with a 64MB in-flight cap. Load test shows p99 commit latency down from 2.1s to 140ms at 3x normal volume."
+        },
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-03-24T16:40:00Z",
+          "body": "Shipped in consumer build 2026.3.9. Lag alarms quiet for 72h under production load. Done."
+        }
+      ]
+    },
+    {
+      "key": "DATA-77",
+      "issue_type": "story",
+      "summary": "Partition usage events topic by customer for consumer parallelism (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Partition usage events topic by customer for consumer parallelism.",
+      "status": "in_review",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "kafka",
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-10",
+      "story_points": 5,
+      "created": "2026-03-12T17:16:56Z",
+      "updated": "2026-03-20T18:16:56Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-03-15T21:16:56Z",
+          "body": "Reproduced on staging with the ingestion fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-03-18T04:16:56Z",
+          "body": "PR is up, waiting on review from the ingestion owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-247",
+      "issue_type": "task",
+      "summary": "Serve dashboards with an explicit staleness banner when aggregates lag > 10 min",
+      "description": "Incident follow-up: during ingestion lag, dashboards silently served stale data. Surface a banner with the freshness watermark instead of pretending the data is current.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "dana.kim",
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "dashboards",
+        "incident-followup"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": 3,
+      "created": "2026-03-13T10:20:00Z",
+      "updated": "2026-04-02T12:10:00Z",
+      "resolved": "2026-04-02T12:10:00Z",
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-03-30T11:00:00Z",
+          "body": "Banner reads from the freshness watermark endpoint added in DATA-88. Copy reviewed by support so it matches KB troubleshooting language."
+        }
+      ]
+    },
+    {
+      "key": "ACME-111",
+      "issue_type": "bug",
+      "summary": "SAML assertion with multi-value groups attribute fails to map roles",
+      "description": "Filed against the auth component. SAML assertion with multi-value groups attribute fails to map roles.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "tom.alvarez",
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "auth",
+        "sso"
+      ],
+      "sprint": "SPR-2026-02",
+      "story_points": null,
+      "created": "2026-03-15T16:41:46Z",
+      "updated": "2026-03-23T17:41:46Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-03-18T23:41:46Z",
+          "body": "This is blocking Atlas Freight -- support thread linked. Raising priority."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-03-21T01:41:46Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-03-22T07:41:46Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-143",
+      "issue_type": "story",
+      "summary": "Rate-limit headers on all public metering endpoints (api, follow-up)",
+      "description": "Filed against the api component. Rate-limit headers on all public metering endpoints.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "elena.sokolova",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "metering-api"
+      ],
+      "sprint": "SPR-2026-01",
+      "story_points": 1,
+      "created": "2026-03-19T15:11:06Z",
+      "updated": "2026-03-29T16:11:06Z",
+      "resolved": "2026-03-29T16:11:06Z",
+      "comments": [
+        {
+          "author": "priya.raghavan",
+          "created": "2026-03-23T21:11:06Z",
+          "body": "PR is up, waiting on review from the api owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-112",
+      "issue_type": "task",
+      "summary": "Rotate API gateway TLS certificates",
+      "description": "Filed against the infra component. Rotate API gateway TLS certificates.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "marcus.webb",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "infra"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": 1,
+      "created": "2026-03-22T10:32:45Z",
+      "updated": "2026-04-10T17:32:45Z",
+      "resolved": "2026-04-10T17:32:45Z",
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-03-24T12:32:45Z",
+          "body": "Reproduced on staging with the infra fixture set. Stack trace attached to the run log."
+        }
+      ]
+    },
+    {
+      "key": "DATA-76",
+      "issue_type": "bug",
+      "summary": "Hourly rollup misses events landing in the final 5 minutes of the hour (aggregation, follow-up)",
+      "description": "Filed against the aggregation component. Hourly rollup misses events landing in the final 5 minutes of the hour.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "marcus.webb",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "aggregation"
+      ],
+      "sprint": "SPR-2026-10",
+      "story_points": null,
+      "created": "2026-03-26T17:51:35Z",
+      "updated": "2026-04-05T23:51:35Z",
+      "resolved": "2026-04-05T23:51:35Z",
+      "comments": [
+        {
+          "author": "priya.raghavan",
+          "created": "2026-03-29T19:51:35Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-104",
+      "issue_type": "bug",
+      "summary": "Metering API returns 500 on batch sizes above 1000 events",
+      "description": "Filed against the api component. Metering API returns 500 on batch sizes above 1000 events.",
+      "status": "in_progress",
+      "priority": "P2",
+      "assignee": "marcus.webb",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "metering-api"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": null,
+      "created": "2026-04-01T11:29:56Z",
+      "updated": "2026-04-04T18:29:56Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-04-03T12:29:56Z",
+          "body": "Reproduced on staging with the api fixture set. Stack trace attached to the run log."
+        }
+      ]
+    },
+    {
+      "key": "ACME-123",
+      "issue_type": "task",
+      "summary": "Add alerting runbook links to on-call pager payloads",
+      "description": "Filed against the infra component. Add alerting runbook links to on-call pager payloads.",
+      "status": "todo",
+      "priority": "P3",
+      "assignee": "elena.sokolova",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "infra",
+        "oncall"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": 3,
+      "created": "2026-04-04T11:30:31Z",
+      "updated": "2026-04-09T19:30:31Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-04-05T16:30:31Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        }
+      ]
+    },
+    {
+      "key": "ACME-106",
+      "issue_type": "story",
+      "summary": "Add CSV export to the usage explorer",
+      "description": "Filed against the exports component. Add CSV export to the usage explorer.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "exports"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": 1,
+      "created": "2026-04-04T16:06:00Z",
+      "updated": "2026-04-11T21:06:00Z",
+      "resolved": "2026-04-11T21:06:00Z",
+      "comments": [
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-04-05T19:06:00Z",
+          "body": "Adding a regression test that pins the old behavior so this cannot silently return."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-04-07T22:06:00Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-04-12T01:06:00Z",
+          "body": "Reproduced on staging with the exports fixture set. Stack trace attached to the run log."
+        }
+      ]
+    },
+    {
+      "key": "ACME-146",
+      "issue_type": "task",
+      "summary": "Upgrade dashboard charting library to v9 (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Upgrade dashboard charting library to v9.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "elena.sokolova",
+      "reporter": "marcus.webb",
+      "labels": [
+        "dashboards",
+        "tech-debt"
+      ],
+      "sprint": "SPR-2026-09",
+      "story_points": 8,
+      "created": "2026-04-05T10:40:03Z",
+      "updated": "2026-04-07T14:40:03Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-04-09T13:40:03Z",
+          "body": "Root cause is in the dashboards path: we assume the payload is already normalized, and it is not when the batch API is used."
+        }
+      ]
+    },
+    {
+      "key": "ACME-116",
+      "issue_type": "story",
+      "summary": "Rate-limit headers on all public metering endpoints",
+      "description": "Filed against the api component. Rate-limit headers on all public metering endpoints.",
+      "status": "todo",
+      "priority": "P2",
+      "assignee": "dana.kim",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "metering-api"
+      ],
+      "sprint": "SPR-2026-02",
+      "story_points": 8,
+      "created": "2026-04-07T14:08:16Z",
+      "updated": "2026-04-16T20:08:16Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-135",
+      "issue_type": "story",
+      "summary": "Scheduled report exports: recurrence rules UI (exports, follow-up)",
+      "description": "Filed against the exports component. Scheduled report exports: recurrence rules UI.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "marcus.webb",
+      "reporter": "dana.kim",
+      "labels": [
+        "exports",
+        "epic:ACME-180"
+      ],
+      "sprint": "SPR-2026-10",
+      "story_points": 5,
+      "created": "2026-04-13T11:43:56Z",
+      "updated": "2026-04-27T17:43:56Z",
+      "resolved": "2026-04-27T17:43:56Z",
+      "comments": []
+    },
+    {
+      "key": "ACME-173",
+      "issue_type": "task",
+      "summary": "Rotate API gateway TLS certificates (infra, follow-up)",
+      "description": "Filed against the infra component. Rotate API gateway TLS certificates.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "fatima.alrashid",
+      "reporter": "dana.kim",
+      "labels": [
+        "infra"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": 1,
+      "created": "2026-04-20T18:53:50Z",
+      "updated": "2026-04-30T18:53:50Z",
+      "resolved": "2026-04-30T18:53:50Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-04-23T20:53:50Z",
+          "body": "Reproduced on staging with the infra fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-04-25T21:53:50Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    },
+    {
+      "key": "DATA-65",
+      "issue_type": "task",
+      "summary": "Backfill tooling: replay events from object storage by date range (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Backfill tooling: replay events from object storage by date range.",
+      "status": "in_progress",
+      "priority": "P1",
+      "assignee": "marcus.webb",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "ingestion",
+        "tooling"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": 2,
+      "created": "2026-04-24T15:56:28Z",
+      "updated": "2026-05-09T19:56:28Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-04-25T16:56:28Z",
+          "body": "Reproduced on staging with the ingestion fixture set. Stack trace attached to the run log."
+        }
+      ]
+    },
+    {
+      "key": "ACME-154",
+      "issue_type": "task",
+      "summary": "Add alerting runbook links to on-call pager payloads (infra, follow-up)",
+      "description": "Filed against the infra component. Add alerting runbook links to on-call pager payloads.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "elena.sokolova",
+      "reporter": "marcus.webb",
+      "labels": [
+        "infra",
+        "oncall"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": 3,
+      "created": "2026-04-25T10:07:28Z",
+      "updated": "2026-04-27T14:07:28Z",
+      "resolved": "2026-04-27T14:07:28Z",
+      "comments": [
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-04-27T11:07:28Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-04-30T15:07:28Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        }
+      ]
+    },
+    {
+      "key": "DATA-86",
+      "issue_type": "bug",
+      "summary": "Aggregation job double-counts events replayed during compaction (aggregation, follow-up)",
+      "description": "Filed against the aggregation component. Aggregation job double-counts events replayed during compaction.",
+      "status": "todo",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "aggregation"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": null,
+      "created": "2026-04-26T13:39:23Z",
+      "updated": "2026-05-02T21:39:23Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-04-29T15:39:23Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-05-01T16:39:23Z",
+          "body": "Root cause is in the aggregation path: we assume the payload is already normalized, and it is not when the batch API is used."
+        },
+        {
+          "author": "dana.kim",
+          "created": "2026-05-03T17:39:23Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        }
+      ]
+    },
+    {
+      "key": "DATA-67",
+      "issue_type": "story",
+      "summary": "Deduplicate events on (source_id, idempotency_key) at ingest (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Deduplicate events on (source_id, idempotency_key) at ingest.",
+      "status": "done",
+      "priority": "P1",
+      "assignee": "fatima.alrashid",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": 3,
+      "created": "2026-04-26T16:40:12Z",
+      "updated": "2026-05-15T18:40:12Z",
+      "resolved": "2026-05-15T18:40:12Z",
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-04-28T21:40:12Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-04-30T22:40:12Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-05-02T03:40:12Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        }
+      ]
+    },
+    {
+      "key": "ACME-128",
+      "issue_type": "story",
+      "summary": "Self-serve plan upgrade flow for growth tier",
+      "description": "Filed against the billing component. Self-serve plan upgrade flow for growth tier.",
+      "status": "in_review",
+      "priority": "P2",
+      "assignee": "fatima.alrashid",
+      "reporter": "marcus.webb",
+      "labels": [
+        "billing",
+        "growth"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": 5,
+      "created": "2026-04-27T08:54:03Z",
+      "updated": "2026-05-06T14:54:03Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "DATA-69",
+      "issue_type": "bug",
+      "summary": "Aggregation job double-counts events replayed during compaction (aggregation, follow-up)",
+      "description": "Filed against the aggregation component. Aggregation job double-counts events replayed during compaction.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "dana.kim",
+      "reporter": "dana.kim",
+      "labels": [
+        "aggregation"
+      ],
+      "sprint": "SPR-2026-10",
+      "story_points": null,
+      "created": "2026-04-30T12:25:36Z",
+      "updated": "2026-05-10T18:25:36Z",
+      "resolved": "2026-05-10T18:25:36Z",
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-05-04T18:25:36Z",
+          "body": "Reproduced on staging with the aggregation fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "dana.kim",
+          "created": "2026-05-08T23:25:36Z",
+          "body": "PR is up, waiting on review from the aggregation owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-188",
+      "issue_type": "task",
+      "summary": "Add alerting runbook links to on-call pager payloads (infra, follow-up)",
+      "description": "Filed against the infra component. Add alerting runbook links to on-call pager payloads.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "infra",
+        "oncall"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": 8,
+      "created": "2026-05-04T16:26:18Z",
+      "updated": "2026-05-11T16:26:18Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-05-08T21:26:18Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-185",
+      "issue_type": "bug",
+      "summary": "Webhook retries duplicate report.generated events after gateway timeout (api, follow-up)",
+      "description": "Filed against the api component. Webhook retries duplicate report.generated events after gateway timeout.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "elena.sokolova",
+      "reporter": "priya.raghavan",
+      "labels": [
+        "webhooks"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": null,
+      "created": "2026-05-06T15:45:59Z",
+      "updated": "2026-05-09T17:45:59Z",
+      "resolved": "2026-05-09T17:45:59Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-09T20:45:59Z",
+          "body": "Reproduced on staging with the api fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-05-13T02:45:59Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-05-16T03:45:59Z",
+          "body": "PR is up, waiting on review from the api owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-192",
+      "issue_type": "story",
+      "summary": "Self-serve plan upgrade flow for growth tier (billing, follow-up)",
+      "description": "Filed against the billing component. Self-serve plan upgrade flow for growth tier.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "priya.raghavan",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "billing",
+        "growth"
+      ],
+      "sprint": "SPR-2026-02",
+      "story_points": 1,
+      "created": "2026-05-07T08:42:32Z",
+      "updated": "2026-05-10T12:42:32Z",
+      "resolved": "2026-05-10T12:42:32Z",
+      "comments": [
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-05-09T14:42:32Z",
+          "body": "Adding a regression test that pins the old behavior so this cannot silently return."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-05-13T16:42:32Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "ACME-182",
+      "issue_type": "task",
+      "summary": "Upgrade dashboard charting library to v9 (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Upgrade dashboard charting library to v9.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "elena.sokolova",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "dashboards",
+        "tech-debt"
+      ],
+      "sprint": "SPR-2026-02",
+      "story_points": 1,
+      "created": "2026-05-08T10:05:08Z",
+      "updated": "2026-05-11T10:05:08Z",
+      "resolved": "2026-05-11T10:05:08Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-09T14:05:08Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "ACME-120",
+      "issue_type": "bug",
+      "summary": "Webhook retries duplicate report.generated events after gateway timeout",
+      "description": "Filed against the api component. Webhook retries duplicate report.generated events after gateway timeout.",
+      "status": "in_review",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "webhooks"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": null,
+      "created": "2026-05-08T11:17:53Z",
+      "updated": "2026-05-25T18:17:53Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "DATA-42",
+      "issue_type": "story",
+      "summary": "Partition usage events topic by customer for consumer parallelism",
+      "description": "Filed against the ingestion component. Partition usage events topic by customer for consumer parallelism.",
+      "status": "in_progress",
+      "priority": "P4",
+      "assignee": "fatima.alrashid",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "kafka",
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-07",
+      "story_points": 5,
+      "created": "2026-05-09T12:15:06Z",
+      "updated": "2026-05-24T12:15:06Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-157",
+      "issue_type": "story",
+      "summary": "Self-serve plan upgrade flow for growth tier (billing, follow-up)",
+      "description": "Filed against the billing component. Self-serve plan upgrade flow for growth tier.",
+      "status": "todo",
+      "priority": "P1",
+      "assignee": "dana.kim",
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "billing",
+        "growth"
+      ],
+      "sprint": "SPR-2026-05",
+      "story_points": 2,
+      "created": "2026-05-10T14:32:47Z",
+      "updated": "2026-05-27T20:32:47Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-11T19:32:47Z",
+          "body": "This is blocking Harborview Hospitality -- support thread linked. Raising priority."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-05-15T00:32:47Z",
+          "body": "This is blocking Verdant Agritech -- support thread linked. Raising priority."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-05-18T05:32:47Z",
+          "body": "Root cause is in the billing path: we assume the payload is already normalized, and it is not when the batch API is used."
+        }
+      ]
+    },
+    {
+      "key": "ACME-101",
+      "issue_type": "bug",
+      "summary": "Dashboard tiles render blank when a saved filter references a deleted metric",
+      "description": "Filed against the dashboards component. Dashboard tiles render blank when a saved filter references a deleted metric.",
+      "status": "todo",
+      "priority": "P3",
+      "assignee": "priya.raghavan",
+      "reporter": "marcus.webb",
+      "labels": [
+        "dashboards",
+        "regression"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": null,
+      "created": "2026-05-13T12:06:35Z",
+      "updated": "2026-06-01T19:06:35Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-16T18:06:35Z",
+          "body": "Reproduced on staging with the dashboards fixture set. Stack trace attached to the run log."
+        }
+      ]
+    },
+    {
+      "key": "DATA-50",
+      "issue_type": "story",
+      "summary": "Deduplicate events on (source_id, idempotency_key) at ingest",
+      "description": "Filed against the ingestion component. Deduplicate events on (source_id, idempotency_key) at ingest.",
+      "status": "backlog",
+      "priority": "P1",
+      "assignee": null,
+      "reporter": "priya.raghavan",
+      "labels": [
+        "ingestion"
+      ],
+      "sprint": null,
+      "story_points": 1,
+      "created": "2026-05-15T09:38:58Z",
+      "updated": "2026-05-31T11:38:58Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-05-16T15:38:58Z",
+          "body": "PR is up, waiting on review from the ingestion owners."
+        }
+      ]
+    },
+    {
+      "key": "DATA-87",
+      "issue_type": "task",
+      "summary": "Consumer lag dashboards per topic partition (observability, follow-up)",
+      "description": "Filed against the observability component. Consumer lag dashboards per topic partition.",
+      "status": "in_review",
+      "priority": "P1",
+      "assignee": "marcus.webb",
+      "reporter": "elena.sokolova",
+      "labels": [
+        "kafka",
+        "observability"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": 8,
+      "created": "2026-05-19T14:19:50Z",
+      "updated": "2026-05-23T19:19:50Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-05-23T21:19:50Z",
+          "body": "Adding a regression test that pins the old behavior so this cannot silently return."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-05-25T23:19:50Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        }
+      ]
+    },
+    {
+      "key": "ACME-169",
+      "issue_type": "story",
+      "summary": "Scheduled report exports: delivery via signed URL (exports, follow-up)",
+      "description": "Filed against the exports component. Scheduled report exports: delivery via signed URL.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "marcus.webb",
+      "reporter": "dana.kim",
+      "labels": [
+        "exports",
+        "epic:ACME-180"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": 3,
+      "created": "2026-05-20T09:07:14Z",
+      "updated": "2026-06-05T16:07:14Z",
+      "resolved": "2026-06-05T16:07:14Z",
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-05-24T11:07:14Z",
+          "body": "PR is up, waiting on review from the exports owners."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-05-26T14:07:14Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        }
+      ]
+    },
+    {
+      "key": "ACME-179",
+      "issue_type": "bug",
+      "summary": "Invoice PDF omits usage overage line items for annual plans (billing, follow-up)",
+      "description": "Filed against the billing component. Invoice PDF omits usage overage line items for annual plans.",
+      "status": "todo",
+      "priority": "P3",
+      "assignee": "marcus.webb",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "billing"
+      ],
+      "sprint": "SPR-2026-02",
+      "story_points": null,
+      "created": "2026-05-21T10:37:47Z",
+      "updated": "2026-06-01T14:37:47Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-162",
+      "issue_type": "bug",
+      "summary": "Metering API returns 500 on batch sizes above 1000 events (api, follow-up)",
+      "description": "Filed against the api component. Metering API returns 500 on batch sizes above 1000 events.",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "fatima.alrashid",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "metering-api"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": null,
+      "created": "2026-05-24T12:19:14Z",
+      "updated": "2026-05-31T20:19:14Z",
+      "resolved": "2026-05-31T20:19:14Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-26T18:19:14Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        },
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-28T01:19:14Z",
+          "body": "Adding a regression test that pins the old behavior so this cannot silently return."
+        }
+      ]
+    },
+    {
+      "key": "DATA-57",
+      "issue_type": "story",
+      "summary": "Schema registry: reject producer schema changes without version bump",
+      "description": "Filed against the ingestion component. Schema registry: reject producer schema changes without version bump.",
+      "status": "backlog",
+      "priority": "P3",
+      "assignee": null,
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "ingestion",
+        "governance"
+      ],
+      "sprint": null,
+      "story_points": 8,
+      "created": "2026-05-27T13:57:33Z",
+      "updated": "2026-06-09T16:57:33Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-05-29T17:57:33Z",
+          "body": "Reproduced on staging with the ingestion fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-06-02T22:57:33Z",
+          "body": "PR is up, waiting on review from the ingestion owners."
+        },
+        {
+          "author": "priya.raghavan",
+          "created": "2026-06-03T23:57:33Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        }
+      ]
+    },
+    {
+      "key": "ACME-149",
+      "issue_type": "story",
+      "summary": "Allow read-only dashboard sharing links with expiry (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Allow read-only dashboard sharing links with expiry.",
+      "status": "backlog",
+      "priority": "P2",
+      "assignee": null,
+      "reporter": "priya.raghavan",
+      "labels": [
+        "dashboards",
+        "sharing"
+      ],
+      "sprint": null,
+      "story_points": 2,
+      "created": "2026-05-28T15:16:09Z",
+      "updated": "2026-06-15T15:16:09Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-183",
+      "issue_type": "story",
+      "summary": "Allow read-only dashboard sharing links with expiry (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Allow read-only dashboard sharing links with expiry.",
+      "status": "in_progress",
+      "priority": "P1",
+      "assignee": "fatima.alrashid",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "dashboards",
+        "sharing"
+      ],
+      "sprint": "SPR-2026-04",
+      "story_points": 3,
+      "created": "2026-05-29T11:08:31Z",
+      "updated": "2026-06-03T18:08:31Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "dana.kim",
+          "created": "2026-05-31T15:08:31Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        }
+      ]
+    },
+    {
+      "key": "ACME-141",
+      "issue_type": "bug",
+      "summary": "Timezone selector resets to UTC after saving dashboard preferences (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Timezone selector resets to UTC after saving dashboard preferences.",
+      "status": "backlog",
+      "priority": "P3",
+      "assignee": null,
+      "reporter": "ingrid.bauer",
+      "labels": [
+        "dashboards"
+      ],
+      "sprint": null,
+      "story_points": null,
+      "created": "2026-05-29T12:41:06Z",
+      "updated": "2026-06-02T16:41:06Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-110",
+      "issue_type": "story",
+      "summary": "Scheduled report exports: delivery via signed URL",
+      "description": "Filed against the exports component. Scheduled report exports: delivery via signed URL.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "marcus.webb",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "exports",
+        "epic:ACME-180"
+      ],
+      "sprint": "SPR-2026-01",
+      "story_points": 5,
+      "created": "2026-06-04T08:31:34Z",
+      "updated": "2026-06-10T09:31:34Z",
+      "resolved": "2026-06-10T09:31:34Z",
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-07T09:31:34Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-11T10:31:34Z",
+          "body": "Root cause is in the exports path: we assume the payload is already normalized, and it is not when the batch API is used."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-06-12T15:31:34Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    },
+    {
+      "key": "ACME-152",
+      "issue_type": "bug",
+      "summary": "Webhook retries duplicate report.generated events after gateway timeout (api, follow-up)",
+      "description": "Filed against the api component. Webhook retries duplicate report.generated events after gateway timeout.",
+      "status": "backlog",
+      "priority": "P3",
+      "assignee": null,
+      "reporter": "elena.sokolova",
+      "labels": [
+        "webhooks"
+      ],
+      "sprint": null,
+      "story_points": null,
+      "created": "2026-06-10T12:43:11Z",
+      "updated": "2026-06-22T18:43:11Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-132",
+      "issue_type": "story",
+      "summary": "Add CSV export to the usage explorer (exports, follow-up)",
+      "description": "Filed against the exports component. Add CSV export to the usage explorer.",
+      "status": "in_review",
+      "priority": "P3",
+      "assignee": "elena.sokolova",
+      "reporter": "dana.kim",
+      "labels": [
+        "exports"
+      ],
+      "sprint": "SPR-2026-02",
+      "story_points": 2,
+      "created": "2026-06-11T09:48:41Z",
+      "updated": "2026-06-30T18:00:00Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-190",
+      "issue_type": "bug",
+      "summary": "Usage explorer date picker off-by-one across DST boundary (dashboards, follow-up)",
+      "description": "Filed against the dashboards component. Usage explorer date picker off-by-one across DST boundary.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "noah.lindqvist",
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "dashboards"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": null,
+      "created": "2026-06-11T10:37:46Z",
+      "updated": "2026-06-15T18:37:46Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-06-13T16:37:46Z",
+          "body": "Root cause is in the dashboards path: we assume the payload is already normalized, and it is not when the batch API is used."
+        }
+      ]
+    },
+    {
+      "key": "ACME-131",
+      "issue_type": "bug",
+      "summary": "Metering API returns 500 on batch sizes above 1000 events (api, follow-up)",
+      "description": "Filed against the api component. Metering API returns 500 on batch sizes above 1000 events.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "noah.lindqvist",
+      "reporter": "tom.alvarez",
+      "labels": [
+        "metering-api"
+      ],
+      "sprint": "SPR-2026-10",
+      "story_points": null,
+      "created": "2026-06-13T18:16:51Z",
+      "updated": "2026-06-30T18:00:00Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-06-14T22:16:51Z",
+          "body": "Deployed to staging. Please verify against the acceptance criteria before we promote."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-19T04:16:51Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-06-23T09:16:51Z",
+          "body": "PR is up, waiting on review from the api owners."
+        }
+      ]
+    },
+    {
+      "key": "DATA-54",
+      "issue_type": "task",
+      "summary": "Consumer lag dashboards per topic partition",
+      "description": "Filed against the observability component. Consumer lag dashboards per topic partition.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "marcus.webb",
+      "reporter": "noah.lindqvist",
+      "labels": [
+        "kafka",
+        "observability"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": 3,
+      "created": "2026-06-15T08:47:47Z",
+      "updated": "2026-06-17T14:47:47Z",
+      "resolved": "2026-06-17T14:47:47Z",
+      "comments": [
+        {
+          "author": "tom.alvarez",
+          "created": "2026-06-18T13:47:47Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        }
+      ]
+    },
+    {
+      "key": "ACME-107",
+      "issue_type": "story",
+      "summary": "Scheduled report exports: recurrence rules UI",
+      "description": "Filed against the exports component. Scheduled report exports: recurrence rules UI.",
+      "status": "todo",
+      "priority": "P1",
+      "assignee": "tom.alvarez",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "exports",
+        "epic:ACME-180"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": 2,
+      "created": "2026-06-16T14:44:43Z",
+      "updated": "2026-06-30T18:00:00Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-20T19:44:43Z",
+          "body": "Downgrading to P3: only reproduces with the legacy exporter, which is on a deprecation path."
+        }
+      ]
+    },
+    {
+      "key": "DATA-61",
+      "issue_type": "story",
+      "summary": "Partition usage events topic by customer for consumer parallelism (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Partition usage events topic by customer for consumer parallelism.",
+      "status": "in_progress",
+      "priority": "P1",
+      "assignee": "dana.kim",
+      "reporter": "marcus.webb",
+      "labels": [
+        "kafka",
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-10",
+      "story_points": 5,
+      "created": "2026-06-16T18:47:03Z",
+      "updated": "2026-06-24T21:47:03Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-18T01:47:03Z",
+          "body": "PR is up, waiting on review from the ingestion owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-126",
+      "issue_type": "bug",
+      "summary": "Usage explorer date picker off-by-one across DST boundary",
+      "description": "Filed against the dashboards component. Usage explorer date picker off-by-one across DST boundary.",
+      "status": "done",
+      "priority": "P2",
+      "assignee": "noah.lindqvist",
+      "reporter": "priya.raghavan",
+      "labels": [
+        "dashboards"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": null,
+      "created": "2026-06-18T08:58:24Z",
+      "updated": "2026-06-27T13:58:24Z",
+      "resolved": "2026-06-27T13:58:24Z",
+      "comments": []
+    },
+    {
+      "key": "ACME-140",
+      "issue_type": "task",
+      "summary": "Rotate API gateway TLS certificates (infra, follow-up)",
+      "description": "Filed against the infra component. Rotate API gateway TLS certificates.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "marcus.webb",
+      "reporter": "dana.kim",
+      "labels": [
+        "infra"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": 2,
+      "created": "2026-06-19T11:36:52Z",
+      "updated": "2026-06-30T18:00:00Z",
+      "resolved": "2026-06-30T18:00:00Z",
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-06-20T13:36:52Z",
+          "body": "Splitting the schema-registry portion into its own ticket, this one now covers ingestion only."
+        },
+        {
+          "author": "noah.lindqvist",
+          "created": "2026-06-24T14:36:52Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "dana.kim",
+          "created": "2026-06-26T17:36:52Z",
+          "body": "PR is up, waiting on review from the infra owners."
+        }
+      ]
+    },
+    {
+      "key": "ACME-118",
+      "issue_type": "task",
+      "summary": "Upgrade dashboard charting library to v9",
+      "description": "Filed against the dashboards component. Upgrade dashboard charting library to v9.",
+      "status": "done",
+      "priority": "P4",
+      "assignee": "fatima.alrashid",
+      "reporter": "marcus.webb",
+      "labels": [
+        "dashboards",
+        "tech-debt"
+      ],
+      "sprint": "SPR-2026-03",
+      "story_points": 2,
+      "created": "2026-06-21T13:22:52Z",
+      "updated": "2026-06-30T18:00:00Z",
+      "resolved": "2026-06-30T18:00:00Z",
+      "comments": [
+        {
+          "author": "priya.raghavan",
+          "created": "2026-06-24T20:22:52Z",
+          "body": "PR is up, waiting on review from the dashboards owners."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-27T22:22:52Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    },
+    {
+      "key": "DATA-63",
+      "issue_type": "bug",
+      "summary": "Late-arriving events older than 48h dropped without dead-letter record (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Late-arriving events older than 48h dropped without dead-letter record.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "fatima.alrashid",
+      "reporter": "dana.kim",
+      "labels": [
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-06",
+      "story_points": null,
+      "created": "2026-06-21T15:28:02Z",
+      "updated": "2026-06-26T22:28:02Z",
+      "resolved": null,
+      "comments": []
+    },
+    {
+      "key": "ACME-119",
+      "issue_type": "story",
+      "summary": "Allow read-only dashboard sharing links with expiry",
+      "description": "Filed against the dashboards component. Allow read-only dashboard sharing links with expiry.",
+      "status": "backlog",
+      "priority": "P2",
+      "assignee": null,
+      "reporter": "fatima.alrashid",
+      "labels": [
+        "dashboards",
+        "sharing"
+      ],
+      "sprint": null,
+      "story_points": 1,
+      "created": "2026-06-22T14:30:50Z",
+      "updated": "2026-06-30T14:30:50Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "marcus.webb",
+          "created": "2026-06-26T20:30:50Z",
+          "body": "Verified on staging -- metrics look flat after the fix, closing once it ships."
+        },
+        {
+          "author": "marcus.webb",
+          "created": "2026-06-29T02:30:50Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-06-30T09:30:50Z",
+          "body": "PR is up, waiting on review from the dashboards owners."
+        }
+      ]
+    },
+    {
+      "key": "DATA-79",
+      "issue_type": "bug",
+      "summary": "Late-arriving events older than 48h dropped without dead-letter record (ingestion, follow-up)",
+      "description": "Filed against the ingestion component. Late-arriving events older than 48h dropped without dead-letter record.",
+      "status": "in_progress",
+      "priority": "P3",
+      "assignee": "priya.raghavan",
+      "reporter": "yuki.tanaka",
+      "labels": [
+        "ingestion"
+      ],
+      "sprint": "SPR-2026-08",
+      "story_points": null,
+      "created": "2026-06-23T17:11:42Z",
+      "updated": "2026-06-30T18:00:00Z",
+      "resolved": null,
+      "comments": [
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-25T23:11:42Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        },
+        {
+          "author": "elena.sokolova",
+          "created": "2026-06-28T04:11:42Z",
+          "body": "Reproduced on staging with the ingestion fixture set. Stack trace attached to the run log."
+        },
+        {
+          "author": "fatima.alrashid",
+          "created": "2026-06-30T18:00:00Z",
+          "body": "Customer confirmed the workaround holds. Fix still needed for GA."
+        }
+      ]
+    }
+  ]
+}

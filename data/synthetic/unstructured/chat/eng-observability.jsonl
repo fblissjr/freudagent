@@ -1,0 +1,258 @@
+{"ts":"2026-01-05T09:23:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"anyone else seeing flaky auth tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-01-05T11:54:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-01-05T14:12:00Z","channel":"eng-observability","user":"dana.kim","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-01-06T09:18:00Z","channel":"eng-observability","user":"elena.sokolova","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-01-06T14:14:00Z","channel":"eng-observability","user":"tom.alvarez","text":"staging deploy of export-renderer verified, promoting to prod"}
+{"ts":"2026-01-06T16:58:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the webhooks PR, small one"}
+{"ts":"2026-01-07T09:00:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the billing PR, small one"}
+{"ts":"2026-01-07T11:29:00Z","channel":"eng-observability","user":"marcus.webb","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-01-08T11:59:00Z","channel":"eng-observability","user":"marcus.webb","text":"standup thread: yesterday lag dashboards, today test cleanup, no blockers"}
+{"ts":"2026-01-08T13:33:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-01-09T11:07:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"anyone else seeing flaky ingestion tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-01-09T16:46:00Z","channel":"eng-observability","user":"tom.alvarez","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-01-09T17:00:00Z","channel":"eng-observability","user":"priya.raghavan","text":"heads up: metering-api error budget at 71% for the month"}
+{"ts":"2026-01-12T11:20:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: usage-consumer error budget at 96% for the month"}
+{"ts":"2026-01-12T11:26:00Z","channel":"eng-observability","user":"dana.kim","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-01-12T13:18:00Z","channel":"eng-observability","user":"elena.sokolova","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-01-13T09:34:00Z","channel":"eng-observability","user":"marcus.webb","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-01-13T10:01:00Z","channel":"eng-observability","user":"marcus.webb","text":"standup thread: yesterday lag dashboards, today pairing on the consumer, no blockers"}
+{"ts":"2026-01-13T15:14:00Z","channel":"eng-observability","user":"marcus.webb","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-01-14T12:18:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: export-renderer error budget at 79% for the month"}
+{"ts":"2026-01-14T13:58:00Z","channel":"eng-observability","user":"elena.sokolova","text":"anyone else seeing flaky dashboards tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-01-15T14:45:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"staging deploy of billing-worker verified, promoting to prod"}
+{"ts":"2026-01-16T13:00:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-01-19T15:36:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: usage-consumer error budget at 81% for the month"}
+{"ts":"2026-01-19T17:45:00Z","channel":"eng-observability","user":"dana.kim","text":"staging deploy of export-renderer verified, promoting to prod"}
+{"ts":"2026-01-19T17:56:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"anyone else seeing flaky auth tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-01-20T09:12:00Z","channel":"eng-observability","user":"elena.sokolova","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-01-20T14:41:00Z","channel":"eng-observability","user":"elena.sokolova","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-01-21T12:55:00Z","channel":"eng-observability","user":"priya.raghavan","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-01-22T13:54:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-01-22T17:05:00Z","channel":"eng-observability","user":"tom.alvarez","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-01-23T11:39:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"anyone else seeing flaky ingestion tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-01-26T13:58:00Z","channel":"eng-observability","user":"elena.sokolova","text":"deploying export-renderer build 2026.50.4 to staging"}
+{"ts":"2026-01-26T14:37:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: billing-worker error budget at 81% for the month"}
+{"ts":"2026-01-27T10:11:00Z","channel":"eng-observability","user":"priya.raghavan","text":"deploying metering-api build 2026.53.0 to staging"}
+{"ts":"2026-01-27T11:07:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"staging deploy of billing-worker verified, promoting to prod"}
+{"ts":"2026-01-28T09:44:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-01-28T11:04:00Z","channel":"eng-observability","user":"priya.raghavan","text":"heads up: usage-consumer error budget at 85% for the month"}
+{"ts":"2026-01-29T10:12:00Z","channel":"eng-observability","user":"marcus.webb","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-01-29T17:03:00Z","channel":"eng-observability","user":"priya.raghavan","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-01-30T11:23:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: usage-consumer error budget at 65% for the month"}
+{"ts":"2026-01-30T13:50:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"standup thread: yesterday review backlog, today test cleanup, no blockers"}
+{"ts":"2026-01-30T15:49:00Z","channel":"eng-observability","user":"tom.alvarez","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-02-02T15:30:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-02-02T15:58:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"review requested on the aggregation PR, small one"}
+{"ts":"2026-02-02T17:11:00Z","channel":"eng-observability","user":"marcus.webb","text":"review requested on the dashboards PR, small one"}
+{"ts":"2026-02-03T11:07:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"standup thread: yesterday ingest fixes, today more of the same, no blockers"}
+{"ts":"2026-02-03T11:57:00Z","channel":"eng-observability","user":"priya.raghavan","text":"standup thread: yesterday review backlog, today test cleanup, no blockers"}
+{"ts":"2026-02-03T15:04:00Z","channel":"eng-observability","user":"elena.sokolova","text":"merged the exports change, watch the dashboards for the next hour"}
+{"ts":"2026-02-04T15:21:00Z","channel":"eng-observability","user":"elena.sokolova","text":"heads up: dashboard-web error budget at 80% for the month"}
+{"ts":"2026-02-05T09:42:00Z","channel":"eng-observability","user":"priya.raghavan","text":"review requested on the webhooks PR, small one"}
+{"ts":"2026-02-05T17:55:00Z","channel":"eng-observability","user":"marcus.webb","text":"merged the dashboards change, watch the dashboards for the next hour"}
+{"ts":"2026-02-06T10:31:00Z","channel":"eng-observability","user":"elena.sokolova","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-02-06T15:39:00Z","channel":"eng-observability","user":"marcus.webb","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-02-09T10:01:00Z","channel":"eng-observability","user":"elena.sokolova","text":"deploying metering-api build 2026.80.6 to staging"}
+{"ts":"2026-02-09T10:53:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: usage-consumer error budget at 58% for the month"}
+{"ts":"2026-02-10T13:58:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"review requested on the webhooks PR, small one"}
+{"ts":"2026-02-11T16:24:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"heads up: billing-worker error budget at 59% for the month"}
+{"ts":"2026-02-12T15:27:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: usage-consumer error budget at 78% for the month"}
+{"ts":"2026-02-12T16:26:00Z","channel":"eng-observability","user":"marcus.webb","text":"merged the exports change, watch the dashboards for the next hour"}
+{"ts":"2026-02-13T12:03:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: usage-consumer error budget at 65% for the month"}
+{"ts":"2026-02-13T17:40:00Z","channel":"eng-observability","user":"priya.raghavan","text":"heads up: metering-api error budget at 64% for the month"}
+{"ts":"2026-02-16T09:46:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"deploying billing-worker build 2026.93.5 to staging"}
+{"ts":"2026-02-17T15:32:00Z","channel":"eng-observability","user":"tom.alvarez","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-02-17T17:11:00Z","channel":"eng-observability","user":"elena.sokolova","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-02-18T17:31:00Z","channel":"eng-observability","user":"marcus.webb","text":"heads up: metering-api error budget at 84% for the month"}
+{"ts":"2026-02-19T09:25:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"heads up: export-renderer error budget at 72% for the month"}
+{"ts":"2026-02-20T09:43:00Z","channel":"eng-observability","user":"elena.sokolova","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-02-20T10:21:00Z","channel":"eng-observability","user":"marcus.webb","text":"review requested on the auth PR, small one"}
+{"ts":"2026-02-20T17:29:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"heads up: metering-api error budget at 97% for the month"}
+{"ts":"2026-02-23T13:52:00Z","channel":"eng-observability","user":"tom.alvarez","text":"merged the webhooks change, watch the dashboards for the next hour"}
+{"ts":"2026-02-24T17:02:00Z","channel":"eng-observability","user":"priya.raghavan","text":"deploying billing-worker build 2026.8.6 to staging"}
+{"ts":"2026-02-25T12:15:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-02-25T17:35:00Z","channel":"eng-observability","user":"tom.alvarez","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-02-26T11:20:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: dashboard-web error budget at 94% for the month"}
+{"ts":"2026-02-26T11:58:00Z","channel":"eng-observability","user":"tom.alvarez","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-02-26T16:17:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"review requested on the exports PR, small one"}
+{"ts":"2026-02-27T14:13:00Z","channel":"eng-observability","user":"priya.raghavan","text":"review requested on the dashboards PR, small one"}
+{"ts":"2026-02-27T14:38:00Z","channel":"eng-observability","user":"tom.alvarez","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-03-02T09:04:00Z","channel":"eng-observability","user":"marcus.webb","text":"heads up: export-renderer error budget at 96% for the month"}
+{"ts":"2026-03-02T10:29:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"standup thread: yesterday ingest fixes, today the sprint goal, no blockers"}
+{"ts":"2026-03-03T10:18:00Z","channel":"eng-observability","user":"tom.alvarez","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-03-04T15:35:00Z","channel":"eng-observability","user":"elena.sokolova","text":"staging deploy of billing-worker verified, promoting to prod"}
+{"ts":"2026-03-05T15:35:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"review requested on the auth PR, small one"}
+{"ts":"2026-03-06T10:58:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: metering-api error budget at 64% for the month"}
+{"ts":"2026-03-06T11:58:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: export-renderer error budget at 70% for the month"}
+{"ts":"2026-03-06T12:29:00Z","channel":"eng-observability","user":"marcus.webb","text":"deploying metering-api build 2026.29.6 to staging"}
+{"ts":"2026-03-09T16:27:00Z","channel":"eng-observability","user":"elena.sokolova","text":"heads up: usage-consumer error budget at 91% for the month"}
+{"ts":"2026-03-10T09:34:00Z","channel":"eng-observability","user":"priya.raghavan","text":"anyone else seeing flaky exports tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-03-11T14:07:00Z","channel":"eng-observability","user":"tom.alvarez","text":"seeing elevated 502s on /v1/usage at the gateway, ~6% and climbing"}
+{"ts":"2026-03-11T14:09:00Z","channel":"eng-observability","user":"marcus.webb","text":"upstream latency p99 just went from 300ms to 9s. not the gateway's fault"}
+{"ts":"2026-03-11T14:12:00Z","channel":"eng-observability","user":"elena.sokolova","text":"consumer lag on usage-events is growing on partitions 3, 7, 11. started ~14:02"}
+{"ts":"2026-03-11T14:15:00Z","channel":"eng-observability","user":"tom.alvarez","text":"declaring SEV2, opening INC-2026-0311. I'm IC"}
+{"ts":"2026-03-11T14:22:00Z","channel":"eng-observability","user":"yuki.tanaka","text":"first customer reports coming in -- stale dashboards. Bluewater has an exec review at 17:00, ticket SUP-1042"}
+{"ts":"2026-03-11T14:31:00Z","channel":"eng-observability","user":"tom.alvarez","text":"tracking customer-facing symptoms in ACME-231. status page updated"}
+{"ts":"2026-03-11T14:44:00Z","channel":"eng-observability","user":"elena.sokolova","text":"correlation: lag started 3h22m after the 08:40 consumer deploy hit 100%. suspicious but not conclusive"}
+{"ts":"2026-03-11T15:05:00Z","channel":"eng-observability","user":"elena.sokolova","text":"found it. build 2026.3.4 decompresses batches while holding the partition lock. big batches = lock held for seconds"}
+{"ts":"2026-03-11T15:11:00Z","channel":"eng-observability","user":"priya.raghavan","text":"rollback to 2026.3.3, don't hotfix under incident. agreed?"}
+{"ts":"2026-03-11T15:12:00Z","channel":"eng-observability","user":"elena.sokolova","text":"agreed, rolling back now"}
+{"ts":"2026-03-11T15:41:00Z","channel":"eng-observability","user":"elena.sokolova","text":"rollback complete, lag draining fast"}
+{"ts":"2026-03-11T15:47:00Z","channel":"eng-observability","user":"tom.alvarez","text":"lag at zero, 502s gone. calling it resolved 15:47. postmortem tomorrow 10:00, notes to follow"}
+{"ts":"2026-03-11T15:50:00Z","channel":"eng-observability","user":"yuki.tanaka","text":"updating SUP-1042 and the other tickets now. nice work everyone"}
+{"ts":"2026-03-11T16:57:00Z","channel":"eng-observability","user":"priya.raghavan","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-03-12T09:34:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"standup thread: yesterday lag dashboards, today the sprint goal, no blockers"}
+{"ts":"2026-03-12T09:58:00Z","channel":"eng-observability","user":"priya.raghavan","text":"postmortem in 2 min. pre-read: ACME-231 timeline plus the consumer deploy diff"}
+{"ts":"2026-03-12T10:08:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-03-13T16:12:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: billing-worker error budget at 93% for the month"}
+{"ts":"2026-03-16T14:54:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: export-renderer error budget at 71% for the month"}
+{"ts":"2026-03-17T10:41:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"deploying billing-worker build 2026.41.4 to staging"}
+{"ts":"2026-03-18T14:45:00Z","channel":"eng-observability","user":"elena.sokolova","text":"deploying metering-api build 2026.43.6 to staging"}
+{"ts":"2026-03-18T15:05:00Z","channel":"eng-observability","user":"elena.sokolova","text":"merged the webhooks change, watch the dashboards for the next hour"}
+{"ts":"2026-03-19T13:53:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"deploying usage-consumer build 2026.46.2 to staging"}
+{"ts":"2026-03-20T10:51:00Z","channel":"eng-observability","user":"elena.sokolova","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-03-20T11:06:00Z","channel":"eng-observability","user":"marcus.webb","text":"merged the auth change, watch the dashboards for the next hour"}
+{"ts":"2026-03-20T17:41:00Z","channel":"eng-observability","user":"dana.kim","text":"anyone else seeing flaky webhooks tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-03-23T11:04:00Z","channel":"eng-observability","user":"marcus.webb","text":"review requested on the auth PR, small one"}
+{"ts":"2026-03-24T11:47:00Z","channel":"eng-observability","user":"tom.alvarez","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-03-24T13:55:00Z","channel":"eng-observability","user":"marcus.webb","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-03-25T12:25:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-03-25T12:43:00Z","channel":"eng-observability","user":"marcus.webb","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-03-26T13:16:00Z","channel":"eng-observability","user":"priya.raghavan","text":"deploying dashboard-web build 2026.60.2 to staging"}
+{"ts":"2026-03-27T09:10:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: usage-consumer error budget at 55% for the month"}
+{"ts":"2026-03-27T11:39:00Z","channel":"eng-observability","user":"marcus.webb","text":"deploying metering-api build 2026.62.4 to staging"}
+{"ts":"2026-03-27T13:02:00Z","channel":"eng-observability","user":"tom.alvarez","text":"standup thread: yesterday ingest fixes, today the sprint goal, no blockers"}
+{"ts":"2026-03-30T09:30:00Z","channel":"eng-observability","user":"priya.raghavan","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-03-30T11:24:00Z","channel":"eng-observability","user":"elena.sokolova","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-03-30T14:42:00Z","channel":"eng-observability","user":"marcus.webb","text":"staging deploy of export-renderer verified, promoting to prod"}
+{"ts":"2026-03-31T10:37:00Z","channel":"eng-observability","user":"dana.kim","text":"staging deploy of dashboard-web verified, promoting to prod"}
+{"ts":"2026-04-01T17:40:00Z","channel":"eng-observability","user":"elena.sokolova","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-02T09:48:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-02T13:31:00Z","channel":"eng-observability","user":"priya.raghavan","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-04-03T09:42:00Z","channel":"eng-observability","user":"tom.alvarez","text":"staging deploy of dashboard-web verified, promoting to prod"}
+{"ts":"2026-04-03T10:58:00Z","channel":"eng-observability","user":"tom.alvarez","text":"anyone else seeing flaky aggregation tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-04-03T12:22:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-06T09:36:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"deploying usage-consumer build 2026.85.6 to staging"}
+{"ts":"2026-04-06T12:45:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-06T14:19:00Z","channel":"eng-observability","user":"elena.sokolova","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-07T15:58:00Z","channel":"eng-observability","user":"elena.sokolova","text":"standup thread: yesterday export polish, today the sprint goal, no blockers"}
+{"ts":"2026-04-07T17:15:00Z","channel":"eng-observability","user":"elena.sokolova","text":"heads up: billing-worker error budget at 71% for the month"}
+{"ts":"2026-04-08T09:10:00Z","channel":"eng-observability","user":"tom.alvarez","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-08T10:34:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the dashboards PR, small one"}
+{"ts":"2026-04-08T14:22:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-04-09T12:36:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-04-10T10:02:00Z","channel":"eng-observability","user":"elena.sokolova","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-13T09:54:00Z","channel":"eng-observability","user":"priya.raghavan","text":"merged the ingestion change, watch the dashboards for the next hour"}
+{"ts":"2026-04-14T10:55:00Z","channel":"eng-observability","user":"marcus.webb","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-14T15:05:00Z","channel":"eng-observability","user":"priya.raghavan","text":"anyone else seeing flaky dashboards tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-04-15T17:09:00Z","channel":"eng-observability","user":"dana.kim","text":"standup thread: yesterday review backlog, today the sprint goal, no blockers"}
+{"ts":"2026-04-16T11:24:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"review requested on the webhooks PR, small one"}
+{"ts":"2026-04-16T16:01:00Z","channel":"eng-observability","user":"marcus.webb","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-04-16T17:36:00Z","channel":"eng-observability","user":"priya.raghavan","text":"heads up: usage-consumer error budget at 68% for the month"}
+{"ts":"2026-04-17T09:44:00Z","channel":"eng-observability","user":"dana.kim","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-17T15:52:00Z","channel":"eng-observability","user":"elena.sokolova","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-20T11:05:00Z","channel":"eng-observability","user":"priya.raghavan","text":"review requested on the exports PR, small one"}
+{"ts":"2026-04-21T14:47:00Z","channel":"eng-observability","user":"priya.raghavan","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-04-22T16:19:00Z","channel":"eng-observability","user":"priya.raghavan","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-04-23T14:02:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"review requested on the auth PR, small one"}
+{"ts":"2026-04-24T09:59:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-24T16:42:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"merged the dashboards change, watch the dashboards for the next hour"}
+{"ts":"2026-04-24T16:50:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-27T15:06:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-04-28T11:46:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"deploying billing-worker build 2026.20.6 to staging"}
+{"ts":"2026-04-28T13:40:00Z","channel":"eng-observability","user":"marcus.webb","text":"deploying billing-worker build 2026.21.0 to staging"}
+{"ts":"2026-04-28T16:31:00Z","channel":"eng-observability","user":"dana.kim","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-04-29T12:26:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"standup thread: yesterday export polish, today pairing on the consumer, no blockers"}
+{"ts":"2026-04-29T14:19:00Z","channel":"eng-observability","user":"priya.raghavan","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-04-30T17:22:00Z","channel":"eng-observability","user":"marcus.webb","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-04-30T17:46:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-05-01T12:58:00Z","channel":"eng-observability","user":"tom.alvarez","text":"deploying metering-api build 2026.30.2 to staging"}
+{"ts":"2026-05-04T09:50:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"review requested on the auth PR, small one"}
+{"ts":"2026-05-04T16:45:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: export-renderer error budget at 66% for the month"}
+{"ts":"2026-05-05T13:37:00Z","channel":"eng-observability","user":"elena.sokolova","text":"heads up: billing-worker error budget at 57% for the month"}
+{"ts":"2026-05-06T10:10:00Z","channel":"eng-observability","user":"marcus.webb","text":"review requested on the exports PR, small one"}
+{"ts":"2026-05-06T13:20:00Z","channel":"eng-observability","user":"marcus.webb","text":"merged the auth change, watch the dashboards for the next hour"}
+{"ts":"2026-05-06T13:44:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: metering-api error budget at 92% for the month"}
+{"ts":"2026-05-07T14:50:00Z","channel":"eng-observability","user":"marcus.webb","text":"heads up: metering-api error budget at 94% for the month"}
+{"ts":"2026-05-08T12:09:00Z","channel":"eng-observability","user":"elena.sokolova","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-05-11T13:27:00Z","channel":"eng-observability","user":"marcus.webb","text":"staging deploy of billing-worker verified, promoting to prod"}
+{"ts":"2026-05-12T09:15:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the dashboards PR, small one"}
+{"ts":"2026-05-12T09:54:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-05-12T14:41:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"staging deploy of billing-worker verified, promoting to prod"}
+{"ts":"2026-05-13T11:39:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: billing-worker error budget at 62% for the month"}
+{"ts":"2026-05-14T10:43:00Z","channel":"eng-observability","user":"dana.kim","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-05-15T12:44:00Z","channel":"eng-observability","user":"elena.sokolova","text":"review requested on the ingestion PR, small one"}
+{"ts":"2026-05-18T11:11:00Z","channel":"eng-observability","user":"dana.kim","text":"anyone else seeing flaky ingestion tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-05-19T11:54:00Z","channel":"eng-observability","user":"elena.sokolova","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-05-19T12:42:00Z","channel":"eng-observability","user":"tom.alvarez","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-05-19T13:35:00Z","channel":"eng-observability","user":"elena.sokolova","text":"review requested on the auth PR, small one"}
+{"ts":"2026-05-20T15:44:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the exports PR, small one"}
+{"ts":"2026-05-21T14:59:00Z","channel":"eng-observability","user":"marcus.webb","text":"anyone else seeing flaky billing tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-05-21T17:26:00Z","channel":"eng-observability","user":"priya.raghavan","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-05-21T17:45:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: usage-consumer error budget at 58% for the month"}
+{"ts":"2026-05-22T10:57:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-05-22T12:26:00Z","channel":"eng-observability","user":"priya.raghavan","text":"merged the webhooks change, watch the dashboards for the next hour"}
+{"ts":"2026-05-22T16:19:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: billing-worker error budget at 92% for the month"}
+{"ts":"2026-05-25T12:57:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: billing-worker error budget at 69% for the month"}
+{"ts":"2026-05-25T17:42:00Z","channel":"eng-observability","user":"priya.raghavan","text":"staging deploy of usage-consumer verified, promoting to prod"}
+{"ts":"2026-05-25T17:42:00Z","channel":"eng-observability","user":"tom.alvarez","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-05-26T10:34:00Z","channel":"eng-observability","user":"dana.kim","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-05-26T12:59:00Z","channel":"eng-observability","user":"dana.kim","text":"anyone else seeing flaky exports tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-05-26T17:29:00Z","channel":"eng-observability","user":"elena.sokolova","text":"deploying usage-consumer build 2026.75.5 to staging"}
+{"ts":"2026-05-27T17:04:00Z","channel":"eng-observability","user":"elena.sokolova","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-05-28T10:51:00Z","channel":"eng-observability","user":"tom.alvarez","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-05-28T16:05:00Z","channel":"eng-observability","user":"elena.sokolova","text":"merged the aggregation change, watch the dashboards for the next hour"}
+{"ts":"2026-05-29T10:49:00Z","channel":"eng-observability","user":"marcus.webb","text":"deploying dashboard-web build 2026.84.0 to staging"}
+{"ts":"2026-05-29T12:41:00Z","channel":"eng-observability","user":"dana.kim","text":"heads up: metering-api error budget at 86% for the month"}
+{"ts":"2026-05-29T13:46:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: usage-consumer error budget at 80% for the month"}
+{"ts":"2026-06-01T10:51:00Z","channel":"eng-observability","user":"priya.raghavan","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-01T13:39:00Z","channel":"eng-observability","user":"marcus.webb","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-06-01T13:48:00Z","channel":"eng-observability","user":"priya.raghavan","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-02T09:35:00Z","channel":"eng-observability","user":"priya.raghavan","text":"staging deploy of dashboard-web verified, promoting to prod"}
+{"ts":"2026-06-02T14:53:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-06-02T17:12:00Z","channel":"eng-observability","user":"dana.kim","text":"deploying usage-consumer build 2026.96.5 to staging"}
+{"ts":"2026-06-03T10:17:00Z","channel":"eng-observability","user":"elena.sokolova","text":"anyone else seeing flaky auth tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-06-03T13:32:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"standup thread: yesterday review backlog, today test cleanup, no blockers"}
+{"ts":"2026-06-03T13:37:00Z","channel":"eng-observability","user":"elena.sokolova","text":"heads up: export-renderer error budget at 80% for the month"}
+{"ts":"2026-06-04T16:08:00Z","channel":"eng-observability","user":"elena.sokolova","text":"anyone else seeing flaky ingestion tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-06-04T17:01:00Z","channel":"eng-observability","user":"dana.kim","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-06-05T09:35:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the exports PR, small one"}
+{"ts":"2026-06-05T15:31:00Z","channel":"eng-observability","user":"elena.sokolova","text":"deploying metering-api build 2026.8.3 to staging"}
+{"ts":"2026-06-05T17:24:00Z","channel":"eng-observability","user":"priya.raghavan","text":"standup thread: yesterday review backlog, today more of the same, no blockers"}
+{"ts":"2026-06-08T13:41:00Z","channel":"eng-observability","user":"dana.kim","text":"standup thread: yesterday lag dashboards, today test cleanup, no blockers"}
+{"ts":"2026-06-08T13:42:00Z","channel":"eng-observability","user":"marcus.webb","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-08T16:25:00Z","channel":"eng-observability","user":"elena.sokolova","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-06-09T14:41:00Z","channel":"eng-observability","user":"dana.kim","text":"deploying usage-consumer build 2026.17.5 to staging"}
+{"ts":"2026-06-09T15:33:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-10T12:39:00Z","channel":"eng-observability","user":"tom.alvarez","text":"heads up: metering-api error budget at 67% for the month"}
+{"ts":"2026-06-11T10:13:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: usage-consumer error budget at 68% for the month"}
+{"ts":"2026-06-11T13:02:00Z","channel":"eng-observability","user":"tom.alvarez","text":"review requested on the ingestion PR, small one"}
+{"ts":"2026-06-11T16:46:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"review requested on the ingestion PR, small one"}
+{"ts":"2026-06-12T09:08:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"staging deploy of export-renderer verified, promoting to prod"}
+{"ts":"2026-06-12T11:12:00Z","channel":"eng-observability","user":"dana.kim","text":"merged the dashboards change, watch the dashboards for the next hour"}
+{"ts":"2026-06-12T17:38:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"merged the ingestion change, watch the dashboards for the next hour"}
+{"ts":"2026-06-15T11:09:00Z","channel":"eng-observability","user":"marcus.webb","text":"standup thread: yesterday review backlog, today the sprint goal, no blockers"}
+{"ts":"2026-06-15T11:38:00Z","channel":"eng-observability","user":"tom.alvarez","text":"sprint planning moved to 13:00 tomorrow, same room"}
+{"ts":"2026-06-15T15:54:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"merged the dashboards change, watch the dashboards for the next hour"}
+{"ts":"2026-06-16T11:36:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"standup thread: yesterday ingest fixes, today test cleanup, no blockers"}
+{"ts":"2026-06-16T16:20:00Z","channel":"eng-observability","user":"tom.alvarez","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-16T17:20:00Z","channel":"eng-observability","user":"elena.sokolova","text":"heads up: metering-api error budget at 89% for the month"}
+{"ts":"2026-06-17T12:23:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"anyone else seeing flaky exports tests on CI? rerun passed, filing if it repeats"}
+{"ts":"2026-06-18T09:02:00Z","channel":"eng-observability","user":"tom.alvarez","text":"staging deploy of metering-api verified, promoting to prod"}
+{"ts":"2026-06-19T15:55:00Z","channel":"eng-observability","user":"priya.raghavan","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-06-22T10:06:00Z","channel":"eng-observability","user":"marcus.webb","text":"merged the webhooks change, watch the dashboards for the next hour"}
+{"ts":"2026-06-22T15:28:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"merged the exports change, watch the dashboards for the next hour"}
+{"ts":"2026-06-23T09:30:00Z","channel":"eng-observability","user":"marcus.webb","text":"deploying usage-consumer build 2026.43.3 to staging"}
+{"ts":"2026-06-23T10:49:00Z","channel":"eng-observability","user":"tom.alvarez","text":"deploying export-renderer build 2026.46.6 to staging"}
+{"ts":"2026-06-23T15:19:00Z","channel":"eng-observability","user":"elena.sokolova","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-24T13:42:00Z","channel":"eng-observability","user":"fatima.alrashid","text":"heads up: metering-api error budget at 64% for the month"}
+{"ts":"2026-06-24T16:07:00Z","channel":"eng-observability","user":"priya.raghavan","text":"heads up: billing-worker error budget at 63% for the month"}
+{"ts":"2026-06-24T16:26:00Z","channel":"eng-observability","user":"dana.kim","text":"review requested on the exports PR, small one"}
+{"ts":"2026-06-25T11:40:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"heads up: billing-worker error budget at 55% for the month"}
+{"ts":"2026-06-25T12:27:00Z","channel":"eng-observability","user":"dana.kim","text":"staging deploy of export-renderer verified, promoting to prod"}
+{"ts":"2026-06-26T10:25:00Z","channel":"eng-observability","user":"priya.raghavan","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-26T16:37:00Z","channel":"eng-observability","user":"noah.lindqvist","text":"on-call handoff complete, quiet week: two pages, both auto-resolved"}
+{"ts":"2026-06-29T16:06:00Z","channel":"eng-observability","user":"priya.raghavan","text":"standup thread: yesterday ingest fixes, today pairing on the consumer, no blockers"}
+{"ts":"2026-06-30T09:22:00Z","channel":"eng-observability","user":"dana.kim","text":"reminder: dependency upgrade window is Thursday"}
+{"ts":"2026-06-30T13:24:00Z","channel":"eng-observability","user":"marcus.webb","text":"merged the billing change, watch the dashboards for the next hour"}
+{"ts":"2026-06-30T17:08:00Z","channel":"eng-observability","user":"priya.raghavan","text":"reminder: dependency upgrade window is Thursday"}

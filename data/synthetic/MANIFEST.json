@@ -1,0 +1,258 @@
+{
+  "corpus": "acme-analytics-synthetic",
+  "version": 1,
+  "description": "Fully synthetic public corpus for developing and evaluating the FreudAgent flywheel. Fictional company (Acme Analytics), fictional people, fictional customers; all domains use the reserved .example TLD. Structured files are generated deterministically by scripts/generate_synthetic_data.py; documents are hand-authored and cross-reference generated IDs.",
+  "generator": "scripts/generate_synthetic_data.py",
+  "seed": 20260311,
+  "time_range": [
+    "2026-01-05T09:00:00Z",
+    "2026-06-30T18:00:00Z"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "format": "markdown",
+      "source_system": "corpus metadata",
+      "bytes": 4173,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-03-02-sprint-planning.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 1205,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-03-12-postmortem-ingestion-lag.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2750,
+      "records": null
+    },
+    {
+      "path": "documents/meeting-notes/2026-04-14-qbr-prep-bluewater.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 1471,
+      "records": null
+    },
+    {
+      "path": "documents/onboarding-guide-customer-success.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2066,
+      "records": null
+    },
+    {
+      "path": "documents/policy-data-retention.txt",
+      "format": "text",
+      "source_system": "internal documents",
+      "bytes": 1394,
+      "records": null
+    },
+    {
+      "path": "documents/product-spec-usage-metering.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2473,
+      "records": null
+    },
+    {
+      "path": "documents/runbook-incident-response.md",
+      "format": "markdown",
+      "source_system": "internal documents",
+      "bytes": 2131,
+      "records": null
+    },
+    {
+      "path": "events/admin_audit.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 95643,
+      "records": 360
+    },
+    {
+      "path": "events/product_webhooks.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 146077,
+      "records": 647
+    },
+    {
+      "path": "feedback/annotation_corrections.jsonl",
+      "format": "jsonl",
+      "source_system": "human feedback",
+      "bytes": 3672,
+      "records": 8
+    },
+    {
+      "path": "feedback/csat_survey.csv",
+      "format": "csv",
+      "source_system": "human feedback",
+      "bytes": 1328,
+      "records": 15
+    },
+    {
+      "path": "feedback/nps_comments.jsonl",
+      "format": "jsonl",
+      "source_system": "human feedback",
+      "bytes": 9258,
+      "records": 36
+    },
+    {
+      "path": "relational/customers.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 2286,
+      "records": 25
+    },
+    {
+      "path": "relational/invoices.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 11376,
+      "records": 150
+    },
+    {
+      "path": "relational/schema.sql",
+      "format": "sql",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 1682,
+      "records": null
+    },
+    {
+      "path": "relational/subscriptions.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 1277,
+      "records": 27
+    },
+    {
+      "path": "relational/usage_daily.csv",
+      "format": "csv",
+      "source_system": "relational OLTP database extract (acmedb)",
+      "bytes": 69484,
+      "records": 2250
+    },
+    {
+      "path": "saas/crm/accounts.csv",
+      "format": "csv",
+      "source_system": "CRM SaaS export",
+      "bytes": 4175,
+      "records": 25
+    },
+    {
+      "path": "saas/crm/opportunities.csv",
+      "format": "csv",
+      "source_system": "CRM SaaS export",
+      "bytes": 4532,
+      "records": 40
+    },
+    {
+      "path": "saas/knowledge_base/pages/billing-and-invoicing-faq.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1702,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/dashboard-sharing-permissions.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1193,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/metering-api-overview.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1803,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/sso-configuration-guide.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1528,
+      "records": null
+    },
+    {
+      "path": "saas/knowledge_base/pages/troubleshooting-data-delays.md",
+      "format": "markdown",
+      "source_system": "knowledge-management SaaS (wiki export)",
+      "bytes": 1690,
+      "records": null
+    },
+    {
+      "path": "saas/project_mgmt/issues.json",
+      "format": "json",
+      "source_system": "issue tracker (project-management SaaS export)",
+      "bytes": 74980,
+      "records": 76
+    },
+    {
+      "path": "saas/project_mgmt/sprints.json",
+      "format": "json",
+      "source_system": "issue tracker (project-management SaaS export)",
+      "bytes": 2489,
+      "records": 12
+    },
+    {
+      "path": "saas/tickets/support_tickets.jsonl",
+      "format": "jsonl",
+      "source_system": "helpdesk (support-ticket SaaS export)",
+      "bytes": 57685,
+      "records": 60
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-03-19-kestrel-sso-support-call.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 2119,
+      "records": null
+    },
+    {
+      "path": "unstructured/call-transcripts/2026-04-16-bluewater-qbr.txt",
+      "format": "text",
+      "source_system": "call transcripts",
+      "bytes": 3164,
+      "records": null
+    },
+    {
+      "path": "unstructured/chat/eng-observability.jsonl",
+      "format": "jsonl",
+      "source_system": "team chat export",
+      "bytes": 39007,
+      "records": 258
+    },
+    {
+      "path": "unstructured/email/2026-02-09-scheduled-exports-beta.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1024,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-03-11-incident-status-update.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1225,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-04-03-sable-invoice-dispute.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 1054,
+      "records": null
+    },
+    {
+      "path": "unstructured/logs/api-gateway-2026-03-11.log",
+      "format": "log",
+      "source_system": "application logs",
+      "bytes": 102484,
+      "records": null
+    }
+  ]
+}

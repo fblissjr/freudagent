@@ -1,0 +1,98 @@
+[
+  {
+    "sprint_id": "SPR-2026-01",
+    "name": "2026 Sprint 1",
+    "start_date": "2026-01-05",
+    "end_date": "2026-01-18",
+    "state": "closed",
+    "goal": "Scheduled exports milestone"
+  },
+  {
+    "sprint_id": "SPR-2026-02",
+    "name": "2026 Sprint 2",
+    "start_date": "2026-01-19",
+    "end_date": "2026-02-01",
+    "state": "closed",
+    "goal": "Auth hardening and SSO edge cases"
+  },
+  {
+    "sprint_id": "SPR-2026-03",
+    "name": "2026 Sprint 3",
+    "start_date": "2026-02-02",
+    "end_date": "2026-02-15",
+    "state": "closed",
+    "goal": "Dashboard performance and sharing"
+  },
+  {
+    "sprint_id": "SPR-2026-04",
+    "name": "2026 Sprint 4",
+    "start_date": "2026-02-16",
+    "end_date": "2026-03-01",
+    "state": "closed",
+    "goal": "Billing accuracy and invoicing polish"
+  },
+  {
+    "sprint_id": "SPR-2026-05",
+    "name": "2026 Sprint 5",
+    "start_date": "2026-03-02",
+    "end_date": "2026-03-15",
+    "state": "closed",
+    "goal": "Ingestion reliability and consumer observability"
+  },
+  {
+    "sprint_id": "SPR-2026-06",
+    "name": "2026 Sprint 6",
+    "start_date": "2026-03-16",
+    "end_date": "2026-03-29",
+    "state": "closed",
+    "goal": "Incident follow-ups and tech debt"
+  },
+  {
+    "sprint_id": "SPR-2026-07",
+    "name": "2026 Sprint 7",
+    "start_date": "2026-03-30",
+    "end_date": "2026-04-12",
+    "state": "closed",
+    "goal": "Auth hardening and SSO edge cases"
+  },
+  {
+    "sprint_id": "SPR-2026-08",
+    "name": "2026 Sprint 8",
+    "start_date": "2026-04-13",
+    "end_date": "2026-04-26",
+    "state": "closed",
+    "goal": "Ingestion reliability and consumer observability"
+  },
+  {
+    "sprint_id": "SPR-2026-09",
+    "name": "2026 Sprint 9",
+    "start_date": "2026-04-27",
+    "end_date": "2026-05-10",
+    "state": "closed",
+    "goal": "Incident follow-ups and tech debt"
+  },
+  {
+    "sprint_id": "SPR-2026-10",
+    "name": "2026 Sprint 10",
+    "start_date": "2026-05-11",
+    "end_date": "2026-05-24",
+    "state": "closed",
+    "goal": "Billing accuracy and invoicing polish"
+  },
+  {
+    "sprint_id": "SPR-2026-11",
+    "name": "2026 Sprint 11",
+    "start_date": "2026-05-25",
+    "end_date": "2026-06-07",
+    "state": "closed",
+    "goal": "Ingestion reliability and consumer observability"
+  },
+  {
+    "sprint_id": "SPR-2026-12",
+    "name": "2026 Sprint 12",
+    "start_date": "2026-06-08",
+    "end_date": "2026-06-21",
+    "state": "active",
+    "goal": "Incident follow-ups and tech debt"
+  }
+]

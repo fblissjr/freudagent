@@ -1,0 +1,35 @@
+ACME ANALYTICS -- DATA RETENTION POLICY
+Version 3.2 (approved 2026-02-19)
+Owner: security & compliance working group
+
+1. SCOPE
+This policy covers customer event data and derived aggregates processed by
+Acme Analytics on behalf of customers. It does not cover Acme's own
+corporate records.
+
+2. RAW EVENTS
+2.1 Hot storage. Raw events are retained in hot storage for 90 days from
+    ingestion, where they support reprocessing, dedup-window corrections,
+    and incident replay.
+2.2 Cold storage. After the hot tier, raw events move to cold object
+    storage for a further 305 days.
+2.3 Total raw-event retention is therefore 395 days from ingestion, after
+    which raw events are permanently deleted on a rolling basis.
+
+3. AGGREGATES
+Daily and monthly usage aggregates are retained for 25 months to support
+year-over-year reporting, after which they are deleted or irreversibly
+de-identified.
+
+4. DELETION ON REQUEST
+Customer-initiated deletion requests are honored within 30 days across both
+storage tiers and verified by deletion certificates on enterprise plans.
+
+5. BACKUPS
+Encrypted backups expire on a 35-day cycle. Data deleted under section 4
+ages out of backups within that cycle; backups are never restored in a way
+that resurrects deleted customer data.
+
+6. EXCEPTIONS
+Legal holds suspend deletion for named accounts only, require sign-off from
+counsel, and are reviewed quarterly.

@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.27.0
+
+The public synthetic corpus: a committed, all-fictional dataset under
+`data/synthetic/` for developing and evaluating the flywheel (and the
+eventual human surfaces over post-agent-processed data) without touching
+the private warehouse. No schema change.
+
+### Added
+
+- `data/synthetic/` -- 35 files, ~646 KiB, one coherent scenario (a
+  fictional B2B usage-analytics SaaS, 2026-01-05 to 2026-06-30) spanning:
+  issue-tracker and helpdesk SaaS exports (JSON/JSONL with comment and
+  message threads), CRM CSVs, wiki-style knowledge-base pages (markdown +
+  frontmatter), a relational OLTP extract (DDL + 4 CSVs incl. a 2,250-row
+  usage fact), human feedback (CSAT CSV, NPS JSONL, and
+  `annotation_corrections.jsonl` typed to the `CorrectionType` taxonomy),
+  unstructured streams (team chat JSONL, a gateway log, `.eml` emails,
+  call transcripts), and two generic JSONL event streams shaped for
+  `freud-schema ingest events`. A cross-source incident narrative
+  (INC-2026-0311) threads through logs, chat, issues, tickets, invoices,
+  usage, events, a postmortem, and NPS -- ground truth for multi-source
+  reasoning evals. Planted extraction traps (deprecated limits table,
+  split retention tiers) pair with the corrections file. `MANIFEST.json`
+  is the machine-readable inventory.
+- `scripts/generate_synthetic_data.py` -- deterministic generator for the
+  structured/volume files (fixed seed, fixed dates, no wall-clock reads;
+  byte-identical re-runs). Hand-authored documents are left untouched and
+  re-inventoried into the manifest.
+- `tests/test_synthetic_data.py` -- corpus guards: generator determinism,
+  manifest/disk parity, cross-source reference integrity, incident
+  anchors, and end-to-end idempotent ingest of the event streams through
+  `ingest_events`.
+- `.gitignore` note marking `data/synthetic/` as the public exception to
+  the private-data defaults.
+
 ## 0.26.0
 
 M5 of the enterprise-scale implementation plan: the generic event grain and

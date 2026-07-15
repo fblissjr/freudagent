@@ -1,0 +1,26 @@
+customer_id,account_id,company_name,billing_email,country,created_at
+1,ACCT-1001,Bluewater Logistics,billing@bluewater-logistics.example,US,2023-04-26 00:00:00
+2,ACCT-1002,Kestrel Health,billing@kestrel-health.example,CA,2023-09-10 00:00:00
+3,ACCT-1003,Orchard Retail Group,billing@orchard-retail-group.example,CA,2023-06-16 00:00:00
+4,ACCT-1004,Nimbus Media,billing@nimbus-media.example,US,2023-04-12 00:00:00
+5,ACCT-1005,Ferrostar Manufacturing,billing@ferrostar-manufacturing.example,NL,2025-07-30 00:00:00
+6,ACCT-1006,Pinewood Insurance,billing@pinewood-insurance.example,US,2025-04-06 00:00:00
+7,ACCT-1007,Cobalt Games,billing@cobalt-games.example,US,2024-01-20 00:00:00
+8,ACCT-1008,Harborview Hospitality,billing@harborview-hospitality.example,GB,2024-03-28 00:00:00
+9,ACCT-1009,Quill & Sable Publishing,billing@quill-sable-publishing.example,DE,2024-07-03 00:00:00
+10,ACCT-1010,Redwood Robotics,billing@redwood-robotics.example,US,2025-10-22 00:00:00
+11,ACCT-1011,Atlas Freight,billing@atlas-freight.example,DE,2024-09-11 00:00:00
+12,ACCT-1012,Meridian Energy,billing@meridian-energy.example,US,2023-09-29 00:00:00
+13,ACCT-1013,Sable Financial,billing@sable-financial.example,AU,2023-08-14 00:00:00
+14,ACCT-1014,Larkspur Biotech,billing@larkspur-biotech.example,GB,2024-01-13 00:00:00
+15,ACCT-1015,Copperline Telecom,billing@copperline-telecom.example,CA,2023-04-27 00:00:00
+16,ACCT-1016,Juniper Foods,billing@juniper-foods.example,US,2023-04-05 00:00:00
+17,ACCT-1017,Vantage Legal,billing@vantage-legal.example,AU,2023-06-06 00:00:00
+18,ACCT-1018,Brightwater Utilities,billing@brightwater-utilities.example,US,2024-12-12 00:00:00
+19,ACCT-1019,Stonebridge Construction,billing@stonebridge-construction.example,SE,2023-07-15 00:00:00
+20,ACCT-1020,Halcyon Travel,billing@halcyon-travel.example,NL,2025-02-22 00:00:00
+21,ACCT-1021,Verdant Agritech,billing@verdant-agritech.example,JP,2025-05-20 00:00:00
+22,ACCT-1022,Northgate Security,billing@northgate-security.example,DE,2025-07-14 00:00:00
+23,ACCT-1023,Lumen Cinemas,billing@lumen-cinemas.example,US,2024-12-13 00:00:00
+24,ACCT-1024,Cascadia Outfitters,billing@cascadia-outfitters.example,SE,2025-11-04 00:00:00
+25,ACCT-1025,Ironwood Furniture,billing@ironwood-furniture.example,AU,2025-06-12 00:00:00
