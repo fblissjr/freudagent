@@ -1,0 +1,139 @@
+asset_id,asset_type,model,serial_number,assigned_to_employee_id,purchase_order_id,purchased_date,status,warranty_end
+AST-1001,laptop,Corvid Book 16,SN-c4aedbe0,EMP-1001,,2022-03-02,in_use,2025-03-01
+AST-1002,laptop,Corvid Book 14,SN-64b17f70,EMP-1002,,2022-09-13,in_use,2025-09-12
+AST-1005,laptop,Corvid Book 14,SN-2ce5f4f2,EMP-1003,,2022-06-08,in_use,2025-06-07
+AST-1006,laptop,Corvid Book 14,SN-6b39c1a8,EMP-1004,,2023-01-19,in_use,2026-01-18
+AST-1007,laptop,Corvid Book 14,SN-6e49962e,EMP-1005,,2022-11-08,in_use,2025-11-07
+AST-1009,laptop,Corvid Book 14,SN-14fd55b6,EMP-1006,,2023-05-26,in_use,2026-05-25
+AST-1016,laptop,Corvid Book 16,SN-9a1ea9a0,EMP-1007,,2024-02-07,in_use,2027-02-06
+AST-1019,laptop,Corvid Book 16,SN-b5c901e9,EMP-1008,,2023-03-13,in_use,2026-03-12
+AST-1023,laptop,Corvid Book 14,SN-f5d6fcd9,EMP-1009,,2023-09-01,in_use,2026-08-31
+AST-1024,laptop,Corvid Book 14,SN-6c14741e,EMP-1010,,2023-04-05,in_use,2026-04-04
+AST-1025,laptop,Corvid Book 14,SN-9e49b5b4,EMP-1011,,2023-10-12,in_use,2026-10-11
+AST-1026,laptop,Corvid Book 14,SN-58acc9ed,EMP-1012,,2024-01-19,in_use,2027-01-18
+AST-1027,laptop,Corvid Book 14,SN-3b9d24f2,EMP-1013,,2024-05-20,in_use,2027-05-20
+AST-1031,laptop,Corvid Book 14,SN-ef3d9911,EMP-1014,,2023-07-21,in_use,2026-07-20
+AST-1033,laptop,Corvid Book 14,SN-84d3a4bf,EMP-1015,,2023-09-05,in_use,2026-09-04
+AST-1034,laptop,Corvid Book 16,SN-b735bd78,EMP-1016,,2024-08-12,in_use,2027-08-12
+AST-1035,laptop,Corvid Book 16,SN-d063d209,EMP-1017,,2023-11-27,in_use,2026-11-26
+AST-1037,laptop,Corvid Book 14,SN-75580a94,EMP-1018,,2024-03-04,in_use,2027-03-04
+AST-1038,laptop,Corvid Book 14,SN-576b6145,EMP-1019,,2024-06-12,in_use,2027-06-12
+AST-1040,laptop,Corvid Book 16,SN-54c3ea6a,EMP-1020,,2024-09-27,in_use,2027-09-27
+AST-1041,laptop,Corvid Book 16,SN-e31c132d,EMP-1021,,2025-01-08,in_use,2028-01-08
+AST-1043,laptop,Corvid Book 14,SN-2a39dba8,EMP-1022,,2026-01-25,in_use,2029-01-24
+AST-1044,laptop,Corvid Book 16,SN-d21137e8,EMP-1023,,2024-02-18,in_use,2027-02-17
+AST-1045,laptop,Corvid Book 14,SN-b028233d,EMP-1025,,2024-11-20,in_use,2027-11-20
+AST-1047,laptop,Corvid Book 14,SN-3e69f49e,EMP-1026,,2023-06-07,in_use,2026-06-06
+AST-1052,laptop,Corvid Book 14,SN-9ed49c89,EMP-1028,,2024-07-12,in_use,2027-07-12
+AST-1055,laptop,Corvid Book 14,SN-0682fd21,EMP-1029,,2026-03-02,in_use,2029-03-01
+AST-1058,laptop,Corvid Book 14,SN-4282b7c7,EMP-1030,,2024-04-10,in_use,2027-04-10
+AST-1062,laptop,Corvid Book 14,SN-a13e7d8e,EMP-1031,,2023-12-14,in_use,2026-12-13
+AST-1064,laptop,Corvid Book 16,SN-dff728d4,EMP-1033,,2025-05-24,in_use,2028-05-23
+AST-1065,laptop,Corvid Book 16,SN-0a847589,EMP-1034,,2023-07-19,in_use,2026-07-18
+AST-1066,laptop,Corvid Book 16,SN-dc458c2c,EMP-1036,,2025-08-09,in_use,2028-08-08
+AST-1067,laptop,Corvid Book 14,SN-8bd35442,EMP-1037,,2024-11-08,in_use,2027-11-08
+AST-1068,laptop,Corvid Book 14,SN-6c268702,EMP-1038,,2022-04-09,in_use,2025-04-08
+AST-1069,laptop,Corvid Book 14,SN-5efd965d,EMP-1039,,2022-08-09,in_use,2025-08-08
+AST-1070,laptop,Corvid Book 14,SN-5ad848dd,EMP-1040,,2023-08-09,in_use,2026-08-08
+AST-1071,laptop,Corvid Book 14,SN-3dd0da08,EMP-1043,,2023-10-08,in_use,2026-10-07
+AST-1072,laptop,Corvid Book 14,SN-a814eab0,EMP-1045,,2022-11-02,in_use,2025-11-01
+AST-1073,laptop,Corvid Book 14,SN-4a74deb3,EMP-1046,,2025-06-22,in_use,2028-06-21
+AST-1074,laptop,Corvid Book 14,SN-0a39f144,EMP-1047,,2022-06-21,in_use,2025-06-20
+AST-1075,laptop,Corvid Book 14,SN-49221bfa,EMP-1048,,2025-12-31,in_use,2028-12-30
+AST-1077,laptop,Corvid Book 14,SN-75d6f601,,,2025-08-01,stock,2028-07-31
+AST-1078,laptop,Corvid Book 16,SN-f8ada435,EMP-1050,,2024-11-09,in_use,2027-11-09
+AST-1079,laptop,Corvid Book 14,SN-3b898119,EMP-1051,,2026-04-13,in_use,2029-04-12
+AST-1083,laptop,Corvid Book 16,SN-a779e708,EMP-1052,,2026-02-03,in_use,2029-02-02
+AST-1084,laptop,Corvid Book 14,SN-0573fe5d,EMP-1054,,2025-07-04,in_use,2028-07-03
+AST-1085,laptop,Corvid Book 14,SN-8ad5202a,EMP-1055,,2023-02-16,in_use,2026-02-15
+AST-1086,laptop,Corvid Book 16,SN-01cdfc7d,EMP-1056,,2024-08-12,in_use,2027-08-12
+AST-1092,laptop,Corvid Book 14,SN-3418ed34,EMP-1057,,2022-07-13,in_use,2025-07-12
+AST-1093,laptop,Corvid Book 16,SN-3fcf1fe4,EMP-1058,,2025-03-05,in_use,2028-03-04
+AST-1095,laptop,Corvid Book 14,SN-ee315039,EMP-1060,,2026-04-29,in_use,2029-04-28
+AST-1096,laptop,Corvid Book 16,SN-818f7210,EMP-1061,,2025-11-29,in_use,2028-11-28
+AST-1097,laptop,Corvid Book 16,SN-659e3b81,EMP-1062,,2026-01-12,in_use,2029-01-11
+AST-1101,laptop,Corvid Book 14,SN-c534a059,EMP-1063,,2026-02-11,in_use,2029-02-10
+AST-1104,laptop,Corvid Book 16,SN-f9a7e405,EMP-1064,,2024-08-30,in_use,2027-08-30
+AST-1106,laptop,Corvid Book 16,SN-067e4909,EMP-1066,,2024-06-30,in_use,2027-06-30
+AST-1110,laptop,Corvid Book 16,SN-7f0d19b3,EMP-1067,,2022-04-10,in_use,2025-04-09
+AST-1112,laptop,Corvid Book 16,SN-89d03007,EMP-1068,,2025-07-22,in_use,2028-07-21
+AST-1114,laptop,Corvid Book 16,SN-ae8084d5,EMP-1070,,2023-09-10,in_use,2026-09-09
+AST-1117,laptop,Corvid Book 16,SN-69ff6474,EMP-1071,,2026-01-17,in_use,2029-01-16
+AST-1118,laptop,Corvid Book 16,SN-a722dee6,EMP-1072,,2023-12-04,in_use,2026-12-03
+AST-1121,laptop,Corvid Book 16,SN-6bab5dd1,EMP-1073,,2024-10-12,in_use,2027-10-12
+AST-1122,laptop,Corvid Book 16,SN-0465949b,EMP-1074,,2026-01-16,in_use,2029-01-15
+AST-1123,laptop,Corvid Book 14,SN-792fb937,EMP-1075,,2024-03-19,in_use,2027-03-19
+AST-1124,laptop,Corvid Book 14,SN-b4012670,EMP-1077,,2023-11-14,in_use,2026-11-13
+AST-1126,laptop,Corvid Book 16,SN-3c207d06,EMP-1078,,2022-06-14,in_use,2025-06-13
+AST-1128,laptop,Corvid Book 14,SN-56fbea32,EMP-1079,,2024-01-18,in_use,2027-01-17
+AST-1132,laptop,Corvid Book 16,SN-89c8ce0d,EMP-1080,,2023-04-22,in_use,2026-04-21
+AST-1136,laptop,Corvid Book 14,SN-f46ad848,EMP-1081,,2026-03-11,in_use,2029-03-10
+AST-1138,laptop,Corvid Book 16,SN-8b28ebde,EMP-1082,,2026-01-07,in_use,2029-01-06
+AST-1140,laptop,Corvid Book 14,SN-a1813ff2,EMP-1083,,2022-10-26,in_use,2025-10-25
+AST-1144,laptop,Corvid Book 14,SN-1e18f57c,EMP-1084,,2023-06-13,in_use,2026-06-12
+AST-1145,laptop,Corvid Book 14,SN-a28834a6,EMP-1085,,2025-08-30,in_use,2028-08-29
+AST-1148,laptop,Corvid Book 16,SN-435a1ce2,EMP-1086,,2022-07-09,in_use,2025-07-08
+AST-1149,laptop,Corvid Book 16,SN-99eb0d0f,EMP-1087,,2022-05-05,in_use,2025-05-04
+AST-1150,laptop,Corvid Book 14,SN-92fec085,EMP-1088,,2023-12-11,in_use,2026-12-10
+AST-1155,laptop,Corvid Book 16,SN-b1837b18,EMP-1089,,2024-07-24,in_use,2027-07-24
+AST-1157,laptop,Corvid Book 14,SN-2a6d2bfd,EMP-1092,,2024-01-09,in_use,2027-01-08
+AST-1164,laptop,Corvid Book 14,SN-c9db02a8,EMP-1093,,2024-07-31,in_use,2027-07-31
+AST-1165,laptop,Corvid Book 14,SN-e9027b87,EMP-1094,,2023-07-08,in_use,2026-07-07
+AST-1166,laptop,Corvid Book 16,SN-88a5a2c3,EMP-1095,,2026-02-05,in_use,2029-02-04
+AST-1167,laptop,Corvid Book 16,SN-bd94853f,EMP-1096,,2023-07-10,in_use,2026-07-09
+AST-1168,laptop,Corvid Book 14,SN-722ccfef,EMP-1097,,2025-01-22,in_use,2028-01-22
+AST-1173,laptop,Corvid Book 16,SN-31a7169e,EMP-1098,,2025-10-23,in_use,2028-10-22
+AST-1175,laptop,Corvid Book 16,SN-e8cc95dc,EMP-1100,,2025-05-05,in_use,2028-05-04
+AST-1176,laptop,Corvid Book 16,SN-a0a2eb69,EMP-1101,,2024-05-11,in_use,2027-05-11
+AST-1177,laptop,Corvid Book 14,SN-e106b5c5,EMP-1102,,2023-01-27,in_use,2026-01-26
+AST-1178,laptop,Corvid Book 16,SN-b36600c6,EMP-1103,,2024-04-04,in_use,2027-04-04
+AST-1181,laptop,Corvid Book 16,SN-f3f7ed53,EMP-1105,,2024-03-17,in_use,2027-03-17
+AST-1182,laptop,Corvid Book 16,SN-abb4c9bf,EMP-1108,,2022-06-05,in_use,2025-06-04
+AST-1184,laptop,Corvid Book 16,SN-3c613483,EMP-1109,,2025-07-26,in_use,2028-07-25
+AST-1185,laptop,Corvid Book 14,SN-8a96db61,EMP-1110,,2025-12-24,in_use,2028-12-23
+AST-1190,laptop,Corvid Book 14,SN-8438925e,EMP-1111,,2022-04-28,in_use,2025-04-27
+AST-1195,laptop,Corvid Book 14,SN-eb58b10a,EMP-1112,,2023-08-18,in_use,2026-08-17
+AST-1197,laptop,Corvid Book 14,SN-7efc7013,EMP-1113,,2022-11-28,in_use,2025-11-27
+AST-1198,laptop,Corvid Book 14,SN-c3a9c609,EMP-1114,,2024-02-02,in_use,2027-02-01
+AST-1203,laptop,Corvid Book 16,SN-8a4d7dcc,EMP-1116,,2024-05-21,in_use,2027-05-21
+AST-1204,laptop,Corvid Book 16,SN-454755a2,EMP-1117,,2024-05-05,in_use,2027-05-05
+AST-1205,laptop,Corvid Book 14,SN-234711c1,EMP-1118,,2023-01-23,in_use,2026-01-22
+AST-1206,laptop,Corvid Book 16,SN-c4206867,EMP-1119,,2023-09-05,in_use,2026-09-04
+AST-1207,laptop,Corvid Book 16,SN-1e66003d,EMP-1120,,2024-12-08,in_use,2027-12-08
+AST-1215,laptop,Corvid Book 14,SN-d3d73574,EMP-1121,,2025-09-19,in_use,2028-09-18
+AST-1216,laptop,Corvid Book 16,SN-a1467c71,EMP-1122,,2023-07-29,in_use,2026-07-28
+AST-1222,laptop,Corvid Book 16,SN-85b23a49,EMP-1123,,2026-01-05,in_use,2029-01-04
+AST-1225,laptop,Corvid Book 14,SN-be6b5a58,EMP-1125,,2022-07-13,in_use,2025-07-12
+AST-1226,laptop,Corvid Book 16,SN-7d4b39be,EMP-1126,,2023-07-21,in_use,2026-07-20
+AST-1227,laptop,Corvid Book 16,SN-a1e326d3,EMP-1127,,2025-12-12,in_use,2028-12-11
+AST-1228,laptop,Corvid Book 16,SN-d438aa57,EMP-1128,,2025-03-29,in_use,2028-03-28
+AST-1230,laptop,Corvid Book 16,SN-8ab5f4cf,EMP-1129,,2022-09-24,in_use,2025-09-23
+AST-1233,laptop,Corvid Book 14,SN-dea5b292,EMP-1130,,2024-08-03,in_use,2027-08-03
+AST-1236,laptop,Corvid Book 14,SN-84b9fb91,EMP-1131,,2023-12-16,in_use,2026-12-15
+AST-1238,laptop,Corvid Book 16,SN-d80f456c,EMP-1132,,2022-04-05,in_use,2025-04-04
+AST-1239,laptop,Corvid Book 14,SN-5efda17f,EMP-1134,,2025-05-25,in_use,2028-05-24
+AST-1246,laptop,Corvid Book 16,SN-4a6da3bb,EMP-1136,,2025-06-05,in_use,2028-06-04
+AST-1247,laptop,Corvid Book 14,SN-f24ae330,EMP-1137,,2023-08-04,in_use,2026-08-03
+AST-1254,laptop,Corvid Book 16,SN-8ed6fb58,EMP-1138,,2023-03-19,in_use,2026-03-18
+AST-1256,laptop,Corvid Book 16,SN-2f211420,EMP-1139,,2025-05-12,in_use,2028-05-11
+AST-1259,laptop,Corvid Book 14,SN-86db6245,EMP-1140,,2023-01-14,in_use,2026-01-13
+AST-1260,laptop,Corvid Book 14,SN-ecdb387d,,,2026-02-28,retired,2029-02-27
+AST-1262,laptop,Corvid Book 14,SN-8cf168fa,,,2024-12-18,retired,2027-12-18
+AST-1264,monitor,Vistapane 27,SN-7146effd,,,2022-08-03,retired,2025-08-02
+AST-1267,monitor,Vistapane 27,SN-2651f446,,,2023-06-08,retired,2026-06-07
+AST-1268,monitor,Vistapane 27,SN-2ee2444f,,,2022-06-18,stock,2025-06-17
+AST-1269,monitor,Vistapane 27,SN-c2f7792a,,,2024-07-04,stock,2027-07-04
+AST-1270,laptop,Corvid Book 16,SN-5b17c76c,,,2026-03-20,stock,2029-03-19
+AST-1271,monitor,Vistapane 27,SN-082a608f,,,2024-05-23,stock,2027-05-23
+AST-1272,laptop,Corvid Book 16,SN-99ee5fc9,,,2023-01-11,stock,2026-01-10
+AST-1273,monitor,Vistapane 27,SN-af3d618f,,,2025-08-04,stock,2028-08-03
+AST-1274,monitor,Vistapane 27,SN-e6cbc2eb,,,2024-07-16,stock,2027-07-16
+AST-1275,monitor,Vistapane 27,SN-a619c726,,,2023-10-11,retired,2026-10-10
+AST-1278,dock,Corvid Dock D2,SN-5a306031,,,2025-06-26,stock,2028-06-25
+AST-1282,monitor,Vistapane 27,SN-9c705fca,,,2023-02-24,retired,2026-02-23
+AST-1287,phone,Slatestone S3,SN-c229c408,,,2024-07-26,stock,2027-07-26
+AST-1289,laptop,Corvid Book 14,SN-e593610c,EMP-1107,PO-2026-041,2026-05-04,in_use,2029-05-03
+AST-1290,monitor,Vistapane 27,SN-85a205ac,,,2026-04-02,stock,2029-04-01
+AST-1291,laptop,Corvid Book 14,SN-fd30c309,,,2024-02-25,retired,2027-02-24
+AST-1293,laptop,Corvid Book 16,SN-ee299b85,,,2024-04-04,stock,2027-04-04
+AST-1296,phone,Slatestone S3,SN-8aa9abd4,,,2024-09-09,stock,2027-09-09

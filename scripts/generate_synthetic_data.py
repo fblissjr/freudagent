@@ -28,7 +28,7 @@ from __future__ import annotations
 import argparse
 import csv
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import orjson
@@ -1143,6 +1143,1153 @@ def write_events(out: Path, rng: random.Random, accounts: list[dict]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Internal enterprise applications (HRIS / ITSM / finance / IAM / security /
+# recruiting) for the same fictional company. A FRESH, independently seeded
+# RNG is used here so these draws never perturb the public-corpus outputs
+# above -- everything under write_internal() is additive.
+# ---------------------------------------------------------------------------
+
+INTERNAL_SEED = 20260312
+WINDOW_START = date(2026, 1, 5)
+WINDOW_END = date(2026, 6, 30)
+
+# (employee_id, full_name, title, department, team, manager, hire_date,
+#  status, termination_date) -- exact HRIS anchors.
+_PINNED_EMPLOYEES = [
+    ("EMP-1001", "Renata Voss", "CEO", "Executive", "executive", "", "2022-03-01", "active", ""),
+    ("EMP-1002", "Grace Adeyemi", "CFO", "Finance", "finance", "EMP-1001", "2022-09-12", "active", ""),
+    ("EMP-1003", "Johan Brandt", "VP Engineering", "Engineering", "engineering", "EMP-1001", "2022-06-06", "active", ""),
+    ("EMP-1004", "Maya Kaplan", "VP People", "People", "people", "EMP-1001", "2023-01-16", "active", ""),
+    ("EMP-1005", "Diego Fuentes", "Head of IT", "IT", "it", "EMP-1002", "2022-11-07", "active", ""),
+    ("EMP-1006", "Sylvia Ngata", "General Counsel", "Legal & Compliance", "legal", "EMP-1001", "2023-05-22", "active", ""),
+    ("EMP-1007", "Ravi Chandran", "Security Engineer", "Security", "security", "EMP-1005", "2024-02-05", "active", ""),
+    ("EMP-1008", "Nora Vasquez", "VP Customer Experience", "Customer Experience", "customer-experience", "EMP-1001", "2023-03-13", "active", ""),
+    ("EMP-1009", "Theo Marchand", "VP Sales", "Sales", "sales", "EMP-1001", "2023-08-28", "active", ""),
+    ("EMP-1010", "Priya Raghavan", "Engineering Manager", "Engineering", "platform", "EMP-1003", "2023-04-03", "active", ""),
+    ("EMP-1011", "Marcus Webb", "Senior Backend Engineer", "Engineering", "platform", "EMP-1010", "2023-10-09", "active", ""),
+    ("EMP-1012", "Elena Sokolova", "Data Engineer", "Engineering", "pipeline", "EMP-1010", "2024-01-15", "active", ""),
+    ("EMP-1013", "Dana Kim", "Frontend Engineer", "Engineering", "platform", "EMP-1010", "2024-05-20", "active", ""),
+    ("EMP-1014", "Tom Alvarez", "Site Reliability Engineer", "Engineering", "infra", "EMP-1010", "2023-07-17", "active", ""),
+    ("EMP-1015", "Yuki Tanaka", "Support Lead", "Customer Experience", "support", "EMP-1008", "2023-09-04", "active", ""),
+    ("EMP-1016", "Sam Osei", "Support Engineer", "Customer Experience", "support", "EMP-1015", "2024-08-12", "active", ""),
+    ("EMP-1017", "Ingrid Bauer", "Product Manager", "Product", "product", "EMP-1001", "2023-11-27", "active", ""),
+    ("EMP-1018", "Carlos Mendes", "Customer Success Manager", "Customer Experience", "success", "EMP-1008", "2024-03-04", "active", ""),
+    ("EMP-1019", "Aisha Diallo", "Account Executive", "Sales", "sales", "EMP-1009", "2024-06-10", "active", ""),
+    ("EMP-1020", "Noah Lindqvist", "Data Engineer", "Engineering", "pipeline", "EMP-1010", "2024-09-23", "active", ""),
+    ("EMP-1021", "Fatima al-Rashid", "QA Engineer", "Engineering", "platform", "EMP-1010", "2025-01-06", "active", ""),
+    ("EMP-1030", "Omar Haddad", "IT Support Specialist", "IT", "it", "EMP-1005", "2024-04-08", "active", ""),
+    ("EMP-1031", "Lena Fischer", "IT Systems Engineer", "IT", "it", "EMP-1005", "2023-12-11", "active", ""),
+    ("EMP-1042", "Derek Mun", "Sales Development Representative", "Sales", "sales", "EMP-1009", "2025-08-04", "terminated", "2026-03-31"),
+    ("EMP-1107", "Talia Reyes", "Data Engineer", "Engineering", "pipeline", "EMP-1010", "2026-05-11", "active", ""),
+]
+
+_DEPT_LEADER = {
+    "Executive": "EMP-1001", "Finance": "EMP-1002", "Engineering": "EMP-1003",
+    "People": "EMP-1004", "IT": "EMP-1005", "Legal & Compliance": "EMP-1006",
+    "Security": "EMP-1007", "Customer Experience": "EMP-1008", "Sales": "EMP-1009",
+    "Product": "EMP-1017",
+}
+
+# Department head-count targets for the generated remainder (~99 people).
+_DEPT_COUNTS = [
+    ("Engineering", 35), ("Sales", 15), ("Customer Experience", 15),
+    ("Product", 6), ("Marketing", 8), ("Finance", 6), ("People", 5),
+    ("IT", 4), ("Legal & Compliance", 2), ("Security", 3),
+]
+
+# (title, salary_band) pools per department for generated ICs.
+_TITLES = {
+    "Engineering": [("Backend Engineer", "B3"), ("Frontend Engineer", "B3"),
+                    ("Data Engineer", "B3"), ("Senior Backend Engineer", "B4"),
+                    ("Senior Frontend Engineer", "B4"), ("Site Reliability Engineer", "B3"),
+                    ("QA Engineer", "B2"), ("Staff Engineer", "B4"),
+                    ("Machine Learning Engineer", "B4"), ("Platform Engineer", "B3")],
+    "Sales": [("Account Executive", "B3"), ("Sales Development Representative", "B2"),
+              ("Senior Account Executive", "B4"), ("Sales Engineer", "B3")],
+    "Customer Experience": [("Support Engineer", "B2"), ("Customer Success Manager", "B3"),
+                            ("Senior Support Engineer", "B3"), ("Onboarding Specialist", "B2")],
+    "Product": [("Product Manager", "B4"), ("Senior Product Manager", "B4"),
+                ("Product Designer", "B3"), ("UX Researcher", "B3")],
+    "Marketing": [("Marketing Manager", "B3"), ("Content Strategist", "B2"),
+                  ("Demand Generation Specialist", "B3"),
+                  ("Product Marketing Manager", "B4"), ("Marketing Coordinator", "B1")],
+    "Finance": [("Financial Analyst", "B3"), ("Accountant", "B2"),
+                ("Senior Financial Analyst", "B4"), ("Accounts Payable Specialist", "B1")],
+    "People": [("Recruiter", "B2"), ("People Operations Specialist", "B2"),
+               ("HR Business Partner", "B3"), ("Talent Acquisition Lead", "B3")],
+    "IT": [("IT Support Specialist", "B2"), ("IT Systems Engineer", "B3"),
+           ("IT Administrator", "B2")],
+    "Legal & Compliance": [("Compliance Analyst", "B3"), ("Corporate Counsel", "B4")],
+    "Security": [("Security Analyst", "B3"), ("Security Engineer", "B3"),
+                 ("Security Operations Analyst", "B3")],
+}
+
+_FIRST_NAMES = [
+    "Aaron", "Bianca", "Cedric", "Dahlia", "Emilio", "Farah", "Gustavo", "Hana",
+    "Idris", "Juno", "Kai", "Liora", "Mateo", "Nadine", "Oscar", "Petra",
+    "Quentin", "Rosa", "Selim", "Tara", "Ulric", "Vera", "Wesley", "Ximena",
+    "Yara", "Zane", "Anika", "Bruno", "Celeste", "Darius", "Esme", "Felipe",
+    "Greta", "Hugo", "Imani", "Jasper", "Kira", "Lorenzo", "Mira", "Niko",
+    "Ophelia", "Pablo", "Rania", "Sven", "Thea", "Uma", "Viktor", "Wanda",
+    "Yusuf", "Zoe",
+]
+_LAST_NAMES = [
+    "Abara", "Bellini", "Cho", "Dvorak", "Engberg", "Falk", "Gutierrez",
+    "Halloran", "Ibsen", "Jansen", "Kovac", "Larsen", "Mistry", "Novak",
+    "Oyelaran", "Pereira", "Quist", "Rasmussen", "Sato", "Thorne", "Ustinov",
+    "Varga", "Wilder", "Xu", "Yamada", "Zielinski", "Ashby", "Bourne",
+    "Castellano", "Derevko", "Eberhardt", "Finlay", "Grimaldi", "Haas",
+    "Ishikawa", "Jovergaard", "Lindholm", "Moreau", "Nunez", "Ortega",
+    "Pryce", "Rourke", "Sandoval", "Tremblay", "Ueno", "Vasilenko",
+    "Whitlock", "Yoon", "Zabel",
+]
+
+_BAND_RANGE = {"B1": (60000, 82000), "B2": (78000, 112000), "B3": (105000, 150000),
+               "B4": (150000, 205000), "B5": (190000, 285000)}
+
+
+def _d(s: str) -> date:
+    return datetime.strptime(s, "%Y-%m-%d").date()
+
+
+def _localpart(full_name: str) -> str:
+    parts = full_name.split()
+    first = parts[0].lower()
+    last = "".join(c for c in "".join(parts[1:]).lower() if c.isalnum())
+    return f"{first}.{last}"
+
+
+def _band_for_title(title: str) -> str:
+    t = title.lower()
+    if "ceo" in t:
+        return "B5"
+    if t == "cfo" or "vp " in t or "general counsel" in t or "head of" in t or "chief" in t:
+        return "B5"
+    if "senior" in t or "director" in t or "principal" in t or "staff" in t:
+        return "B4"
+    if "success manager" in t:
+        return "B3"
+    if "manager" in t or "lead" in t:
+        return "B4"
+    if ("support" in t or "representative" in t or t.startswith("qa")
+            or "specialist" in t or "coordinator" in t or "associate" in t):
+        return "B2"
+    return "B3"
+
+
+def _salary(rng: random.Random, band: str, title: str) -> int:
+    if "ceo" in title.lower():
+        return 320000
+    lo, hi = _BAND_RANGE[band]
+    return int(round(rng.uniform(lo, hi) / 1000.0)) * 1000
+
+
+def _team_for(rng: random.Random, dept: str) -> str:
+    if dept == "Engineering":
+        return rng.choice(["platform", "pipeline", "infra"])
+    if dept == "Customer Experience":
+        return rng.choice(["support", "success"])
+    return {"Sales": "sales", "Product": "product", "Marketing": "marketing",
+            "Finance": "finance", "People": "people", "IT": "it",
+            "Legal & Compliance": "legal", "Security": "security"}[dept]
+
+
+def _build_internal_employees(rng: random.Random) -> list[dict]:
+    employees: list[dict] = []
+    used_ids: set[int] = set()
+    used_lp: set[str] = set()
+
+    for (eid, name, title, dept, team, mgr, hire, status, term) in _PINNED_EMPLOYEES:
+        used_ids.add(int(eid.split("-")[1]))
+        lp = _localpart(name)
+        used_lp.add(lp)
+        band = _band_for_title(title)
+        sal = _salary(rng, band, title)
+        loc = rng.choices(["Harbor City HQ", "Remote"], weights=[3, 2])[0]
+        employees.append({
+            "employee_id": eid, "full_name": name,
+            "email": f"{lp}@{COMPANY_DOMAIN}", "department": dept, "team": team,
+            "title": title, "manager_employee_id": mgr, "location": loc,
+            "hire_date": hire, "employment_type": "full_time", "status": status,
+            "termination_date": term, "salary_band": band,
+            "base_salary_usd": sal, "pinned": True,
+        })
+
+    gen_depts: list[str] = []
+    for dept, count in _DEPT_COUNTS:
+        gen_depts.extend([dept] * count)
+    pool_ids = [n for n in range(1022, 1141) if n not in used_ids]
+    gen_ids = sorted(rng.sample(pool_ids, len(gen_depts)))
+
+    generated: list[dict] = []
+    for gid, dept in zip(gen_ids, gen_depts):
+        title, band = rng.choice(_TITLES[dept])
+        while True:
+            lp = f"{rng.choice(_FIRST_NAMES).lower()}.{rng.choice(_LAST_NAMES).lower()}"
+            if lp not in used_lp:
+                break
+        used_lp.add(lp)
+        first, last = (p.capitalize() for p in lp.split("."))
+        name = f"{first} {last}"
+        if dept == "Engineering":
+            mgr = rng.choice(["EMP-1010", "EMP-1003"])
+        elif dept == "Marketing":
+            mgr = "EMP-1001"          # provisional; a marketing head is set below
+        else:
+            mgr = _DEPT_LEADER[dept]
+        hire = rand_dt(rng, datetime(2022, 3, 1, tzinfo=timezone.utc),
+                       datetime(2026, 4, 30, tzinfo=timezone.utc)).date()
+        rec = {
+            "employee_id": f"EMP-{gid}", "full_name": name,
+            "email": f"{lp}@{COMPANY_DOMAIN}", "department": dept,
+            "team": _team_for(rng, dept), "title": title,
+            "manager_employee_id": mgr, "location": rng.choices(
+                ["Harbor City HQ", "Remote"], weights=[3, 2])[0],
+            "hire_date": hire.isoformat(), "employment_type": "full_time",
+            "status": "active", "termination_date": "", "salary_band": band,
+            "base_salary_usd": _salary(rng, band, title), "pinned": False,
+        }
+        generated.append(rec)
+        employees.append(rec)
+
+    # Promote the lowest-id Marketing hire to department head (Marketing has no
+    # pinned leader) and reparent the rest of Marketing under them.
+    mkt = sorted([e for e in generated if e["department"] == "Marketing"],
+                 key=lambda e: e["employee_id"])
+    lead = mkt[0]
+    lead.update({"title": "Head of Marketing", "team": "marketing",
+                 "manager_employee_id": "EMP-1001", "salary_band": "B5",
+                 "base_salary_usd": _salary(rng, "B5", "Head of Marketing")})
+    for e in mkt[1:]:
+        e["manager_employee_id"] = lead["employee_id"]
+
+    # 5 additional terminations among generated ICs hired early enough that a
+    # 2025-06..2026-05 termination sits after their hire. Exclude the head.
+    elig = [e for e in generated
+            if e is not lead and _d(e["hire_date"]) <= _d("2025-03-01")]
+    for e in rng.sample(elig, 5):
+        hire = _d(e["hire_date"])
+        lo = max(_d("2025-06-01"), hire + timedelta(days=150))
+        hi = _d("2026-05-25")
+        term = lo + timedelta(days=rng.randrange((hi - lo).days))
+        e["status"] = "terminated"
+        e["termination_date"] = term.isoformat()
+
+    employees.sort(key=lambda e: int(e["employee_id"].split("-")[1]))
+    return employees
+
+
+def _leader_email_map(employees: list[dict]) -> dict:
+    by_id = {e["employee_id"]: e for e in employees}
+    m = {dept: by_id[eid]["email"] for dept, eid in _DEPT_LEADER.items()}
+    head = next(e for e in employees if e["title"] == "Head of Marketing")
+    m["Marketing"] = head["email"]
+    return m
+
+
+def _write_hris(out: Path, employees: list[dict]) -> None:
+    d = out / "internal" / "hris"
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / "employees.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["employee_id", "full_name", "email", "department", "team",
+                    "title", "manager_employee_id", "location", "hire_date",
+                    "employment_type", "status", "termination_date",
+                    "salary_band", "base_salary_usd"])
+        for e in employees:
+            w.writerow([e["employee_id"], e["full_name"], e["email"],
+                        e["department"], e["team"], e["title"],
+                        e["manager_employee_id"], e["location"], e["hire_date"],
+                        e["employment_type"], e["status"],
+                        e["termination_date"], e["salary_band"],
+                        e["base_salary_usd"]])
+
+
+def _write_pto(out: Path, rng: random.Random, employees: list[dict]) -> None:
+    d = out / "internal" / "hris"
+    eligible = [e for e in employees
+                if e["status"] == "active" and _d(e["hire_date"]) <= _d("2026-06-01")]
+    days_by_type = {"vacation": (1, 10), "sick": (1, 3),
+                    "parental": (5, 15), "bereavement": (2, 4)}
+    with open(d / "pto_requests.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["request_id", "employee_id", "type", "start_date",
+                    "end_date", "days", "status", "submitted_at"])
+        for i in range(150):
+            e = rng.choice(eligible)
+            typ = rng.choices(["vacation", "sick", "parental", "bereavement"],
+                              weights=[6, 3, 1, 1])[0]
+            lo_d, hi_d = days_by_type[typ]
+            days = rng.randint(lo_d, hi_d)
+            lo = max(WINDOW_START, _d(e["hire_date"]) + timedelta(days=7))
+            hi = date(2026, 5, 20)
+            sub = lo + timedelta(days=rng.randrange((hi - lo).days))
+            start = sub + timedelta(days=rng.randint(3, 30))
+            end = start + timedelta(days=max(0, days - 1))
+            submitted = business_hours(datetime(sub.year, sub.month, sub.day,
+                                                rng.randrange(8, 18),
+                                                rng.randrange(60), tzinfo=timezone.utc))
+            w.writerow([f"PTO-{i + 1:04d}", e["employee_id"], typ,
+                        start.isoformat(), end.isoformat(), days,
+                        rng.choices(["approved", "pending", "denied"],
+                                    weights=[8, 1, 1])[0], iso(submitted)])
+
+
+def _build_assets(rng: random.Random, employees: list[dict]) -> list[dict]:
+    active = [e for e in employees if e["status"] == "active"]
+    active_others = [e for e in active if e["employee_id"] != "EMP-1107"]
+    laptop_models = ["Corvid Book 14", "Corvid Book 16"]
+
+    assets: list[dict] = []
+
+    def add(aid, atype, model, assigned, po, purchased, status):
+        assets.append({
+            "asset_id": f"AST-{aid}", "asset_type": atype, "model": model,
+            "serial_number": f"SN-{rng.getrandbits(32):08x}",
+            "assigned_to_employee_id": assigned, "purchase_order_id": po,
+            "purchased_date": purchased.isoformat(), "status": status,
+            "warranty_end": (purchased + timedelta(days=1095)).isoformat(),
+        })
+
+    n_stock = 19
+    pool = [x for x in range(1001, 1301) if x not in (1077, 1289)]
+    ids = sorted(rng.sample(pool, len(active_others) + n_stock))
+    laptop_ids = ids[:len(active_others)]
+    stock_ids = ids[len(active_others):]
+
+    for aid, e in zip(laptop_ids, active_others):
+        hire = _d(e["hire_date"])
+        purchased = max(_d("2022-03-01"), hire + timedelta(days=rng.randint(0, 4)))
+        add(aid, "laptop", rng.choice(laptop_models), e["employee_id"], "",
+            purchased, "in_use")
+
+    for aid in stock_ids:
+        atype = rng.choices(["laptop", "monitor", "phone", "dock"],
+                            weights=[4, 3, 2, 2])[0]
+        model = {"laptop": rng.choice(laptop_models), "monitor": "Vistapane 27",
+                 "phone": "Slatestone S3", "dock": "Corvid Dock D2"}[atype]
+        purchased = rand_dt(rng, datetime(2022, 6, 1, tzinfo=timezone.utc),
+                            datetime(2026, 5, 1, tzinfo=timezone.utc)).date()
+        add(aid, atype, model, "", "",
+            purchased, rng.choices(["stock", "retired"], weights=[3, 2])[0])
+
+    # Anchors.
+    add(1289, "laptop", "Corvid Book 14", "EMP-1107", "PO-2026-041",
+        _d("2026-05-04"), "in_use")
+    add(1077, "laptop", "Corvid Book 14", "", "", _d("2025-08-01"), "stock")
+
+    assets.sort(key=lambda a: int(a["asset_id"].split("-")[1]))
+    return assets
+
+
+def _write_assets(out: Path, assets: list[dict]) -> None:
+    d = out / "internal" / "itsm"
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / "assets.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["asset_id", "asset_type", "model", "serial_number",
+                    "assigned_to_employee_id", "purchase_order_id",
+                    "purchased_date", "status", "warranty_end"])
+        for a in assets:
+            w.writerow([a["asset_id"], a["asset_type"], a["model"],
+                        a["serial_number"], a["assigned_to_employee_id"],
+                        a["purchase_order_id"], a["purchased_date"],
+                        a["status"], a["warranty_end"]])
+
+
+_CHANGE_TITLES = [
+    "Deploy {svc} build {build} to production",
+    "OS patching batch - engineering laptops",
+    "DNS record update for {sub}.acme-analytics.example",
+    "Firewall rule update for {svc}",
+    "SSO configuration update - {app}",
+    "Database index maintenance",
+    "TLS certificate renewal - {sub}",
+    "Rotate service account credentials",
+    "Kubernetes node pool upgrade",
+    "Enable rate limiting on {svc}",
+]
+_CHANGE_IMPLEMENTERS = ["tom.alvarez", "elena.sokolova", "marcus.webb",
+                        "noah.lindqvist", "dana.kim", "lena.fischer", "omar.haddad"]
+_CHANGE_APPROVERS = ["priya.raghavan", "diego.fuentes", "johan.brandt"]
+
+
+def _build_changes(rng: random.Random) -> list[dict]:
+    def em(local):
+        return f"{local}@{COMPANY_DOMAIN}"
+
+    pinned = [
+        {"change_id": "CHG-2026-0018", "title": "API gateway TLS certificate rotation",
+         "change_type": "standard", "risk": "low", "requested_by": em("tom.alvarez"),
+         "implemented_by": em("tom.alvarez"), "approved_by": em("priya.raghavan"),
+         "scheduled_start": "2026-03-05T09:00:00Z", "actual_start": "2026-03-05T09:00:00Z",
+         "actual_end": "2026-03-05T09:35:00Z", "status": "success",
+         "linked_incident": "", "notes": "Certificate rotated on the API gateway; no downtime.",
+         "_date": "2026-03-05", "_anchor": True},
+        {"change_id": "CHG-2026-0023", "title": "usage-consumer build 2026.3.4 production rollout",
+         "change_type": "normal", "risk": "medium", "requested_by": em("elena.sokolova"),
+         "implemented_by": em("elena.sokolova"), "approved_by": em("priya.raghavan"),
+         "scheduled_start": "2026-03-11T08:00:00Z", "actual_start": "2026-03-11T08:12:00Z",
+         "actual_end": "2026-03-11T08:40:00Z", "status": "failed",
+         "linked_incident": "INC-2026-0311",
+         "notes": "Rollout completed clean; regression under large batched payloads surfaced at traffic peak ~14:02 and was traced to this build. See INC-2026-0311.",
+         "_date": "2026-03-11", "_anchor": True},
+        {"change_id": "CHG-2026-0024", "title": "EMERGENCY: roll back usage-consumer to build 2026.3.3",
+         "change_type": "emergency", "risk": "high", "requested_by": em("elena.sokolova"),
+         "implemented_by": em("elena.sokolova"), "approved_by": em("priya.raghavan"),
+         "scheduled_start": "2026-03-11T15:12:00Z", "actual_start": "2026-03-11T15:12:00Z",
+         "actual_end": "2026-03-11T15:41:00Z", "status": "success",
+         "linked_incident": "INC-2026-0311",
+         "notes": "Rollback resolved consumer lag; incident resolved 15:47Z. Retrospective review completed 2026-03-12.",
+         "_date": "2026-03-11", "_anchor": True},
+        {"change_id": "CHG-2026-0031", "title": "usage-consumer build 2026.3.9 rollout (DATA-88 fix)",
+         "change_type": "normal", "risk": "medium", "requested_by": em("elena.sokolova"),
+         "implemented_by": em("elena.sokolova"), "approved_by": em("priya.raghavan"),
+         "scheduled_start": "2026-03-24T08:00:00Z", "actual_start": "2026-03-24T08:05:00Z",
+         "actual_end": "2026-03-24T08:33:00Z", "status": "success",
+         "linked_incident": "", "notes": "Root-cause fix shipped; consumer lag alarms quiet post-deploy.",
+         "_date": "2026-03-24", "_anchor": True},
+    ]
+
+    app_names = [a[1] for a in _APPS]
+    generated = []
+    for _ in range(30):
+        cd = rand_dt(rng, datetime(2026, 1, 5, tzinfo=timezone.utc),
+                     datetime(2026, 6, 27, tzinfo=timezone.utc))
+        start = business_hours(cd).replace(second=0, microsecond=0)
+        dur = timedelta(minutes=rng.randrange(15, 90))
+        status = rng.choices(["success", "failed"], weights=[9, 1])[0]
+        title = rng.choice(_CHANGE_TITLES).format(
+            svc=rng.choice(CHAT_SERVICES),
+            build=f"2026.{rng.randrange(1, 7)}.{rng.randrange(1, 9)}",
+            sub=rng.choice(["api", "app", "dashboards", "auth", "cdn"]),
+            app=rng.choice(app_names))
+        generated.append({
+            "change_id": None, "title": title,
+            "change_type": rng.choices(["standard", "normal", "emergency"],
+                                       weights=[5, 4, 1])[0],
+            "risk": rng.choices(["low", "medium", "high"], weights=[5, 3, 1])[0],
+            "requested_by": em(rng.choice(_CHANGE_IMPLEMENTERS)),
+            "implemented_by": em(rng.choice(_CHANGE_IMPLEMENTERS)),
+            "approved_by": em(rng.choice(_CHANGE_APPROVERS)),
+            "scheduled_start": iso(start), "actual_start": iso(start),
+            "actual_end": iso(start + dur), "status": status,
+            "linked_incident": "",
+            "notes": "Routine change completed within the maintenance window."
+            if status == "success" else "Change backed out after validation failure.",
+            "_date": start.date().isoformat(), "_anchor": False,
+        })
+
+    changes = pinned + generated
+    changes.sort(key=lambda c: (c["_date"], c.get("_anchor", False)))
+    next_num = 1
+    for c in changes:
+        if c["_anchor"]:
+            next_num = max(next_num, int(c["change_id"].split("-")[-1]) + 1)
+        else:
+            c["change_id"] = f"CHG-2026-{next_num:04d}"
+            next_num += 1
+    return changes
+
+
+def _write_changes(out: Path, changes: list[dict]) -> None:
+    d = out / "internal" / "itsm"
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / "changes.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["change_id", "title", "change_type", "risk", "requested_by",
+                    "implemented_by", "approved_by", "scheduled_start",
+                    "actual_start", "actual_end", "status", "linked_incident",
+                    "notes"])
+        for c in sorted(changes, key=lambda c: c["change_id"]):
+            w.writerow([c["change_id"], c["title"], c["change_type"], c["risk"],
+                        c["requested_by"], c["implemented_by"], c["approved_by"],
+                        c["scheduled_start"], c["actual_start"], c["actual_end"],
+                        c["status"], c["linked_incident"], c["notes"]])
+
+
+_TICKET_TMPL = [
+    ("access", "Request access to {app}"),
+    ("access", "Cannot log into {app} after password change"),
+    ("access", "Shared drive permission request"),
+    ("access", "Password reset request"),
+    ("access", "MFA device lost, need re-enrollment"),
+    ("software", "Software install request: {app}"),
+    ("software", "Application crashing on launch: {app}"),
+    ("hardware", "Laptop battery draining quickly"),
+    ("hardware", "Slow laptop performance"),
+    ("hardware", "New monitor request"),
+    ("hardware", "Docking station not detecting external display"),
+    ("hardware", "Replacement charger needed"),
+    ("network", "VPN won't connect from home"),
+    ("network", "Wi-Fi drops on the 3rd floor"),
+    ("network", "Guest wifi access for visitor"),
+    ("onboarding", "New hire setup checklist"),
+    ("offboarding", "Departing contractor access removal"),
+    ("security", "Reported suspicious email"),
+]
+_TICKET_RES = [
+    "Resolved remotely; user confirmed working.",
+    "Access granted per manager approval.",
+    "Hardware replaced from stock.",
+    "Reset completed; user notified.",
+    "Reinstalled application; issue cleared.",
+    "Network configuration corrected.",
+    "Walked user through setup; closed.",
+]
+
+
+def _build_it_tickets(rng: random.Random, employees: list[dict],
+                      assets: list[dict], changes: list[dict]) -> list[dict]:
+    active = [e for e in employees if e["status"] == "active"]
+    gen_active = [e for e in active if not e["pinned"]]
+    asset_ids = [a["asset_id"] for a in assets]
+    change_ids = [c["change_id"] for c in changes]
+    app_names = [a[1] for a in _APPS]
+
+    g1, g2 = rng.sample(gen_active, 2)
+    anchors = [
+        {"ticket_id": "IT-2231", "opened_at": "2026-03-30T09:15:00Z",
+         "closed_at": "2026-04-01T16:20:00Z", "status": "closed", "priority": "normal",
+         "category": "offboarding", "requester_employee_id": "EMP-1009",
+         "requester_email": f"theo.marchand@{COMPANY_DOMAIN}", "assignee": "omar.haddad",
+         "summary": "Offboarding: Derek Mun (EMP-1042) - last day 2026-03-31",
+         "resolution_note": "Laptop AST-1077 returned and wiped; badge deactivated; directory account disabled.",
+         "linked_asset": "AST-1077", "linked_change": None, "_anchor": True},
+        {"ticket_id": "IT-2412", "opened_at": "2026-05-06T10:05:00Z",
+         "closed_at": "2026-05-12T11:30:00Z", "status": "closed", "priority": "normal",
+         "category": "onboarding", "requester_employee_id": "EMP-1010",
+         "requester_email": f"priya.raghavan@{COMPANY_DOMAIN}", "assignee": "lena.fischer",
+         "summary": "Onboarding: Talia Reyes (EMP-1107) - start 2026-05-11",
+         "resolution_note": "Laptop AST-1289 issued; accounts provisioned (email, SSO, Stoneferry CI); badge issued.",
+         "linked_asset": "AST-1289", "linked_change": None, "_anchor": True},
+        {"ticket_id": "IT-2467", "opened_at": "2026-05-20T09:42:00Z",
+         "closed_at": "2026-05-20T10:30:00Z", "status": "closed", "priority": "high",
+         "category": "security", "requester_employee_id": g1["employee_id"],
+         "requester_email": g1["email"], "assignee": "omar.haddad",
+         "summary": "Reported suspicious email",
+         "resolution_note": "Confirmed phishing; sender domain blocked; forwarded to security.",
+         "linked_asset": None, "linked_change": None, "_anchor": True},
+        {"ticket_id": "IT-2468", "opened_at": "2026-05-20T11:18:00Z",
+         "closed_at": "2026-05-20T12:05:00Z", "status": "closed", "priority": "high",
+         "category": "security", "requester_employee_id": g2["employee_id"],
+         "requester_email": g2["email"], "assignee": "omar.haddad",
+         "summary": "Reported suspicious email",
+         "resolution_note": "Confirmed phishing; sender domain blocked; forwarded to security.",
+         "linked_asset": None, "linked_change": None, "_anchor": True},
+    ]
+
+    generated = []
+    for _ in range(80):
+        cat, tmpl = rng.choice(_TICKET_TMPL)
+        e = rng.choice(active)
+        opened = business_hours(rand_dt(rng, datetime(2026, 1, 5, tzinfo=timezone.utc),
+                                        datetime(2026, 6, 28, tzinfo=timezone.utc)))
+        status = rng.choices(["closed", "open", "in_progress"], weights=[7, 2, 1])[0]
+        if status == "closed":
+            closed = iso(opened + timedelta(hours=rng.randrange(1, 120)))
+            res = rng.choice(_TICKET_RES)
+        else:
+            closed, res = None, None
+        generated.append({
+            "ticket_id": None, "opened_at": iso(opened), "closed_at": closed,
+            "status": status,
+            "priority": rng.choices(["low", "normal", "high"], weights=[3, 5, 2])[0],
+            "category": cat, "requester_employee_id": e["employee_id"],
+            "requester_email": e["email"],
+            "assignee": rng.choice(["omar.haddad", "lena.fischer"]),
+            "summary": tmpl.format(app=rng.choice(app_names)),
+            "resolution_note": res,
+            "linked_asset": rng.choice(asset_ids)
+            if cat == "hardware" and rng.random() < 0.4 else None,
+            "linked_change": rng.choice(change_ids) if rng.random() < 0.08 else None,
+            "_anchor": False,
+        })
+
+    tickets = anchors + generated
+    tickets.sort(key=lambda t: (t["opened_at"], t.get("_anchor", False)))
+    next_num = 2001
+    for t in tickets:
+        if t["_anchor"]:
+            next_num = max(next_num, int(t["ticket_id"].split("-")[1]) + 1)
+        else:
+            t["ticket_id"] = f"IT-{next_num}"
+            next_num += 1
+    return tickets
+
+
+def _write_it_tickets(out: Path, tickets: list[dict]) -> None:
+    d = out / "internal" / "itsm"
+    d.mkdir(parents=True, exist_ok=True)
+    keys = ["ticket_id", "opened_at", "closed_at", "status", "priority",
+            "category", "requester_employee_id", "requester_email", "assignee",
+            "summary", "resolution_note", "linked_asset", "linked_change"]
+    rows = [{k: t.get(k) for k in keys} for t in tickets]
+    (d / "it_tickets.jsonl").write_bytes(jsonl(rows))
+
+
+_VENDORS = [
+    ("Nimbostrat Cloud", "cloud infrastructure"),
+    ("Fernwake Software", "HRIS"),
+    ("Torchstone Systems", "ITSM"),
+    ("Quillbrook Financial Software", "ERP"),
+    ("Lanternfell Inc", "expense management"),
+    ("Saltmarsh Software", "CRM"),
+    ("Harrowgate Talent Systems", "ATS"),
+    ("Nightledger Security", "SIEM"),
+    ("Doorstile Access Systems", "badge/physical access"),
+    ("Corvid Hardware Supply", "IT hardware"),
+    ("Harbor City Properties", "facilities/rent"),
+    ("Ironquay Office Services", "office services"),
+    ("Bluecrest Insurance Brokers", "insurance"),
+    ("Ashgrove Audit & Assurance", "audit"),
+    ("Glimmerfen Communications", "comms tools"),
+    ("Stoneferry DevTools", "CI/CD"),
+    ("Bramblehold Networks", "VPN/network"),
+    ("Wrenfield Travel", "travel agency"),
+]
+
+
+def _write_vendors(out: Path, rng: random.Random) -> list[dict]:
+    d = out / "internal" / "finance"
+    d.mkdir(parents=True, exist_ok=True)
+    vendors = []
+    with open(d / "vendors.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["vendor_id", "vendor_name", "category", "payment_terms", "active"])
+        for i, (name, cat) in enumerate(_VENDORS):
+            vid = f"VEN-{i + 1:03d}"
+            terms = rng.choices(["net-30", "net-45", "due-on-receipt"],
+                                weights=[6, 3, 1])[0]
+            active = "true" if rng.random() < 0.9 else "false"
+            w.writerow([vid, name, cat, terms, active])
+            vendors.append({"vendor_id": vid, "vendor_name": name, "category": cat})
+    return vendors
+
+
+_APPS = [
+    ("APP-01", "Fernwake People", "HRIS", "People"),
+    ("APP-02", "Torchstone Desk", "ITSM", "IT"),
+    ("APP-03", "Quillbrook Ledger", "finance", "Finance"),
+    ("APP-04", "Lanternfell Expense", "expense", "Finance"),
+    ("APP-05", "Saltmarsh CRM", "CRM", "Sales"),
+    ("APP-06", "Harrowgate Hire", "ATS", "People"),
+    ("APP-07", "Nightledger SIEM", "security", "Security"),
+    ("APP-08", "Doorstile Badge Admin", "physical access", "IT"),
+    ("APP-09", "Bellwether Wiki", "knowledge", "IT"),
+    ("APP-10", "Glimmerfen Chat", "communications", "IT"),
+    ("APP-11", "Stoneferry CI", "developer tools", "Engineering"),
+    ("APP-12", "Bramblehold VPN", "network", "IT"),
+    ("APP-13", "Acme Analytics Prod Admin", "internal product admin", "Engineering"),
+    ("APP-14", "Marrowgate Vault", "secrets management", "Security"),
+]
+# Per-app plausible seat-count ranges.
+_APP_USERS = {
+    "APP-01": (110, 123), "APP-02": (110, 123), "APP-03": (6, 12),
+    "APP-04": (100, 120), "APP-05": (28, 42), "APP-06": (4, 8),
+    "APP-07": (3, 6), "APP-08": (4, 8), "APP-09": (108, 123),
+    "APP-10": (110, 123), "APP-11": (40, 55), "APP-12": (100, 120),
+    "APP-13": (18, 30), "APP-14": (14, 24),
+}
+
+
+def _write_app_catalog(out: Path, rng: random.Random) -> None:
+    d = out / "internal" / "iam"
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / "app_catalog.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["app_id", "app_name", "category", "owner_department",
+                    "sso_enforced", "user_count"])
+        for aid, name, cat, owner in _APPS:
+            lo, hi = _APP_USERS[aid]
+            sso = "false" if aid == "APP-13" else "true"
+            w.writerow([aid, name, cat, owner, sso, rng.randint(lo, hi)])
+
+
+def _write_purchase_orders(out: Path, rng: random.Random,
+                           vendors: list[dict]) -> None:
+    d = out / "internal" / "finance"
+    it_cats = {"IT hardware", "ITSM", "VPN/network", "CI/CD", "badge/physical access",
+               "cloud infrastructure", "SIEM"}
+    people_cats = {"ATS", "HRIS"}
+    amount_by_cat = {
+        "cloud infrastructure": (40000, 90000), "HRIS": (8000, 30000),
+        "ITSM": (6000, 24000), "ERP": (10000, 40000), "expense management": (5000, 18000),
+        "CRM": (12000, 45000), "ATS": (6000, 22000), "SIEM": (15000, 50000),
+        "badge/physical access": (4000, 20000), "IT hardware": (2000, 15000),
+        "facilities/rent": (30000, 70000), "office services": (3000, 15000),
+        "insurance": (8000, 40000), "audit": (20000, 60000), "comms tools": (5000, 20000),
+        "CI/CD": (6000, 30000), "VPN/network": (5000, 22000), "travel agency": (2000, 20000),
+    }
+    requesters = ["lena.fischer", "omar.haddad", "diego.fuentes", "grace.adeyemi",
+                  "maya.kaplan", "ingrid.bauer", "theo.marchand"]
+
+    rows = []
+    for _ in range(40):
+        v = rng.choice(vendors)
+        cat = v["category"]
+        if cat in it_cats:
+            approver = "diego.fuentes"
+        elif cat in people_cats:
+            approver = "maya.kaplan"
+        else:
+            approver = "grace.adeyemi"
+        lo, hi = amount_by_cat[cat]
+        amount = round(rng.uniform(lo, hi), 2)
+        created = rand_dt(rng, datetime(2026, 1, 6, tzinfo=timezone.utc),
+                          datetime(2026, 6, 25, tzinfo=timezone.utc)).date()
+        rows.append({
+            "vendor_id": v["vendor_id"],
+            "description": f"{rng.choice(['Annual subscription', 'Renewal', 'Services engagement', 'Quarterly true-up'])} - {v['vendor_name']}",
+            "amount_usd": f"{amount:.2f}",
+            "requested_by": f"{rng.choice(requesters)}@{COMPANY_DOMAIN}",
+            "approved_by": f"{approver}@{COMPANY_DOMAIN}",
+            "created_date": created.isoformat(),
+            "status": rng.choices(["open", "received", "paid"], weights=[2, 4, 4])[0],
+        })
+    rows.sort(key=lambda r: r["created_date"])
+    for i, r in enumerate(rows):
+        r["po_id"] = f"PO-2026-{i + 1:03d}"
+
+    anchor = {
+        "po_id": "PO-2026-041",
+        "vendor_id": next(v["vendor_id"] for v in vendors
+                          if v["vendor_name"] == "Corvid Hardware Supply"),
+        "description": "Laptop refresh + new-hire batch (5x Corvid Book 14)",
+        "amount_usd": "9450.00", "requested_by": f"lena.fischer@{COMPANY_DOMAIN}",
+        "approved_by": f"diego.fuentes@{COMPANY_DOMAIN}",
+        "created_date": "2026-04-28", "status": "received",
+    }
+    rows.append(anchor)
+
+    with open(d / "purchase_orders.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["po_id", "vendor_id", "description", "amount_usd",
+                    "requested_by", "approved_by", "created_date", "status"])
+        for r in rows:
+            w.writerow([r["po_id"], r["vendor_id"], r["description"],
+                        r["amount_usd"], r["requested_by"], r["approved_by"],
+                        r["created_date"], r["status"]])
+
+
+_EXP_MERCHANTS = {
+    "travel_air": ["Wrenfield Travel"],
+    "lodging": ["Cloudside Suites", "Harborview Inn", "Grandview Hotel"],
+    "meals": ["Harborview Bistro", "Corner Deli", "Riverside Grill"],
+    "ground_transport": ["Transit Metro", "City Cabs", "Rideline"],
+    "software": ["Stoneferry DevTools", "Glimmerfen Communications", "Cloudside Tools"],
+    "other": ["Sundry Supplies", "Quayside Print", "Harbor Stationers"],
+}
+_EXP_AMOUNT = {
+    "travel_air": (180, 650), "lodging": (120, 420), "meals": (15, 120),
+    "ground_transport": (12, 90), "software": (20, 400), "other": (10, 200),
+}
+
+
+def _build_expenses(rng: random.Random, employees: list[dict]) -> list[dict]:
+    active = [e for e in employees if e["status"] == "active"]
+    weight = {"Sales": 3, "Customer Experience": 3, "Executive": 3,
+              "Product": 2, "Marketing": 2}
+    weighted = [e for e in active for _ in range(weight.get(e["department"], 1))]
+    by_id = {e["employee_id"]: e for e in employees}
+
+    rows = []
+    for _ in range(116):
+        e = rng.choice(weighted)
+        cat = rng.choices(list(_EXP_AMOUNT), weights=[2, 2, 3, 2, 2, 2])[0]
+        lo, hi = _EXP_AMOUNT[cat]
+        hire = _d(e["hire_date"])
+        lo_day = max(WINDOW_START, hire)
+        hi_day = WINDOW_END - timedelta(days=5)
+        if lo_day >= hi_day:
+            lo_day = WINDOW_START
+        exp_date = lo_day + timedelta(days=rng.randrange((hi_day - lo_day).days))
+        submitted = min(WINDOW_END, exp_date + timedelta(days=rng.randint(1, 9)))
+        rows.append({
+            "employee_id": e["employee_id"], "employee_email": e["email"],
+            "category": cat, "merchant": rng.choice(_EXP_MERCHANTS[cat]),
+            "amount": round(rng.uniform(lo, hi), 2),
+            "expense_date": exp_date.isoformat(),
+            "submitted_at": iso(business_hours(datetime(
+                submitted.year, submitted.month, submitted.day,
+                rng.randrange(8, 18), rng.randrange(60), tzinfo=timezone.utc))),
+            "status": rng.choices(["reimbursed", "approved", "pending"],
+                                  weights=[6, 3, 1])[0],
+            "trip_tag": "",
+        })
+
+    aisha = by_id["EMP-1019"]
+    trip = "tidewater-onsite-2026-05"
+    for cat, amt, dt, merch in [
+            ("travel_air", 412.00, "2026-05-26", "Wrenfield Travel"),
+            ("meals", 86.40, "2026-05-27", "Harborview Bistro"),
+            ("lodging", 378.00, "2026-05-28", "Cloudside Suites"),
+            ("ground_transport", 54.25, "2026-05-28", "Transit Metro")]:
+        rows.append({
+            "employee_id": "EMP-1019", "employee_email": aisha["email"],
+            "category": cat, "merchant": merch, "amount": amt,
+            "expense_date": dt, "submitted_at": "2026-05-29T10:15:00Z",
+            "status": "reimbursed", "trip_tag": trip,
+        })
+
+    rows.sort(key=lambda r: (r["expense_date"], r["employee_id"]))
+    for i, r in enumerate(rows):
+        r["report_id"] = f"EXP-{i + 1:04d}"
+    return rows
+
+
+def _write_expenses(out: Path, expenses: list[dict]) -> None:
+    d = out / "internal" / "finance"
+    d.mkdir(parents=True, exist_ok=True)
+    with open(d / "expense_reports.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["report_id", "employee_id", "employee_email", "category",
+                    "merchant", "amount_usd", "expense_date", "submitted_at",
+                    "status", "trip_tag"])
+        for r in expenses:
+            w.writerow([r["report_id"], r["employee_id"], r["employee_email"],
+                        r["category"], r["merchant"], f"{r['amount']:.2f}",
+                        r["expense_date"], r["submitted_at"], r["status"],
+                        r["trip_tag"]])
+
+
+def _write_gl(out: Path, rng: random.Random, employees: list[dict],
+              expenses: list[dict]) -> None:
+    d = out / "internal" / "finance"
+    d.mkdir(parents=True, exist_ok=True)
+
+    # 4000 subscription revenue is the sum of invoice amounts by period_start
+    # month -- read straight from the relational extract written earlier.
+    inv_by_month: dict[str, float] = {}
+    with open(out / "relational" / "invoices.csv", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            m = r["period_start"][:7]
+            inv_by_month[m] = inv_by_month.get(m, 0.0) + float(r["amount_usd"])
+
+    exp_by_month: dict[str, float] = {}
+    for x in expenses:
+        m = x["expense_date"][:7]
+        exp_by_month[m] = exp_by_month.get(m, 0.0) + x["amount"]
+
+    with open(d / "gl_monthly.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["month", "account_code", "account_name", "account_type",
+                    "amount_usd", "notes"])
+        for month in range(1, 7):
+            mstr = f"2026-{month:02d}"
+            mstart = date(2026, month, 1)
+            mend = date(2026, month + 1, 1) - timedelta(days=1)
+
+            def active_in_month(e):
+                if _d(e["hire_date"]) > mend:
+                    return False
+                t = e["termination_date"]
+                if t and _d(t) < mstart:
+                    return False
+                return True
+
+            salaries = round(sum(e["base_salary_usd"] / 12.0
+                                 for e in employees if active_in_month(e)), 2)
+            prof_extra = 25000.0 if month in (4, 5) else 0.0
+            prof_note = "SOC 2 Type II fieldwork - Ashgrove Audit & Assurance" \
+                if month in (4, 5) else ""
+            recruiting = round(rng.uniform(15000, 22000) if month in (3, 4, 5)
+                               else rng.uniform(8000, 15000), 2)
+            accounts = [
+                ("4000", "Subscription revenue", "revenue",
+                 round(inv_by_month.get(mstr, 0.0), 2), ""),
+                ("5000", "Cloud infrastructure", "expense",
+                 round(rng.uniform(185000, 215000), 2), "Nimbostrat Cloud"),
+                ("5100", "Third-party software", "expense",
+                 round(rng.uniform(40000, 50000), 2), ""),
+                ("6000", "Salaries & wages", "expense", salaries, ""),
+                ("6100", "Payroll taxes & benefits", "expense",
+                 round(salaries * 0.22, 2), ""),
+                ("6200", "Contractors", "expense", round(rng.uniform(18000, 42000), 2), ""),
+                ("6300", "Travel & entertainment", "expense",
+                 round(exp_by_month.get(mstr, 0.0), 2), ""),
+                ("6400", "Rent & facilities", "expense", 62000.00, "Harbor City Properties"),
+                ("6500", "Marketing programs", "expense", round(rng.uniform(25000, 60000), 2), ""),
+                ("6600", "Recruiting", "expense", recruiting, ""),
+                ("6700", "Insurance", "expense", 9800.00, "Bluecrest Insurance Brokers"),
+                ("6800", "Office & equipment", "expense", round(rng.uniform(5000, 18000), 2), ""),
+                ("7100", "Professional services", "expense",
+                 round(rng.uniform(6000, 12000) + prof_extra, 2), prof_note),
+                ("7200", "Depreciation", "expense", 14500.00, ""),
+            ]
+            for code, name, atype, amount, notes in accounts:
+                w.writerow([mstr, code, name, atype, f"{amount:.2f}", notes])
+
+
+def _write_access_review(out: Path, rng: random.Random, employees: list[dict],
+                         leader_email: dict) -> None:
+    d = out / "internal" / "iam"
+    d.mkdir(parents=True, exist_ok=True)
+    app_name = {a[0]: a[1] for a in _APPS}
+    active = [e for e in employees if e["status"] == "active"]
+
+    def dept_apps(dept):
+        base = [("APP-10", "member"), ("APP-09", "member"),
+                ("APP-04", "member"), ("APP-02", "member")]
+        extra = {
+            "People": [("APP-01", "admin"), ("APP-06", "editor")],
+            "Finance": [("APP-03", "editor"), ("APP-04", "admin")],
+            "Sales": [("APP-05", "editor")],
+            "Customer Experience": [("APP-05", "member")],
+            "Security": [("APP-07", "admin"), ("APP-14", "admin")],
+            "IT": [("APP-02", "admin"), ("APP-08", "admin"), ("APP-12", "admin")],
+            "Engineering": [("APP-11", "editor"), ("APP-13", "editor"),
+                            ("APP-14", "member")],
+            "Executive": [("APP-01", "viewer"), ("APP-03", "viewer")],
+        }.get(dept, [])
+        return base + extra
+
+    candidates = []
+    for e in active:
+        for aid, ent in dept_apps(e["department"]):
+            candidates.append((e, aid, ent))
+    rng.shuffle(candidates)
+
+    rows = []
+    for e, aid, ent in candidates[:147]:
+        revoke = rng.random() < 0.05
+        rows.append({
+            "employee_id": e["employee_id"], "employee_email": e["email"],
+            "employee_status": "active", "app_id": aid, "app_name": app_name[aid],
+            "entitlement": ent,
+            "reviewer_email": leader_email.get(e["department"], leader_email["Executive"]),
+            "decision": "revoke" if revoke else "approve",
+            "reviewed_at": f"2026-06-{rng.randint(2, 13):02d}",
+            "note": "Role change - entitlement no longer required." if revoke else "",
+        })
+
+    # Terminated-with-leftover-access rows: the Derek anchor plus exactly two
+    # more generated terminations, each carrying one un-deprovisioned entitlement.
+    by_id = {e["employee_id"]: e for e in employees}
+    derek = by_id["EMP-1042"]
+    rows.append({
+        "employee_id": "EMP-1042", "employee_email": derek["email"],
+        "employee_status": "terminated", "app_id": "APP-05",
+        "app_name": "Saltmarsh CRM", "entitlement": "member",
+        "reviewer_email": f"theo.marchand@{COMPANY_DOMAIN}", "decision": "revoke",
+        "reviewed_at": "2026-06-09",
+        "note": "Terminated 2026-03-31; access not removed at offboarding (IT-2231). Deprovisioned during review.",
+    })
+    gen_term = sorted([e for e in employees
+                       if e["status"] == "terminated" and e["employee_id"] != "EMP-1042"],
+                      key=lambda e: e["employee_id"])[:2]
+    for e in gen_term:
+        dept = e["department"]
+        aid = {"Sales": "APP-05", "Engineering": "APP-11",
+               "Finance": "APP-03"}.get(dept, "APP-04")
+        rows.append({
+            "employee_id": e["employee_id"], "employee_email": e["email"],
+            "employee_status": "terminated", "app_id": aid,
+            "app_name": app_name[aid], "entitlement": "member",
+            "reviewer_email": leader_email.get(dept, leader_email["Executive"]),
+            "decision": "revoke", "reviewed_at": f"2026-06-{rng.randint(2, 13):02d}",
+            "note": "Access not removed at offboarding; deprovisioned during review.",
+        })
+
+    with open(d / "access_review_2026q2.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["review_id", "employee_id", "employee_email", "employee_status",
+                    "app_id", "app_name", "entitlement", "reviewer_email",
+                    "decision", "reviewed_at", "note"])
+        for i, r in enumerate(rows):
+            w.writerow([f"REV-{i + 1:04d}", r["employee_id"], r["employee_email"],
+                        r["employee_status"], r["app_id"], r["app_name"],
+                        r["entitlement"], r["reviewer_email"], r["decision"],
+                        r["reviewed_at"], r["note"]])
+
+
+def _write_phishing_sim(out: Path, rng: random.Random,
+                        employees: list[dict]) -> None:
+    d = out / "internal" / "security"
+    d.mkdir(parents=True, exist_ok=True)
+
+    def active_on(e, ref: date) -> bool:
+        if _d(e["hire_date"]) > ref:
+            return False
+        t = e["termination_date"]
+        if t and _d(t) < ref:
+            return False
+        return True
+
+    campaigns = [
+        ("PHSIM-2026-02", _d("2026-02-12"), "2026-02-12T14:00:00Z", 0.14, 0.22),
+        ("PHSIM-2026-06", _d("2026-06-16"), "2026-06-16T14:00:00Z", 0.06, 0.41),
+    ]
+    with open(d / "phishing_sim_results.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["campaign_id", "sent_at", "employee_id", "email", "action",
+                    "time_to_action_minutes"])
+        for cid, ref, sent_at, click_rate, report_rate in campaigns:
+            for e in employees:
+                if not active_on(e, ref):
+                    continue
+                roll = rng.random()
+                if roll < click_rate:
+                    action, tta = "clicked", rng.randint(1, 30)
+                elif roll < click_rate + report_rate:
+                    action, tta = "reported", rng.randint(2, 120)
+                else:
+                    action, tta = "ignored", ""
+                w.writerow([cid, sent_at, e["employee_id"], e["email"], action, tta])
+
+
+def _write_badge_access(out: Path, rng: random.Random,
+                        employees: list[dict]) -> None:
+    ev = out / "events"
+    ev.mkdir(parents=True, exist_ok=True)
+    hq_active = [e for e in employees
+                 if e["status"] == "active" and e["location"] == "Harbor City HQ"]
+    server_room = {"tom.alvarez", "lena.fischer", "diego.fuentes"}
+    by_local = {e["email"].split("@")[0]: e for e in employees}
+    specials = [by_local[lp] for lp in ["tom.alvarez", "lena.fischer", "diego.fuentes"]
+                if lp in by_local]
+    others = [e for e in hq_active if e not in specials]
+    regulars = specials + rng.sample(others, min(27, len(others)))
+
+    rows = []
+    n = 1
+    day = date(2026, 4, 1)
+    end = date(2026, 6, 30)
+    while day <= end:
+        if day.weekday() < 5:
+            k = rng.randint(6, 8)
+            for e in rng.sample(regulars, k):
+                lp = e["email"].split("@")[0]
+                if lp in server_room:
+                    door = rng.choice(["server-room", "main-lobby", "eng-floor-3"])
+                elif e["department"] == "Engineering":
+                    door = rng.choice(["eng-floor-3", "main-lobby"])
+                else:
+                    door = "main-lobby"
+                entry = datetime(day.year, day.month, day.day,
+                                 rng.randrange(7, 10), rng.randrange(60), tzinfo=timezone.utc)
+                exit_ = datetime(day.year, day.month, day.day,
+                                 rng.randrange(16, 19), rng.randrange(60), tzinfo=timezone.utc)
+                for etype, at in [("badge.entry", entry), ("badge.exit", exit_)]:
+                    rows.append({
+                        "id": f"bdg-{n:06d}", "type": etype, "timestamp": iso(at),
+                        "actor": e["email"],
+                        "payload": {"employee_id": e["employee_id"], "door": door},
+                        "text": f"{etype} {door} by {e['email']}",
+                    })
+                    n += 1
+        day += timedelta(days=1)
+    rows.sort(key=lambda r: r["timestamp"])
+    for i, r in enumerate(rows):
+        r["id"] = f"bdg-{i + 1:06d}"
+    (ev / "badge_access.jsonl").write_bytes(jsonl(rows))
+
+
+def _write_security_alerts(out: Path, rng: random.Random,
+                           employees: list[dict]) -> None:
+    ev = out / "events"
+    ev.mkdir(parents=True, exist_ok=True)
+    active = [e for e in employees if e["status"] == "active"]
+
+    def src_ip():
+        return f"{rng.choice(['203.0.113', '198.51.100'])}.{rng.randint(1, 254)}"
+
+    rows = []
+    for _ in range(240):
+        at = rand_dt(rng, datetime(2026, 1, 5, tzinfo=timezone.utc),
+                     datetime(2026, 6, 30, tzinfo=timezone.utc))
+        etype = rng.choices(
+            ["auth.bruteforce_detected", "malware.blocked", "dlp.policy_flagged",
+             "phishing.reported", "login.impossible_travel"],
+            weights=[3, 3, 2, 3, 1])[0]
+        if etype == "auth.bruteforce_detected":
+            target = rng.choice(active)["email"]
+            payload = {"source_ip": src_ip(), "target_user": target,
+                       "attempts": rng.randint(20, 400), "verdict": "blocked"}
+            text = f"auth.bruteforce_detected against {target} from {payload['source_ip']} (blocked)"
+            actor = "system"
+        elif etype == "malware.blocked":
+            payload = {"source_ip": src_ip(), "endpoint": f"WS-{rng.randrange(100, 999)}",
+                       "signature": f"Gen.Trojan.{rng.randrange(1000, 9999)}", "verdict": "quarantined"}
+            text = f"malware.blocked on {payload['endpoint']} (quarantined)"
+            actor = "system"
+        elif etype == "dlp.policy_flagged":
+            user = rng.choice(active)["email"]
+            payload = {"user": user, "policy": rng.choice(
+                ["pii-egress", "source-code-share", "financials-external"]),
+                "verdict": "flagged"}
+            text = f"dlp.policy_flagged for {user} on policy {payload['policy']}"
+            actor = "system"
+        elif etype == "phishing.reported":
+            e = rng.choice(active)
+            actor = e["email"]
+            payload = {"sender_domain": rng.choice(
+                ["invoices-billing.example", "secure-login-check.example",
+                 "hr-benefits-update.example"]),
+                "reported_via": "mail client button", "verdict": "under_review"}
+            text = f"phishing.reported by {actor} ({payload['sender_domain']})"
+        else:
+            user = rng.choice(active)["email"]
+            payload = {"user": user, "source_ip": src_ip(),
+                       "prior_location": rng.choice(["Harbor City", "Remote-EU"]),
+                       "current_location": rng.choice(["Remote-APAC", "Remote-SA"]),
+                       "verdict": "challenge"}
+            text = f"login.impossible_travel for {user} (challenge)"
+            actor = "system"
+        rows.append({"id": None, "type": etype, "timestamp": iso(at),
+                     "actor": actor, "payload": payload, "text": text})
+
+    # Anchor: an invoice-themed phishing wave reported the morning of 2026-05-20.
+    for e in rng.sample(active, 9):
+        at = datetime(2026, 5, 20, rng.randrange(9, 13), rng.randrange(60),
+                      tzinfo=timezone.utc)
+        rows.append({
+            "id": None, "type": "phishing.reported", "timestamp": iso(at),
+            "actor": e["email"],
+            "payload": {"campaign_note": "invoice-themed lure",
+                        "reported_via": "mail client button"},
+            "text": f"phishing.reported by {e['email']} (invoice-themed lure)",
+        })
+
+    rows.sort(key=lambda r: r["timestamp"])
+    for i, r in enumerate(rows):
+        r["id"] = f"sec-{i + 1:05d}"
+    (ev / "security_alerts.jsonl").write_bytes(jsonl(rows))
+
+
+def write_internal(out: Path) -> None:
+    """Generate the INTERNAL-ENTERPRISE application corpus (HRIS / ITSM /
+    finance / IAM / security). Uses its own independently seeded RNG so it
+    never perturbs the public-corpus byte stream produced above."""
+    rng = random.Random(INTERNAL_SEED)
+    employees = _build_internal_employees(rng)
+    leader_email = _leader_email_map(employees)
+
+    _write_hris(out, employees)
+    _write_pto(out, rng, employees)
+
+    assets = _build_assets(rng, employees)
+    _write_assets(out, assets)
+    changes = _build_changes(rng)
+    _write_changes(out, changes)
+    tickets = _build_it_tickets(rng, employees, assets, changes)
+    _write_it_tickets(out, tickets)
+
+    vendors = _write_vendors(out, rng)
+    _write_app_catalog(out, rng)
+    _write_purchase_orders(out, rng, vendors)
+    expenses = _build_expenses(rng, employees)
+    _write_expenses(out, expenses)
+    _write_gl(out, rng, employees, expenses)
+
+    _write_access_review(out, rng, employees, leader_email)
+    _write_phishing_sim(out, rng, employees)
+
+    _write_badge_access(out, rng, employees)
+    _write_security_alerts(out, rng, employees)
+
+
+# ---------------------------------------------------------------------------
 # Manifest
 # ---------------------------------------------------------------------------
 
@@ -1165,6 +2312,13 @@ SOURCE_SYSTEM_BY_DIR = {
     "unstructured/logs": "application logs",
     "unstructured/email": "email archive",
     "unstructured/call-transcripts": "call transcripts",
+    "internal/docs": "internal documents (corporate)",
+    "internal/hris": "HRIS export",
+    "internal/itsm": "IT service management export",
+    "internal/finance": "ERP / finance extracts",
+    "internal/iam": "identity & access management export",
+    "internal/security": "security operations data",
+    "internal/recruiting": "applicant-tracking export",
     "events": "generic event streams (freud-schema ingest events)",
 }
 
@@ -1238,6 +2392,7 @@ def generate(out: Path) -> dict:
     write_chat(out, rng)
     write_logs(out, rng)
     write_events(out, rng, accounts)
+    write_internal(out)
     return write_manifest(out)
 
 

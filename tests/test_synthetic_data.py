@@ -73,7 +73,7 @@ def test_generator_is_deterministic(tmp_path):
 
 def test_event_streams_ingest_idempotently(store):
     first = ingest_events(store, root=CORPUS / "events")
-    assert first["streams"] == 2
+    assert first["streams"] == 4
     assert first["rows_written"] > 500
     second = ingest_events(store, root=CORPUS / "events")
     assert second["rows_written"] == 0

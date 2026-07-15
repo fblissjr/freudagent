@@ -34,7 +34,7 @@
       "path": "documents/design-doc-consumer-decompression.md",
       "format": "markdown",
       "source_system": "internal documents",
-      "bytes": 6351,
+      "bytes": 6012,
       "records": null
     },
     {
@@ -108,11 +108,25 @@
       "records": 360
     },
     {
+      "path": "events/badge_access.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 226460,
+      "records": 908
+    },
+    {
       "path": "events/product_webhooks.jsonl",
       "format": "jsonl",
       "source_system": "generic event streams (freud-schema ingest events)",
       "bytes": 146077,
       "records": 647
+    },
+    {
+      "path": "events/security_alerts.jsonl",
+      "format": "jsonl",
+      "source_system": "generic event streams (freud-schema ingest events)",
+      "bytes": 78262,
+      "records": 249
     },
     {
       "path": "feedback/annotation_corrections.jsonl",
@@ -134,6 +148,139 @@
       "source_system": "human feedback",
       "bytes": 9258,
       "records": 36
+    },
+    {
+      "path": "internal/docs/acceptable-use-policy.txt",
+      "format": "text",
+      "source_system": "internal documents (corporate)",
+      "bytes": 3790,
+      "records": null
+    },
+    {
+      "path": "internal/docs/all-hands-2026-04-24-notes.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 4017,
+      "records": null
+    },
+    {
+      "path": "internal/docs/change-management-policy.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 4341,
+      "records": null
+    },
+    {
+      "path": "internal/docs/expense-policy.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 3782,
+      "records": null
+    },
+    {
+      "path": "internal/docs/new-hire-onboarding-checklist.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 2860,
+      "records": null
+    },
+    {
+      "path": "internal/docs/runbook-laptop-provisioning.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 3640,
+      "records": null
+    },
+    {
+      "path": "internal/docs/soc2-audit-prep-memo.md",
+      "format": "markdown",
+      "source_system": "internal documents (corporate)",
+      "bytes": 4700,
+      "records": null
+    },
+    {
+      "path": "internal/finance/expense_reports.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 15870,
+      "records": 120
+    },
+    {
+      "path": "internal/finance/gl_monthly.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 4762,
+      "records": 84
+    },
+    {
+      "path": "internal/finance/purchase_orders.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 6739,
+      "records": 41
+    },
+    {
+      "path": "internal/finance/vendors.csv",
+      "format": "csv",
+      "source_system": "ERP / finance extracts",
+      "bytes": 1050,
+      "records": 18
+    },
+    {
+      "path": "internal/hris/employees.csv",
+      "format": "csv",
+      "source_system": "HRIS export",
+      "bytes": 19975,
+      "records": 124
+    },
+    {
+      "path": "internal/hris/pto_requests.csv",
+      "format": "csv",
+      "source_system": "HRIS export",
+      "bytes": 12214,
+      "records": 150
+    },
+    {
+      "path": "internal/iam/access_review_2026q2.csv",
+      "format": "csv",
+      "source_system": "identity & access management export",
+      "bytes": 23072,
+      "records": 150
+    },
+    {
+      "path": "internal/iam/app_catalog.csv",
+      "format": "csv",
+      "source_system": "identity & access management export",
+      "bytes": 782,
+      "records": 14
+    },
+    {
+      "path": "internal/itsm/assets.csv",
+      "format": "csv",
+      "source_system": "IT service management export",
+      "bytes": 11401,
+      "records": 138
+    },
+    {
+      "path": "internal/itsm/changes.csv",
+      "format": "csv",
+      "source_system": "IT service management export",
+      "bytes": 10623,
+      "records": 34
+    },
+    {
+      "path": "internal/itsm/it_tickets.jsonl",
+      "format": "jsonl",
+      "source_system": "IT service management export",
+      "bytes": 33517,
+      "records": 84
+    },
+    {
+      "path": "internal/security/phishing_sim_results.csv",
+      "format": "csv",
+      "source_system": "security operations data",
+      "bytes": 21270,
+      "records": 232
     },
     {
       "path": "relational/customers.csv",
@@ -286,7 +433,7 @@
       "path": "unstructured/call-transcripts/2026-02-20-cobalt-games-downgrade-call.txt",
       "format": "text",
       "source_system": "call transcripts",
-      "bytes": 3456,
+      "bytes": 3498,
       "records": null
     },
     {
@@ -307,7 +454,7 @@
       "path": "unstructured/call-transcripts/2026-05-07-tidewater-marine-discovery.txt",
       "format": "text",
       "source_system": "call transcripts",
-      "bytes": 4496,
+      "bytes": 3901,
       "records": null
     },
     {
@@ -350,6 +497,13 @@
       "format": "email",
       "source_system": "email archive",
       "bytes": 2534,
+      "records": null
+    },
+    {
+      "path": "unstructured/email/2026-05-21-phishing-awareness.eml",
+      "format": "email",
+      "source_system": "email archive",
+      "bytes": 2281,
       "records": null
     },
     {

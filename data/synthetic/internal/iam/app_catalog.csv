@@ -1,0 +1,15 @@
+app_id,app_name,category,owner_department,sso_enforced,user_count
+APP-01,Fernwake People,HRIS,People,true,118
+APP-02,Torchstone Desk,ITSM,IT,true,123
+APP-03,Quillbrook Ledger,finance,Finance,true,12
+APP-04,Lanternfell Expense,expense,Finance,true,102
+APP-05,Saltmarsh CRM,CRM,Sales,true,29
+APP-06,Harrowgate Hire,ATS,People,true,6
+APP-07,Nightledger SIEM,security,Security,true,4
+APP-08,Doorstile Badge Admin,physical access,IT,true,4
+APP-09,Bellwether Wiki,knowledge,IT,true,109
+APP-10,Glimmerfen Chat,communications,IT,true,111
+APP-11,Stoneferry CI,developer tools,Engineering,true,41
+APP-12,Bramblehold VPN,network,IT,true,108
+APP-13,Acme Analytics Prod Admin,internal product admin,Engineering,false,28
+APP-14,Marrowgate Vault,secrets management,Security,true,17
