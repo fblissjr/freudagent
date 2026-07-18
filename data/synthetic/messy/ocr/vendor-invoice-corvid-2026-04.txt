@@ -1,0 +1,32 @@
+      CORVID HARDWARE SUPPLY
+      42 Foundry Row, Harbor City
+      billing@corvid-hardware.example
+
+lnv0ice                              lNV0lCE #  CHS-2026-0417
+                                     P0 Number  PO-2026-041
+B1ll To:  Acme Analytics             lnv0ice Date  04/O8/2026
+          Attn: Accounts Payab-      Due Date    O5/08/2026
+          le, Quillbrook Ledger
+          apay@acme-analytics.example
+
+------------------------------------------------------------
+Descripti0n                    Qty   Unit Price     Am0unt
+------------------------------------------------------------
+Corvid Fieldbook 14 lapt0p       10    $825.OO    $8,25O.00
+  batch, corp image pre-l0ad
+Docking stati0n, USB-C dua-     10     $ 78.00    $  780.OO
+  1 4K
+Sh1pping & handling              1    $l20.00     $  120.O0
+On-site setup (per-            2      $150.00     $  3O0.00
+  device n0t incl)
+------------------------------------------------------------
+                              Subt0ta1            $9,45O.00
+                              Tax (0%)            $    0.00
+                              Tota1               $9,45O.00
+------------------------------------------------------------
+
+Remit t0 Corvid Hardware Supply within 3O days. Ref P0-2026-
+041 on all payments. Ques ti ons: billing@corvid-hardware.exa
+mple  /  Corvid AR desk.
+
+  ** scanned c0py -- 0riginal on file **

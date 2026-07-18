@@ -1,0 +1,14 @@
+{
+  "data": [
+    {"type": "usage_daily", "id": "ud-2026-06-04-1002", "attributes": {"account_id": "ACCT-1002", "date": "2026-06-04", "api_calls": 45330, "events_ingested": 921004}},
+    {"type": "usage_daily", "id": "ud-2026-06-04-1003", "attributes": {"account_id": "ACCT-1003", "date": "2026-06-04", "api_calls": 10990, "events_ingested": 162550}},
+    {"type": "usage_daily", "id": "ud-2026-06-04-1004", "attributes": {"account_id": "ACCT-1004", "date": "2026-06-04", "api_calls": 66200, "events_ingested": 1990771}},
+    {"type": "usage_daily", "id": "ud-2026-06-04-1005", "attributes": {"account_id": "ACCT-1005", "date": "2026-06-04", "api_calls": 29550, "events_ingested": 520114}}
+  ],
+  "meta": {"page": 3, "per_page": 50, "total": 128},
+  "links": {
+    "self": "https://api.acme-analytics.example/v1/usage?page=3",
+    "next": null,
+    "prev": "https://api.acme-analytics.example/v1/usage?page=2"
+  }
+}

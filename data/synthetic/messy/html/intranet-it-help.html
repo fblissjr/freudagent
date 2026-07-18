@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IT Help &middot; Acme Analytics Intranet</title>
+  <link rel="stylesheet" href="https://intranet.acme-analytics.example/assets/base.css">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0}
+    .chrome-nav{background:#0b2540;color:#fff;padding:10px 18px}
+    .chrome-nav a{color:#cfe0f5;margin-right:14px;text-decoration:none}
+    .layout{display:flex}
+    .sidebar{width:210px;background:#f0f3f7;padding:16px;font-size:13px}
+    .content{flex:1;padding:24px 32px;max-width:760px}
+    .breadcrumbs{font-size:12px;color:#667;padding:8px 32px;border-bottom:1px solid #e2e6ea}
+    footer{background:#0b2540;color:#9fb3c8;font-size:12px;padding:18px 32px;margin-top:40px}
+  </style>
+</head>
+<body>
+  <div class="chrome-nav">
+    <strong>Acme&nbsp;Intranet</strong>
+    <a href="/home">Home</a>
+    <a href="/people">People</a>
+    <a href="/it">IT</a>
+    <a href="/security">Security</a>
+    <a href="/finance">Finance</a>
+    <span style="float:right"><a href="/search">Search</a> &middot; <a href="/logout">Log out</a></span>
+  </div>
+  <nav class="breadcrumbs">
+    <a href="/home">Home</a> &rsaquo; <a href="/it">IT</a> &rsaquo; <span>IT Help</span>
+  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <h4>IT topics</h4>
+      <ul>
+        <li><a href="/it/onboarding">New hire setup</a></li>
+        <li><a href="/it/access">Access requests</a></li>
+        <li><a href="/it/api-keys">API keys</a></li>
+        <li><a href="/it/phishing">Report phishing</a></li>
+        <li><a href="/it/vpn">Bramblehold VPN</a></li>
+      </ul>
+      <h4>Quick links</h4>
+      <ul>
+        <li><a href="https://desk.acme-analytics.example">Torchstone Desk</a></li>
+        <li><a href="/status">System status</a></li>
+      </ul>
+    </aside>
+    <main class="content">
+      <article>
+        <h1>How to request access, rotate API keys, and report phishing</h1>
+        <p>This page covers the three most common IT requests. For anything not
+        listed here, open a ticket in <strong>Torchstone Desk</strong>.</p>
+
+        <h2>Request access to a system</h2>
+        <ol>
+          <li>Go to <a href="https://desk.acme-analytics.example">Torchstone Desk</a> and choose <em>New Request &rarr; Access</em>.</li>
+          <li>Select the system (e.g. Saltmarsh CRM, Quillbrook Ledger, Nightledger SIEM) and the role you need.</li>
+          <li>Your manager is auto-added as approver. Most access is granted within one business day.</li>
+        </ol>
+
+        <h2>Rotate an API key</h2>
+        <p>API keys should be rotated every 90 days, and immediately if you
+        suspect exposure.</p>
+        <ol>
+          <li>Sign in to the developer console at <code>console.acme-analytics.example</code>.</li>
+          <li>Open <em>Settings &rarr; API keys</em> and click <em>Rotate</em> next to the key.</li>
+          <li>Update the secret in Stoneferry CI before the old key expires (24h grace window).</li>
+          <li>You need the <code>admin</code> role to rotate; viewers cannot. Request the role via Torchstone Desk if needed.</li>
+        </ol>
+
+        <h2>Report a phishing email</h2>
+        <p>If you receive a suspicious message &mdash; especially a fake
+        &ldquo;Acme Billing&rdquo; invoice notice &mdash; do not click any links.</p>
+        <ol>
+          <li>Use the <em>Report Phishing</em> button in your mail client, or</li>
+          <li>Forward the message to <a href="mailto:security@acme-analytics.example">security@acme-analytics.example</a>.</li>
+          <li>The SOC (Nightledger SIEM) triages reports and will quarantine the campaign.</li>
+        </ol>
+        <p class="muted">Questions? Email <a href="mailto:security@acme-analytics.example">security@acme-analytics.example</a> or open a Torchstone Desk ticket.</p>
+      </article>
+    </main>
+  </div>
+  <footer>
+    <p>&copy; 2026 Acme Analytics &middot; Internal use only &middot; <a href="/it/help">IT Help</a> &middot; <a href="/security">Security</a></p>
+    <p>Harbor City HQ &middot; This page is for employees of Acme Analytics.</p>
+  </footer>
+</body>
+</html>

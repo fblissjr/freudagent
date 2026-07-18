@@ -1,0 +1,62 @@
+00:00:01.2 Speaker 1 okay um are we recording i think we're recording yeah
+00:00:04.8 Speaker 2 we're good go ahead
+00:00:06.1 Speaker 1 cool so uh this is the the retro for the scheduled exports GA um which we shipped on the eighteenth of may so like three weeks ago now
+00:00:14.7 Speaker 1 um i just wanted to like walk through what went well what didn't and then we can [inaudible] action items at the end
+00:00:21.3 Speaker 3 sounds good
+00:00:22.0 Speaker 1 great um so first off i think the the rollout itself was pretty smooth like we we did the the private beta first with what was it like eight accounts
+00:00:31.5 Speaker 2 eight yeah eight accounts uh bluewater was one of them
+00:00:34.9 Speaker 1 right right bluewater logistics um and then we went GA on the eighteenth
+00:00:40.2 [unknown] can you hear me okay
+00:00:41.8 Speaker 1 yeah you're good
+00:00:43.0 [unknown] okay sorry i was on mute
+00:00:45.1 Speaker 2 so the thing i wanted to flag um during the beta we had that one bug where the the CSV export would uh it would truncate at like ten thousand rows if the the account had a lot of events
+00:00:56.4 Speaker 2 and nobody caught it until [crosstalk]
+00:00:58.9 Speaker 3 [crosstalk] yeah that was the the pagination thing
+00:01:01.2 Speaker 2 yeah the pagination thing right so it was um it was only in the beta build it never hit GA but it was kind of a scary one because
+00:01:09.7 Speaker 2 like if a customer had pulled that export and just trusted it you know they'd be missing data and not know it
+00:01:15.3 Speaker 1 yeah that one was um that was a good catch by whoever caught it i think it was carlos actually flagged it from bluewater
+00:01:22.6 Speaker 3 it was carlos yeah he he noticed the row count didn't match the dashboard
+00:01:27.0 Speaker 1 right so shout out to carlos um okay so that's that's a beta thing it didn't ship
+00:01:33.4 Speaker 3 can i say something about the the staleness banner
+00:01:36.1 Speaker 1 yeah go for it
+00:01:37.5 Speaker 3 so um i just wanna say i think the the staleness banner was like the best thing we did in this whole release
+00:01:44.2 Speaker 3 like the the little banner that shows up when the the exported data is more than uh i think it's more than an hour old
+00:01:51.0 Speaker 3 um it just says like hey this snapshot was generated at whatever time and it it just it heads off so many support tickets
+00:01:58.8 Speaker 2 oh yeah a hundred percent
+00:02:00.3 Speaker 3 like before that people would download a report and then be confused why the numbers didn't match live and now they they just see the banner
+00:02:07.9 Speaker 3 um yuki's team said support volume on that whole category dropped like a lot i don't have the exact number
+00:02:14.6 Speaker 1 yeah i i saw that too it was a it was a big drop um that was ingrid's idea originally i think the the banner
+00:02:21.2 Speaker 2 was it um i thought it was a support driven thing
+00:02:24.5 Speaker 1 it might have been both like support asked for it and then uh product speced it out
+00:02:29.1 Speaker 3 either way it was great
+00:02:30.7 Speaker 1 [laughs] yeah um okay so uh let's talk about what didn't go so well
+00:02:36.4 Speaker 2 um so the the parquet thing
+00:02:39.0 Speaker 1 yeah tell me about the parquet thing
+00:02:41.2 Speaker 2 so we we offer exports in csv and parquet right and the the parquet files are they're not compressed
+00:02:48.7 Speaker 2 like at all we're we're writing them uncompressed and for the the bigger accounts those files are just they're huge
+00:02:55.9 Speaker 2 like i saw one that was um [inaudible] gigabytes for a single monthly export
+00:03:01.3 Speaker 3 oof
+00:03:02.0 Speaker 2 yeah and and storage cost aside it's it's slow to download for the customer
+00:03:07.4 Speaker 1 so is that is that a quick fix or is that a
+00:03:10.2 Speaker 2 i mean parquet has like built in compression snappy or zstd we we just aren't turning it on it should be it should be a config change mostly
+00:03:18.9 Speaker 1 okay so let's make that an action item um marcus can you can you own that one
+00:03:24.1 Speaker 2 yeah i'll uh i'll take a look this week figure out snappy versus zstd and and file it
+00:03:30.5 Speaker 1 cool um dana anything from from your side
+00:03:34.2 Speaker 3 um no i think the the the release was solid honestly the the banner and the beta process caught the big stuff
+00:03:41.8 Speaker 3 oh one thing um the docs the the export docs still say beta in a couple places we should uh
+00:03:48.3 Speaker 1 oh good catch yeah the the docs cleanup let me uh let me write that down too
+00:03:53.1 Speaker 3 it's minor but you know
+00:03:54.9 Speaker 1 no it's it's good um okay so action items i've got uh marcus on the parquet compression
+00:04:01.6 Speaker 1 and then the docs cleanup for the the leftover beta labels um who wants the docs one
+00:04:07.2 Speaker 3 i can take the docs one it's uh it's mostly my area
+00:04:10.8 Speaker 1 great um dana on docs cleanup
+00:04:13.5 Speaker 2 do we want to do anything about the the row count validation like a a test so the truncation thing can't happen again
+00:04:20.1 Speaker 1 oh that's a good um yeah let's add a regression test for the the pagination truncation
+00:04:26.4 Speaker 2 i can fold that into the the parquet work actually since i'm in there
+00:04:30.0 Speaker 1 perfect okay um anything else
+00:04:33.2 Speaker 3 nope
+00:04:33.9 Speaker 2 i'm good
+00:04:34.7 Speaker 1 cool uh thanks everyone um i'll i'll send out notes and uh yeah good release good job team
+00:04:41.3 Speaker 2 thanks
+00:04:41.9 Speaker 3 thanks bye
+00:04:42.8 [unknown] [crosstalk] bye

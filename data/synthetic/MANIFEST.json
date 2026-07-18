@@ -13,7 +13,7 @@
       "path": "README.md",
       "format": "markdown",
       "source_system": "corpus metadata",
-      "bytes": 8596,
+      "bytes": 13995,
       "records": null
     },
     {
@@ -101,6 +101,76 @@
       "records": null
     },
     {
+      "path": "documents/strategy/data-platform-strategy-multiregion.md",
+      "format": "markdown",
+      "source_system": "internal strategy documents",
+      "bytes": 4326,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/Copy of Data Platform Strategy FINAL v2.md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 2336,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/Data Platform Strategy DRAFT.md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 2035,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/Data Platform Strategy FINAL v2 (1).md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 2336,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/Data Platform Strategy FINAL.md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 2250,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/Data Platform Strategy v2.md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 2182,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/README.md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 1642,
+      "records": null
+    },
+    {
+      "path": "drive_chaos/~$strategy.tmp.md",
+      "format": "markdown",
+      "source_system": "shared-drive dump (versioned near-duplicates)",
+      "bytes": 55,
+      "records": null
+    },
+    {
+      "path": "eval/citation_edges.csv",
+      "format": "csv",
+      "source_system": "evaluation ground-truth sets",
+      "bytes": 135951,
+      "records": 1971
+    },
+    {
+      "path": "eval/conflicts.jsonl",
+      "format": "jsonl",
+      "source_system": "evaluation ground-truth sets",
+      "bytes": 8402,
+      "records": 7
+    },
+    {
       "path": "events/admin_audit.jsonl",
       "format": "jsonl",
       "source_system": "generic event streams (freud-schema ingest events)",
@@ -129,6 +199,20 @@
       "records": 249
     },
     {
+      "path": "external/analyst-note-brightpath-2026-05.md",
+      "format": "markdown",
+      "source_system": "external / third-party sources (low authority)",
+      "bytes": 2269,
+      "records": null
+    },
+    {
+      "path": "external/news-mention-harbor-city-biz-2026-04.txt",
+      "format": "text",
+      "source_system": "external / third-party sources (low authority)",
+      "bytes": 1013,
+      "records": null
+    },
+    {
       "path": "feedback/annotation_corrections.jsonl",
       "format": "jsonl",
       "source_system": "human feedback",
@@ -148,6 +232,27 @@
       "source_system": "human feedback",
       "bytes": 9258,
       "records": 36
+    },
+    {
+      "path": "governance/decision_log.jsonl",
+      "format": "jsonl",
+      "source_system": "governance registries (system-of-record, authority)",
+      "bytes": 6757,
+      "records": 8
+    },
+    {
+      "path": "governance/source_authority.csv",
+      "format": "csv",
+      "source_system": "governance registries (system-of-record, authority)",
+      "bytes": 1792,
+      "records": 14
+    },
+    {
+      "path": "governance/system_of_record.csv",
+      "format": "csv",
+      "source_system": "governance registries (system-of-record, authority)",
+      "bytes": 2215,
+      "records": 10
     },
     {
       "path": "internal/docs/acceptable-use-policy.txt",
@@ -188,7 +293,7 @@
       "path": "internal/docs/runbook-laptop-provisioning.md",
       "format": "markdown",
       "source_system": "internal documents (corporate)",
-      "bytes": 3640,
+      "bytes": 3641,
       "records": null
     },
     {
@@ -302,6 +407,146 @@
       "source_system": "security operations data",
       "bytes": 21270,
       "records": 232
+    },
+    {
+      "path": "messy/api_responses/usage-page-1.json",
+      "format": "json",
+      "source_system": "raw API responses (paginated)",
+      "bytes": 1595,
+      "records": 8
+    },
+    {
+      "path": "messy/api_responses/usage-page-2.json",
+      "format": "json",
+      "source_system": "raw API responses (paginated)",
+      "bytes": 1644,
+      "records": 8
+    },
+    {
+      "path": "messy/api_responses/usage-page-3.json",
+      "format": "json",
+      "source_system": "raw API responses (paginated)",
+      "bytes": 916,
+      "records": 4
+    },
+    {
+      "path": "messy/calendar/harbor-city-eng.ics",
+      "format": "ics",
+      "source_system": "calendar export (ICS)",
+      "bytes": 4291,
+      "records": null
+    },
+    {
+      "path": "messy/db_dumps/support_tickets_dump.sql",
+      "format": "sql",
+      "source_system": "database dump (SQL INSERT)",
+      "bytes": 2960,
+      "records": null
+    },
+    {
+      "path": "messy/decks/2026-Q2-board-review.outline.txt",
+      "format": "text",
+      "source_system": "slide-deck outline export",
+      "bytes": 5718,
+      "records": null
+    },
+    {
+      "path": "messy/html/intranet-it-help.html",
+      "format": "html",
+      "source_system": "HTML documents (intranet/email)",
+      "bytes": 4224,
+      "records": null
+    },
+    {
+      "path": "messy/html/newsletter-2026-05.html",
+      "format": "html",
+      "source_system": "HTML documents (intranet/email)",
+      "bytes": 4355,
+      "records": null
+    },
+    {
+      "path": "messy/logs/nightledger-siem-2026-05-20.log",
+      "format": "log",
+      "source_system": "raw system logs (syslog/CEF)",
+      "bytes": 5437,
+      "records": null
+    },
+    {
+      "path": "messy/mbox/exports-beta-thread.mbox",
+      "format": "mbox",
+      "source_system": "email archive (mbox)",
+      "bytes": 5951,
+      "records": null
+    },
+    {
+      "path": "messy/ocr/vendor-invoice-corvid-2026-04.ground-truth.json",
+      "format": "json",
+      "source_system": "OCR output (scanned documents)",
+      "bytes": 855,
+      "records": 4
+    },
+    {
+      "path": "messy/ocr/vendor-invoice-corvid-2026-04.txt",
+      "format": "text",
+      "source_system": "OCR output (scanned documents)",
+      "bytes": 1386,
+      "records": null
+    },
+    {
+      "path": "messy/spreadsheets/README-provenance.md",
+      "format": "markdown",
+      "source_system": "human spreadsheets (raw exports)",
+      "bytes": 1685,
+      "records": null
+    },
+    {
+      "path": "messy/spreadsheets/headcount-plan-eu-locale.csv",
+      "format": "csv",
+      "source_system": "human spreadsheets (raw exports)",
+      "bytes": 434,
+      "records": 8
+    },
+    {
+      "path": "messy/spreadsheets/q1-budget-vs-actual.csv",
+      "format": "csv",
+      "source_system": "human spreadsheets (raw exports)",
+      "bytes": 818,
+      "records": 17
+    },
+    {
+      "path": "messy/transcripts_raw/2026-06-09-exports-ga-retro-clean.md",
+      "format": "markdown",
+      "source_system": "raw ASR transcript (pre-clean)",
+      "bytes": 2531,
+      "records": null
+    },
+    {
+      "path": "messy/transcripts_raw/2026-06-09-exports-ga-retro-raw.txt",
+      "format": "text",
+      "source_system": "raw ASR transcript (pre-clean)",
+      "bytes": 5631,
+      "records": null
+    },
+    {
+      "path": "messy/transcripts_raw/README.md",
+      "format": "markdown",
+      "source_system": "raw ASR transcript (pre-clean)",
+      "bytes": 1135,
+      "records": null
+    },
+    {
+      "path": "messy/xml/junit-stoneferry-ci-2026-06-18.xml",
+      "format": "xml",
+      "source_system": "XML / EDI feeds",
+      "bytes": 3264,
+      "records": null
+    },
+    {
+      "path": "messy/xml/logistics-asn-bluewater.xml",
+      "format": "xml",
+      "source_system": "XML / EDI feeds",
+      "bytes": 2394,
+      "records": null
     },
     {
       "path": "relational/customers.csv",
@@ -463,6 +708,62 @@
       "source_system": "helpdesk (support-ticket SaaS export)",
       "bytes": 611,
       "records": 26
+    },
+    {
+      "path": "time/page_history.jsonl",
+      "format": "jsonl",
+      "source_system": "temporal / versioned corpus data",
+      "bytes": 5214,
+      "records": 22
+    },
+    {
+      "path": "time/policy_versions.jsonl",
+      "format": "jsonl",
+      "source_system": "temporal / versioned corpus data",
+      "bytes": 1491,
+      "records": 6
+    },
+    {
+      "path": "time/snapshots/org_chart_2026-02-01.csv",
+      "format": "csv",
+      "source_system": "point-in-time snapshots (BI/versioned)",
+      "bytes": 8214,
+      "records": 114
+    },
+    {
+      "path": "time/snapshots/org_chart_2026-04-15.csv",
+      "format": "csv",
+      "source_system": "point-in-time snapshots (BI/versioned)",
+      "bytes": 8376,
+      "records": 116
+    },
+    {
+      "path": "time/snapshots/org_chart_2026-06-30.csv",
+      "format": "csv",
+      "source_system": "point-in-time snapshots (BI/versioned)",
+      "bytes": 8518,
+      "records": 118
+    },
+    {
+      "path": "time/snapshots/roadmap_2026-01-15.jsonl",
+      "format": "jsonl",
+      "source_system": "point-in-time snapshots (BI/versioned)",
+      "bytes": 1316,
+      "records": 8
+    },
+    {
+      "path": "time/snapshots/roadmap_2026-04-15.jsonl",
+      "format": "jsonl",
+      "source_system": "point-in-time snapshots (BI/versioned)",
+      "bytes": 1258,
+      "records": 8
+    },
+    {
+      "path": "time/snapshots/roadmap_2026-06-30.jsonl",
+      "format": "jsonl",
+      "source_system": "point-in-time snapshots (BI/versioned)",
+      "bytes": 1121,
+      "records": 8
     },
     {
       "path": "unstructured/call-transcripts/2026-02-20-cobalt-games-downgrade-call.txt",

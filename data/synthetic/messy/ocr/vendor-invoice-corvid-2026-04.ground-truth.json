@@ -1,0 +1,38 @@
+{
+  "vendor": "Corvid Hardware Supply",
+  "invoice_number": "CHS-2026-0417",
+  "po_id": "PO-2026-041",
+  "invoice_date": "2026-04-08",
+  "due_date": "2026-05-08",
+  "bill_to": "Acme Analytics",
+  "line_items": [
+    {
+      "description": "Corvid Fieldbook 14 laptop batch, corp image pre-load",
+      "qty": 10,
+      "unit_price": 825.00,
+      "amount": 8250.00
+    },
+    {
+      "description": "Docking station, USB-C dual 4K",
+      "qty": 10,
+      "unit_price": 78.00,
+      "amount": 780.00
+    },
+    {
+      "description": "Shipping & handling",
+      "qty": 1,
+      "unit_price": 120.00,
+      "amount": 120.00
+    },
+    {
+      "description": "On-site setup (per-device not incl)",
+      "qty": 2,
+      "unit_price": 150.00,
+      "amount": 300.00
+    }
+  ],
+  "subtotal": 9450.00,
+  "tax": 0.00,
+  "total": 9450.00,
+  "currency": "USD"
+}

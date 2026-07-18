@@ -1,0 +1,8 @@
+{"item_id":"RM-01","title":"Scheduled report exports","status":"in_progress","target_quarter":"2026-Q2","note":"Recurrence UI on staging; signed-URL delivery in review."}
+{"item_id":"RM-02","title":"Multi-region active-active","status":"under_evaluation","target_quarter":"2026-Q4","note":"Execs asked about it after the March incident; still evaluation-only, no commitment."}
+{"item_id":"RM-03","title":"Direct-to-bucket export delivery","status":"backlog","target_quarter":"unscheduled","note":"Still backlog; depends on the RM-01 delivery layer."}
+{"item_id":"RM-04","title":"Deduplicate events at ingest","status":"shipped","target_quarter":"2026-Q1","note":"Shipped 2026-03-28."}
+{"item_id":"RM-05","title":"Rate-limit headers on public endpoints","status":"in_progress","target_quarter":"2026-Q2","note":""}
+{"item_id":"RM-06","title":"SSO group-mapping fix","status":"in_progress","target_quarter":"2026-Q2","note":"Escalated after SUP-1057."}
+{"item_id":"RM-07","title":"Dashboard staleness banner","status":"in_progress","target_quarter":"2026-Q2","note":"Reactive: incident follow-up from INC-2026-0311 (ACME-247)."}
+{"item_id":"RM-09","title":"Usage explorer CSV export","status":"shipped","target_quarter":"2026-Q1","note":"Shipped 2026-02-20."}

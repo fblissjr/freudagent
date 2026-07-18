@@ -2553,6 +2553,239 @@ def write_granularity(out: Path, accounts: list[dict], tickets: list[dict],
 
 
 # ---------------------------------------------------------------------------
+# TIME / STALENESS: as-of snapshots and version histories (data/synthetic/time).
+# Everything here is either DERIVED from `employees` (the org snapshots) or
+# hand-pinned (roadmap evolution, knowledge-base revision history, policy
+# supersession chain), so the corpus carries structured ground truth for
+# temporal reasoning: which facts were true as of a date, how a fact evolved,
+# and the deprecated-limit staleness trap (batch limit was 500, is now 1000).
+# No wall-clock reads and no rng -- outputs are a pure function of `employees`
+# plus the constants below, so they reproduce byte-for-byte.
+# ---------------------------------------------------------------------------
+
+_ORG_SNAPSHOT_DATES = ["2026-02-01", "2026-04-15", "2026-06-30"]
+
+
+def _write_org_snapshots(out: Path, employees: list[dict]) -> None:
+    d = out / "time" / "snapshots"
+    d.mkdir(parents=True, exist_ok=True)
+    for asof in _ORG_SNAPSHOT_DATES:
+        ref = _d(asof)
+        present = [e for e in employees
+                   if _active_at(_d(e["hire_date"]), e["termination_date"], ref)]
+        present.sort(key=lambda e: int(e["employee_id"].split("-")[1]))
+        with open(d / f"org_chart_{asof}.csv", "w", newline="",
+                  encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["employee_id", "full_name", "title", "department",
+                        "manager_employee_id", "status_as_of"])
+            for e in present:
+                w.writerow([e["employee_id"], e["full_name"], e["title"],
+                            e["department"], e["manager_employee_id"], "active"])
+
+
+# Product roadmap as-of three dates. Deliberate evolution: "Scheduled report
+# exports" planned -> in_progress -> shipped; "Dashboard staleness banner"
+# appears only from 04-15 (reactive incident follow-up ACME-247) then ships;
+# "Multi-region active-active" stays proposed/under_evaluation in all three
+# (never committed -- corroborates the junior-vs-exec conflict); "Direct-to-
+# bucket export delivery" stays backlog. item_id is stable per title.
+_ROADMAP_SNAPSHOTS = {
+    "2026-01-15": [
+        {"item_id": "RM-01", "title": "Scheduled report exports",
+         "status": "planned", "target_quarter": "2026-Q1",
+         "note": "Recurrence rules + signed-URL delivery; tracked under ACME-180."},
+        {"item_id": "RM-02", "title": "Multi-region active-active",
+         "status": "proposed", "target_quarter": "2026-Q3",
+         "note": "Raised by an enterprise prospect; under architectural review, no capacity committed."},
+        {"item_id": "RM-03", "title": "Direct-to-bucket export delivery",
+         "status": "backlog", "target_quarter": "unscheduled",
+         "note": "Customer-requested bucket drop; not yet prioritized."},
+        {"item_id": "RM-04", "title": "Deduplicate events at ingest",
+         "status": "planned", "target_quarter": "2026-Q1",
+         "note": "Dedup on (source_id, idempotency_key); DATA project."},
+        {"item_id": "RM-05", "title": "Rate-limit headers on public endpoints",
+         "status": "proposed", "target_quarter": "2026-Q2",
+         "note": "Expose limit/remaining/reset headers on the metering API."},
+        {"item_id": "RM-06", "title": "SSO group-mapping fix",
+         "status": "backlog", "target_quarter": "unscheduled",
+         "note": "Multi-value groups attribute mapping for large directories."},
+        {"item_id": "RM-08", "title": "Read-only dashboard sharing links with expiry",
+         "status": "planned", "target_quarter": "2026-Q1", "note": ""},
+        {"item_id": "RM-09", "title": "Usage explorer CSV export",
+         "status": "in_progress", "target_quarter": "2026-Q1", "note": ""},
+    ],
+    "2026-04-15": [
+        {"item_id": "RM-01", "title": "Scheduled report exports",
+         "status": "in_progress", "target_quarter": "2026-Q2",
+         "note": "Recurrence UI on staging; signed-URL delivery in review."},
+        {"item_id": "RM-02", "title": "Multi-region active-active",
+         "status": "under_evaluation", "target_quarter": "2026-Q4",
+         "note": "Execs asked about it after the March incident; still evaluation-only, no commitment."},
+        {"item_id": "RM-03", "title": "Direct-to-bucket export delivery",
+         "status": "backlog", "target_quarter": "unscheduled",
+         "note": "Still backlog; depends on the RM-01 delivery layer."},
+        {"item_id": "RM-04", "title": "Deduplicate events at ingest",
+         "status": "shipped", "target_quarter": "2026-Q1",
+         "note": "Shipped 2026-03-28."},
+        {"item_id": "RM-05", "title": "Rate-limit headers on public endpoints",
+         "status": "in_progress", "target_quarter": "2026-Q2", "note": ""},
+        {"item_id": "RM-06", "title": "SSO group-mapping fix",
+         "status": "in_progress", "target_quarter": "2026-Q2",
+         "note": "Escalated after SUP-1057."},
+        {"item_id": "RM-07", "title": "Dashboard staleness banner",
+         "status": "in_progress", "target_quarter": "2026-Q2",
+         "note": "Reactive: incident follow-up from INC-2026-0311 (ACME-247)."},
+        {"item_id": "RM-09", "title": "Usage explorer CSV export",
+         "status": "shipped", "target_quarter": "2026-Q1",
+         "note": "Shipped 2026-02-20."},
+    ],
+    "2026-06-30": [
+        {"item_id": "RM-01", "title": "Scheduled report exports",
+         "status": "shipped", "target_quarter": "2026-Q2",
+         "note": "Shipped 2026-05-18."},
+        {"item_id": "RM-02", "title": "Multi-region active-active",
+         "status": "under_evaluation", "target_quarter": "2026-Q4",
+         "note": "Remains under evaluation; never committed to a release."},
+        {"item_id": "RM-03", "title": "Direct-to-bucket export delivery",
+         "status": "backlog", "target_quarter": "unscheduled",
+         "note": "Still backlog."},
+        {"item_id": "RM-05", "title": "Rate-limit headers on public endpoints",
+         "status": "shipped", "target_quarter": "2026-Q2",
+         "note": "Shipped 2026-05-30."},
+        {"item_id": "RM-06", "title": "SSO group-mapping fix",
+         "status": "shipped", "target_quarter": "2026-Q2",
+         "note": "Shipped 2026-06-10."},
+        {"item_id": "RM-07", "title": "Dashboard staleness banner",
+         "status": "shipped", "target_quarter": "2026-Q2",
+         "note": "Shipped 2026-06-24; incident follow-up ACME-247."},
+        {"item_id": "RM-08", "title": "Read-only dashboard sharing links with expiry",
+         "status": "in_progress", "target_quarter": "2026-Q3", "note": ""},
+        {"item_id": "RM-10", "title": "SSO SCIM provisioning",
+         "status": "proposed", "target_quarter": "2026-Q3", "note": ""},
+    ],
+}
+
+
+def _write_roadmap(out: Path) -> None:
+    d = out / "time" / "snapshots"
+    d.mkdir(parents=True, exist_ok=True)
+    for asof, items in _ROADMAP_SNAPSHOTS.items():
+        (d / f"roadmap_{asof}.jsonl").write_bytes(jsonl(items))
+
+
+# Knowledge-base revision histories. The metering-api-overview chain is the
+# staleness anchor: v4 (2025-11) documents a 500-event batch limit and v5
+# (2025-12) raises it 500 -> 1000, so "500 was once correct" is derivable from
+# history alone. is_current is true only on the final revision of each page.
+_PAGE_HISTORY = [
+    {"page_id": "KB-101",
+     "path": "saas/knowledge_base/pages/metering-api-overview.md",
+     "revisions": [
+         ("2025-06-10T09:30:00Z", "marcus.webb", "Initial metering API overview."),
+         ("2025-07-22T11:05:00Z", "marcus.webb", "Add authentication and rate-limit sections."),
+         ("2025-09-05T14:20:00Z", "ingrid.bauer", "Document the batch ingest endpoint (batch limit 500 events per request)."),
+         ("2025-11-04T10:15:00Z", "marcus.webb", "Clarify that the batch limit is 500 events per request; add examples."),
+         ("2025-12-08T16:40:00Z", "marcus.webb", "raise documented batch limit 500 -> 1000 (v0 sunset)"),
+         ("2026-02-18T13:10:00Z", "ingrid.bauer", "Add error-code table for 429/500 responses."),
+         ("2026-05-20T09:50:00Z", "marcus.webb", "Refresh batch examples after the ACME-231 incident follow-up."),
+     ]},
+    {"page_id": "KB-133",
+     "path": "saas/knowledge_base/pages/billing-and-invoicing-faq.md",
+     "revisions": [
+         ("2025-05-14T10:00:00Z", "carlos.mendes", "Initial billing and invoicing FAQ."),
+         ("2025-08-01T11:30:00Z", "carlos.mendes", "Add overage and true-up questions."),
+         ("2025-10-19T09:45:00Z", "ingrid.bauer", "Document the 5% overage grace threshold."),
+         ("2026-01-27T15:20:00Z", "carlos.mendes", "Clarify annual vs monthly proration."),
+         ("2026-04-06T12:05:00Z", "carlos.mendes", "Add invoice-dispute process after SUP-1063."),
+         ("2026-06-11T10:35:00Z", "ingrid.bauer", "Update the payment-terms section."),
+     ]},
+    {"page_id": "KB-127",
+     "path": "saas/knowledge_base/pages/sso-configuration-guide.md",
+     "revisions": [
+         ("2025-07-09T09:15:00Z", "sam.osei", "Initial SSO configuration guide."),
+         ("2025-11-12T14:00:00Z", "marcus.webb", "Add the group-to-role mapping section."),
+         ("2026-03-02T10:20:00Z", "sam.osei", "Add troubleshooting for multi-value group attributes."),
+         ("2026-05-30T11:40:00Z", "marcus.webb", "Document the SUP-1057 large-directory fix."),
+     ]},
+    {"page_id": "KB-114",
+     "path": "saas/knowledge_base/pages/troubleshooting-data-delays.md",
+     "revisions": [
+         ("2025-08-20T09:00:00Z", "yuki.tanaka", "Initial troubleshooting guide for data delays."),
+         ("2025-11-28T13:25:00Z", "tom.alvarez", "Add consumer-lag symptoms and checks."),
+         ("2026-03-12T10:10:00Z", "yuki.tanaka", "Add staleness-banner guidance after INC-2026-0311."),
+         ("2026-04-24T15:05:00Z", "tom.alvarez", "Link the freshness-watermark endpoint (ACME-247)."),
+         ("2026-06-18T11:15:00Z", "yuki.tanaka", "Clarify expected backfill timing."),
+     ]},
+]
+
+
+def _write_page_history(out: Path) -> None:
+    d = out / "time"
+    d.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for page in _PAGE_HISTORY:
+        n = len(page["revisions"])
+        for i, (edited_at, editor, summary) in enumerate(page["revisions"], 1):
+            rows.append({
+                "page_id": page["page_id"], "path": page["path"],
+                "version": i, "edited_at": edited_at, "editor": editor,
+                "change_summary": summary, "is_current": i == n,
+            })
+    (d / "page_history.jsonl").write_bytes(jsonl(rows))
+
+
+# Policy supersession chains as structured ground truth for draft-vs-approved
+# and version-supersession conflicts. The data-retention chain is load-bearing:
+# an approved-but-superseded v2.4, an abandoned DRAFT v3.0 whose 365-day figure
+# never took effect, and the approved current v3.2 (395 days).
+_POLICY_VERSIONS = [
+    {"policy_id": "POL-DATA-RETENTION", "title": "Data retention policy",
+     "version": "2.4", "status": "superseded", "effective_date": "2025-01-01",
+     "supersedes": "2.3", "path": "",
+     "note": "Prior approved retention policy; superseded by v3.2."},
+    {"policy_id": "POL-DATA-RETENTION", "title": "Data retention policy",
+     "version": "3.0", "status": "draft", "effective_date": "",
+     "supersedes": "2.4", "path": "",
+     "note": "Draft proposing 365-day total retention; superseded by approved v3.2; draft figures never took effect."},
+    {"policy_id": "POL-DATA-RETENTION", "title": "Data retention policy",
+     "version": "3.2", "status": "approved", "effective_date": "2026-04-01",
+     "supersedes": "2.4", "path": "documents/policy-data-retention.txt",
+     "note": "Current approved policy: 395-day total retention (90-day hot tier + 305-day cold tier)."},
+    {"policy_id": "POL-CHANGE-MGMT", "title": "Change management policy",
+     "version": "1.0", "status": "superseded", "effective_date": "2025-02-01",
+     "supersedes": "", "path": "",
+     "note": "Original change-management policy."},
+    {"policy_id": "POL-CHANGE-MGMT", "title": "Change management policy",
+     "version": "2.0", "status": "approved", "effective_date": "2026-03-20",
+     "supersedes": "1.0",
+     "path": "data/synthetic/internal/docs/change-management-policy.md",
+     "note": "Revised after INC-2026-0311: emergency-change review and rollback criteria."},
+    {"policy_id": "POL-ACCEPTABLE-USE", "title": "Acceptable use policy",
+     "version": "2.1", "status": "approved", "effective_date": "2025-09-01",
+     "supersedes": "2.0", "path": "",
+     "note": "Current acceptable-use policy."},
+]
+
+
+def _write_policy_versions(out: Path) -> None:
+    d = out / "time"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "policy_versions.jsonl").write_bytes(jsonl(_POLICY_VERSIONS))
+
+
+def write_temporal(out: Path, employees: list[dict]) -> None:
+    """Generate the TIME/STALENESS corpus under data/synthetic/time/: as-of org
+    snapshots derived from `employees`, product-roadmap evolution, knowledge-
+    base revision histories, and a policy supersession chain. Additive and
+    deterministic (no wall-clock, no rng)."""
+    _write_org_snapshots(out, employees)
+    _write_roadmap(out)
+    _write_page_history(out)
+    _write_policy_versions(out)
+
+
+# ---------------------------------------------------------------------------
 # Manifest
 # ---------------------------------------------------------------------------
 
@@ -2570,6 +2803,7 @@ SOURCE_SYSTEM_BY_DIR = {
     "saas/status_page": "status-page SaaS export",
     "api_specs": "API specifications (OpenAPI)",
     "relational": "relational OLTP database extract (acmedb)",
+    "documents/strategy": "internal strategy documents",
     "documents": "internal documents",
     "feedback": "human feedback",
     "unstructured/chat": "team chat export",
@@ -2585,6 +2819,23 @@ SOURCE_SYSTEM_BY_DIR = {
     "internal/recruiting": "applicant-tracking export",
     "internal/reporting": "BI / executive reporting extracts",
     "events": "generic event streams (freud-schema ingest events)",
+    "time/snapshots": "point-in-time snapshots (BI/versioned)",
+    "time": "temporal / versioned corpus data",
+    "messy/spreadsheets": "human spreadsheets (raw exports)",
+    "messy/ocr": "OCR output (scanned documents)",
+    "messy/xml": "XML / EDI feeds",
+    "messy/calendar": "calendar export (ICS)",
+    "messy/db_dumps": "database dump (SQL INSERT)",
+    "messy/api_responses": "raw API responses (paginated)",
+    "messy/logs": "raw system logs (syslog/CEF)",
+    "messy/html": "HTML documents (intranet/email)",
+    "messy/transcripts_raw": "raw ASR transcript (pre-clean)",
+    "messy/mbox": "email archive (mbox)",
+    "messy/decks": "slide-deck outline export",
+    "drive_chaos": "shared-drive dump (versioned near-duplicates)",
+    "external": "external / third-party sources (low authority)",
+    "governance": "governance registries (system-of-record, authority)",
+    "eval": "evaluation ground-truth sets",
 }
 
 
@@ -2659,6 +2910,7 @@ def generate(out: Path) -> dict:
     write_events(out, rng, accounts)
     employees = write_internal(out)
     write_granularity(out, accounts, tickets, employees)
+    write_temporal(out, employees)
     return write_manifest(out)
 
 

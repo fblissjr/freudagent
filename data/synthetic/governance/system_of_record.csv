@@ -1,0 +1,11 @@
+domain,fact_type,system_of_record,source_path_glob,authority_note
+people,employee_title_department,HRIS,internal/hris/employees.csv,"HRIS is canonical for titles, department, manager, and status. Email signatures and external notes are NOT authoritative for titles."
+finance,recognized_revenue_arr,Finance GL,internal/finance/gl_monthly.csv,"Recognized revenue and recognized ARR come from the General Ledger. This overrides any figure stated in decks, chat, CRM, or by an executive."
+finance,account_credit_memo,Finance GL,internal/finance/gl_monthly.csv,"Credits and adjustments (e.g. disputed-invoice credit memos) are recognized in the GL; the recognized figure reflects them."
+crm,pipeline_stage_owner,CRM,saas/crm/accounts.csv,"CRM is the system of record for pipeline stage, account owner, segment, and contract-list (booked) ARR. It is NOT the system of record for recognized revenue — use Finance GL for that."
+iam,entitlement_access,IAM,internal/iam/access_review_2026q2.csv,"Access entitlements and their review decisions come from the IAM access review, not from tickets or chat."
+reliability,uptime_incident,Status Page,saas/status_page/incident_history.json,"Incident timeline, severity, and uptime come from the status page. Authoritative but short-lived: operational state decays fast."
+product,api_limit_behavior,Current Product Docs,documents/product-spec-usage-metering.md,"Current product-spec sections and current KB pages define API limits and behavior. Deprecated sections and superseded KB revisions are historical, not current."
+product,api_limit_behavior_kb,Current Product Docs,saas/knowledge_base/pages/metering-api-overview.md,"Current KB revision (latest version field) is authoritative for API behavior; older page_history revisions are superseded."
+governance,org_decision_direction,Decision Log,governance/decision_log.jsonl,"Org decisions and strategic direction come from the DACI decision log. Strategy docs and proposals advocate; they do not decide."
+compliance,data_retention_policy,Approved Policy,documents/policy-data-retention.txt,"The approved policy version is authoritative for retention. Draft versions (any status other than approved) are not, regardless of date."

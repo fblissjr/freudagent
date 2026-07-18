@@ -1,0 +1,8 @@
+{"item_id":"RM-01","title":"Scheduled report exports","status":"planned","target_quarter":"2026-Q1","note":"Recurrence rules + signed-URL delivery; tracked under ACME-180."}
+{"item_id":"RM-02","title":"Multi-region active-active","status":"proposed","target_quarter":"2026-Q3","note":"Raised by an enterprise prospect; under architectural review, no capacity committed."}
+{"item_id":"RM-03","title":"Direct-to-bucket export delivery","status":"backlog","target_quarter":"unscheduled","note":"Customer-requested bucket drop; not yet prioritized."}
+{"item_id":"RM-04","title":"Deduplicate events at ingest","status":"planned","target_quarter":"2026-Q1","note":"Dedup on (source_id, idempotency_key); DATA project."}
+{"item_id":"RM-05","title":"Rate-limit headers on public endpoints","status":"proposed","target_quarter":"2026-Q2","note":"Expose limit/remaining/reset headers on the metering API."}
+{"item_id":"RM-06","title":"SSO group-mapping fix","status":"backlog","target_quarter":"unscheduled","note":"Multi-value groups attribute mapping for large directories."}
+{"item_id":"RM-08","title":"Read-only dashboard sharing links with expiry","status":"planned","target_quarter":"2026-Q1","note":""}
+{"item_id":"RM-09","title":"Usage explorer CSV export","status":"in_progress","target_quarter":"2026-Q1","note":""}

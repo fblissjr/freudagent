@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<asn:AdvanceShipNotice
+    xmlns:asn="urn:acme:edi:asn:1"
+    xmlns:cmn="urn:acme:edi:common:1"
+    version="1.1">
+  <asn:Header>
+    <asn:DocumentId>ASN-BWL-2026-04-0192</asn:DocumentId>
+    <asn:PurposeCode>Original</asn:PurposeCode>
+    <asn:CreatedAt>2026-04-14T22:07:31Z</asn:CreatedAt>
+    <cmn:SenderParty>
+      <cmn:PartyId schemeAgency="DUNS-like">BWL-88231</cmn:PartyId>
+      <cmn:Name>Bluewater Logistics</cmn:Name>
+      <cmn:Contact>edi-ops@bluewater-logistics.example</cmn:Contact>
+      <cmn:Address>
+        <cmn:Street>17 Tidewater Quay</cmn:Street>
+        <cmn:City>Harbor City</cmn:City>
+        <cmn:PostalCode>HC1 4QT</cmn:PostalCode>
+        <cmn:CountryCode>ZZ</cmn:CountryCode>
+      </cmn:Address>
+    </cmn:SenderParty>
+    <cmn:ReceiverParty>
+      <cmn:PartyId schemeAgency="internal">ACCT-1001</cmn:PartyId>
+      <cmn:Name>Acme Analytics</cmn:Name>
+      <cmn:Contact>ingest-ops@acme-analytics.example</cmn:Contact>
+    </cmn:ReceiverParty>
+  </asn:Header>
+  <asn:Shipment>
+    <asn:ShipmentId>SHP-2026-04-77412</asn:ShipmentId>
+    <asn:CarrierSCAC>BWLX</asn:CarrierSCAC>
+    <asn:TrackingNumber>1Z-BWL-4471-9920</asn:TrackingNumber>
+    <asn:ShipDate>2026-04-14</asn:ShipDate>
+    <asn:EstimatedDelivery>2026-04-17T12:00:00Z</asn:EstimatedDelivery>
+    <asn:Order>
+      <asn:OrderId>PO-2026-041</asn:OrderId>
+      <asn:BuyerOrderRef>ACME-231</asn:BuyerOrderRef>
+      <asn:LineItem lineNumber="1">
+        <cmn:ProductCode schemeName="GTIN-like">08820041771</cmn:ProductCode>
+        <cmn:Description>Corvid Fieldbook 14 laptop</cmn:Description>
+        <cmn:QuantityShipped uom="EA">10</cmn:QuantityShipped>
+        <cmn:QuantityOrdered uom="EA">10</cmn:QuantityOrdered>
+        <cmn:PackType>CTN</cmn:PackType>
+      </asn:LineItem>
+      <asn:LineItem lineNumber="2">
+        <cmn:ProductCode schemeName="GTIN-like">08820041788</cmn:ProductCode>
+        <cmn:Description>Docking station, USB-C dual 4K</cmn:Description>
+        <cmn:QuantityShipped uom="EA">10</cmn:QuantityShipped>
+        <cmn:QuantityOrdered uom="EA">10</cmn:QuantityOrdered>
+        <cmn:PackType>CTN</cmn:PackType>
+      </asn:LineItem>
+    </asn:Order>
+    <asn:Pallet id="PLT-001">
+      <asn:GrossWeight uom="KG">44.6</asn:GrossWeight>
+      <asn:CartonCount>3</asn:CartonCount>
+    </asn:Pallet>
+  </asn:Shipment>
+</asn:AdvanceShipNotice>

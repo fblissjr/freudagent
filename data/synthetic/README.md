@@ -122,18 +122,85 @@ cross-grain joins and key derivation can be evaluated:
 | events/badge_access.jsonl vs hris/pto_requests.csv | timestamp vs date-range | -- | interval overlap joins |
 | usage_daily.csv vs invoices.csv vs gl_monthly.csv | daily vs monthly | -- | grain conversion with billing-window semantics |
 
+## Messy / real-world formats (`messy/`, `drive_chaos/`)
+
+Most enterprise data is not clean CSV and markdown. `messy/` holds inputs a
+structuring agent must actually normalize -- several paired with clean ground
+truth so structuring is a scored task, not a vibe:
+
+| Path | Format / mess | Structuring task |
+|------|---------------|------------------|
+| messy/spreadsheets/*.csv | human exports: title/blank/prepared-by rows above the header, embedded subtotal/total rows, EU locale (`;` delim, comma decimals, DD.MM.YYYY), footnotes | find the real header, drop non-data rows, parse locale; grand total is pinned in the folder README |
+| messy/ocr/*.txt + *.ground-truth.json | OCR of a scanned invoice (l↔1, O↔0, hyphen breaks, column bleed) + the clean extraction | read past OCR noise to reproduce the ground-truth JSON (total $9,450) |
+| messy/xml/*.xml | JUnit CI report; EDI-style logistics ASN | flatten nested/namespaced XML to tables |
+| messy/calendar/*.ics | VCALENDAR export with RRULE recurrence | parse VEVENTs; cross-format join to the meeting notes (corroborates INC-2026-0311) |
+| messy/db_dumps/*.sql | mysqldump-style INSERTs with escaped quotes, NULLs, multi-row values | parse INSERTs back to rows |
+| messy/api_responses/*.json | paginated JSON:API envelope (data/meta/links) across 3 pages | de-envelope and concatenate; follow `links.next` to null |
+| messy/logs/*.log | one file mixing RFC5424 syslog, CEF, and key=value | normalize three formats into unified events |
+| messy/html/*.html | intranet page and newsletter email (nav/table-layout/tracking-pixel chrome) | strip chrome, extract the article/announcements |
+| messy/transcripts_raw/*-raw.txt + *-clean.md | raw ASR (bad diarization, fillers, [inaudible]) + clean attributed version | diarization cleanup, speaker attribution, action-item extraction |
+| messy/mbox/*.mbox | 5-message thread: top-posting, growing quote trails, a forwarded block | reconstruct reply structure |
+| messy/decks/*.outline.txt | slide-deck outline with `Notes:` speaker-note blocks | separate public bullets from private asides |
+| drive_chaos/ | five near-duplicate versioned drafts of one strategy doc + a temp/lock artifact | cluster into one identity, pick the canonical version, discard detritus (ground truth named in its README) |
+
+## Authority, staleness & conflict (`time/`, `governance/`, `external/`, `eval/`)
+
+The corpus is not internally consistent -- because the real world isn't. The
+same fact is asserted with different values by sources of different authority,
+age, and process status, and a structuring agent must resolve them by *rule*,
+not naive latest-wins. The ground truth for that lives here:
+
+- **`time/`** makes staleness derivable rather than asserted: `page_history.jsonl`
+  (KB revisions -- including the revision where the batch limit was *correctly*
+  500, before the 500->1000 change), `snapshots/` (org chart and roadmap at
+  three dates, capturing a termination and a hire), and `policy_versions.jsonl`
+  (a draft-vs-approved-vs-superseded retention chain).
+- **`governance/system_of_record.csv`** declares the canonical source per fact
+  domain (titles->HRIS, recognized revenue->GL, pipeline->CRM, entitlements->IAM,
+  uptime->status page, decisions->the decision log). **`source_authority.csv`**
+  is the scoring model in structured form: per source-type `base_authority` and
+  `half_life_days` (status-page truth decays in days; approved policy in a year;
+  external analyst notes start near-zero). **`decision_log.jsonl`** is DACI-style
+  decisions of record, including one *reversed* decision.
+- **`external/`** is deliberately low-authority and partly *wrong*: an analyst
+  note that misstates the batch limit, claims multi-region shipped, and inflates
+  a job title -- the unvalidated outside view every real corpus carries.
+- **`eval/conflicts.jsonl`** is the answer key: each record lists the competing
+  sources (path, value, as-of, author, type), the correct value, the winning
+  source, and the **resolution rule** -- one of `recency_supersession`,
+  `process_status`, `document_type_authority`, `system_of_record`,
+  `org_authority`. It encodes the load-bearing distinction: org authority
+  settles *decisions* (the CEO's deferral beats an IC's active-active proposal),
+  but **system-of-record settles facts** (the CEO's deck does *not* beat the
+  general ledger on revenue). **`eval/citation_edges.csv`** is the cross-reference
+  graph -- every corpus ID mention as a `(from_path, to_id)` edge, the substrate
+  for PageRank-style source-centrality scoring -- built by
+  `scripts/build_citation_graph.py`.
+
+Guarded by `tests/test_synthetic_temporal.py`, `test_synthetic_conflicts.py`,
+and `test_citation_graph.py`.
+
 ## Regeneration
 
 Structured/volume files are generated deterministically (fixed seed, fixed
 dates -- byte-identical on re-run):
 
 ```bash
-uv run python scripts/generate_synthetic_data.py
+uv run python scripts/generate_synthetic_data.py     # generated volumes + time/ + MANIFEST.json
+uv run python scripts/build_citation_graph.py         # derives eval/citation_edges.csv from the whole corpus
 ```
 
-Hand-authored files (`documents/`, `saas/knowledge_base/`,
-`unstructured/email/`, `unstructured/call-transcripts/`, this README) are
-not touched by the generator; it re-inventories everything present into
-`MANIFEST.json`. If you change generated volumes or anchors, keep the
-hand-authored cross-references above true -- `tests/test_synthetic_data.py`
-checks the load-bearing ones.
+Run the citation-graph builder *after* the generator (and after any
+hand-authored edits): it scans the entire corpus on disk, so it is a
+separate step, not part of `generate()` -- the determinism test regenerates
+into a temp dir that has only the generated files, where a disk-scanning
+citation step could not be reproducible. Re-run it whenever corpus content
+changes; then re-run the generator once more so `MANIFEST.json` re-inventories
+the refreshed `citation_edges.csv`.
+
+Hand-authored files (`documents/`, `saas/knowledge_base/`, `unstructured/`,
+`messy/`, `drive_chaos/`, `governance/`, `external/`, `eval/conflicts.jsonl`,
+this README) are not touched by the generator; it re-inventories everything
+present into `MANIFEST.json`. If you change generated volumes or anchors, keep
+the cross-references above true -- the `tests/test_synthetic_*.py` suite checks
+the load-bearing ones.

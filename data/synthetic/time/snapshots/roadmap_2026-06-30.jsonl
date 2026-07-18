@@ -1,0 +1,8 @@
+{"item_id":"RM-01","title":"Scheduled report exports","status":"shipped","target_quarter":"2026-Q2","note":"Shipped 2026-05-18."}
+{"item_id":"RM-02","title":"Multi-region active-active","status":"under_evaluation","target_quarter":"2026-Q4","note":"Remains under evaluation; never committed to a release."}
+{"item_id":"RM-03","title":"Direct-to-bucket export delivery","status":"backlog","target_quarter":"unscheduled","note":"Still backlog."}
+{"item_id":"RM-05","title":"Rate-limit headers on public endpoints","status":"shipped","target_quarter":"2026-Q2","note":"Shipped 2026-05-30."}
+{"item_id":"RM-06","title":"SSO group-mapping fix","status":"shipped","target_quarter":"2026-Q2","note":"Shipped 2026-06-10."}
+{"item_id":"RM-07","title":"Dashboard staleness banner","status":"shipped","target_quarter":"2026-Q2","note":"Shipped 2026-06-24; incident follow-up ACME-247."}
+{"item_id":"RM-08","title":"Read-only dashboard sharing links with expiry","status":"in_progress","target_quarter":"2026-Q3","note":""}
+{"item_id":"RM-10","title":"SSO SCIM provisioning","status":"proposed","target_quarter":"2026-Q3","note":""}
