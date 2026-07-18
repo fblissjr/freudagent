@@ -1,0 +1,160 @@
+From ingrid.bauer@acme-analytics.example Mon Feb 02 09:14:03 2026
+Return-Path: <ingrid.bauer@acme-analytics.example>
+Message-ID: <a1b2c3-0001@acme-analytics.example>
+Date: Mon, 2 Feb 2026 09:14:03 -0500
+From: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+To: Carlos Mendes <carlos.mendes@acme-analytics.example>
+Subject: Scheduled exports private beta - Bluewater?
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+
+Hi Carlos,
+
+We're opening the private beta for scheduled report exports next week and I'd
+love to include one or two accounts that actually pull a lot of reports. Bluewater
+Logistics came to mind - they've been asking about automated exports for a while.
+
+Would you be up for looping in your contact there? Beta is capped at eight accounts
+so I want to fill the slots with people who'll give us real feedback.
+
+Thanks,
+Ingrid
+
+--
+Ingrid Bauer
+Product Manager, Acme Analytics
+ingrid.bauer@acme-analytics.example
+
+From carlos.mendes@acme-analytics.example Mon Feb 02 15:42:19 2026
+Return-Path: <carlos.mendes@acme-analytics.example>
+Message-ID: <a1b2c3-0002@acme-analytics.example>
+Date: Mon, 2 Feb 2026 15:42:19 -0500
+From: Carlos Mendes <carlos.mendes@acme-analytics.example>
+To: Harun Osei <harun.osei@bluewater-logistics.example>
+Cc: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+Subject: Fwd: Scheduled exports private beta - Bluewater?
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+
+Hi Harun,
+
+Great news - remember the automated exports you asked about back in December? The
+product team is opening a private beta and I got you a slot. Would you want in?
+It's low-commitment, we just want your honest feedback.
+
+Let me know and I'll get you enabled this week.
+
+Best,
+Carlos
+
+---------- Forwarded message ----------
+From: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+Date: Mon, 2 Feb 2026 09:14:03 -0500
+Subject: Scheduled exports private beta - Bluewater?
+To: Carlos Mendes <carlos.mendes@acme-analytics.example>
+
+We're opening the private beta for scheduled report exports next week and I'd
+love to include one or two accounts that actually pull a lot of reports. Bluewater
+Logistics came to mind - they've been asking about automated exports for a while.
+
+Would you be up for looping in your contact there? Beta is capped at eight accounts
+so I want to fill the slots with people who'll give us real feedback.
+
+--
+Carlos Mendes
+Customer Success Manager, Acme Analytics
+carlos.mendes@acme-analytics.example
+
+From harun.osei@bluewater-logistics.example Tue Feb 03 08:05:51 2026
+Return-Path: <harun.osei@bluewater-logistics.example>
+Message-ID: <a1b2c3-0003@bluewater-logistics.example>
+Date: Tue, 3 Feb 2026 08:05:51 -0500
+From: Harun Osei <harun.osei@bluewater-logistics.example>
+To: Carlos Mendes <carlos.mendes@acme-analytics.example>
+Cc: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+Subject: Re: Fwd: Scheduled exports private beta - Bluewater?
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+
+Yes, absolutely we want in. Two questions before you flip it on:
+
+1. Can we export to Parquet or is it CSV only? Our data team would prefer Parquet.
+2. Is there a row limit per export? Some of our monthly pulls are large.
+
+Happy to be a guinea pig otherwise.
+
+> Hi Harun,
+>
+> Great news - remember the automated exports you asked about back in December? The
+> product team is opening a private beta and I got you a slot. Would you want in?
+> It's low-commitment, we just want your honest feedback.
+>
+> Let me know and I'll get you enabled this week.
+>
+> Best,
+> Carlos
+
+Harun Osei
+Data Operations, Bluewater Logistics
+
+From carlos.mendes@acme-analytics.example Tue Feb 03 10:31:08 2026
+Return-Path: <carlos.mendes@acme-analytics.example>
+Message-ID: <a1b2c3-0004@acme-analytics.example>
+Date: Tue, 3 Feb 2026 10:31:08 -0500
+From: Carlos Mendes <carlos.mendes@acme-analytics.example>
+To: Harun Osei <harun.osei@bluewater-logistics.example>
+Cc: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+Subject: Re: Fwd: Scheduled exports private beta - Bluewater?
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+
+Replies inline below.
+
+> 1. Can we export to Parquet or is it CSV only? Our data team would prefer Parquet.
+
+Both are supported - CSV and Parquet. Ingrid can confirm but Parquet is in from day one.
+
+> 2. Is there a row limit per export? Some of our monthly pulls are large.
+
+Good question, I'll defer to Ingrid on the exact number. Flagging it so she sees it.
+
+I'll get you enabled today. Thanks Harun!
+
+--
+Carlos Mendes
+Customer Success Manager, Acme Analytics
+carlos.mendes@acme-analytics.example
+
+From ingrid.bauer@acme-analytics.example Tue Feb 03 13:47:36 2026
+Return-Path: <ingrid.bauer@acme-analytics.example>
+Message-ID: <a1b2c3-0005@acme-analytics.example>
+Date: Tue, 3 Feb 2026 13:47:36 -0500
+From: Ingrid Bauer <ingrid.bauer@acme-analytics.example>
+To: Harun Osei <harun.osei@bluewater-logistics.example>
+Cc: Carlos Mendes <carlos.mendes@acme-analytics.example>
+Subject: Re: Fwd: Scheduled exports private beta - Bluewater?
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+
+Welcome to the beta, Harun! Quick answers:
+
+Parquet is supported from day one, as Carlos said. On the row limit - there is no
+hard cap in the product, but during beta please tell us if any large monthly export
+looks short. We want to hear about anything where the exported row count doesn't
+match what you see on the dashboard. That mismatch is exactly the kind of thing the
+beta is meant to surface.
+
+Enabling now. Thanks both.
+
+>> 1. Can we export to Parquet or is it CSV only? Our data team would prefer Parquet.
+>
+> Both are supported - CSV and Parquet. Ingrid can confirm but Parquet is in from day one.
+>
+>> 2. Is there a row limit per export? Some of our monthly pulls are large.
+>
+> Good question, I'll defer to Ingrid on the exact number. Flagging it so she sees it.
+
+--
+Ingrid Bauer
+Product Manager, Acme Analytics
+ingrid.bauer@acme-analytics.example

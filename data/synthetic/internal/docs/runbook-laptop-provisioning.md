@@ -9,7 +9,7 @@
 A new-hire record in **Fernwake People** automatically opens an onboarding
 ticket in **Torchstone Desk**. Ticket titles follow the format:
 
-> Onboarding: Jordan Reyes (EMP-0481) - start 2026-07-06
+> Onboarding: <Full Name> (EMP-####) - start <YYYY-MM-DD>
 
 Work the ticket end to end; close it only when the machine and accounts are
 ready and verified. SLA is **5 business days from ticket open to ready**, so

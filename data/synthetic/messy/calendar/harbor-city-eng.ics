@@ -1,0 +1,107 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Acme Analytics//Harbor City Eng Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Harbor City Engineering
+X-WR-TIMEZONE:UTC
+BEGIN:VEVENT
+UID:standup-platform-20260302@acme-analytics.example
+DTSTAMP:20260225T090000Z
+DTSTART:20260302T093000Z
+DTEND:20260302T095000Z
+RRULE:FREQ=WEEKLY;BYDAY=MO;UNTIL=20260427T093000Z
+SUMMARY:Platform standup
+LOCATION:Bridge / Harbor City HQ
+ORGANIZER;CN=Priya Raghavan:mailto:priya.raghavan@acme-analytics.example
+ATTENDEE;CN=Marcus Webb;RSVP=TRUE:mailto:marcus.webb@acme-analytics.example
+ATTENDEE;CN=Elena Sokolova;RSVP=TRUE:mailto:elena.sokolova@acme-analytics.example
+DESCRIPTION:Weekly platform team sync.
+END:VEVENT
+BEGIN:VEVENT
+UID:cab-weekly-20260304@acme-analytics.example
+DTSTAMP:20260225T090000Z
+DTSTART:20260304T150000Z
+DTEND:20260304T160000Z
+RRULE:FREQ=WEEKLY;BYDAY=WE
+SUMMARY:CAB — change advisory board
+LOCATION:Lighthouse Room
+ORGANIZER;CN=Dana Kim:mailto:dana.kim@acme-analytics.example
+ATTENDEE;CN=Tom Alvarez:mailto:tom.alvarez@acme-analytics.example
+ATTENDEE;CN=Ingrid Bauer:mailto:ingrid.bauer@acme-analytics.example
+DESCRIPTION:Reviews change requests incl. CHG-2026-0023.
+END:VEVENT
+BEGIN:VEVENT
+UID:inc-2026-0311-bridge@acme-analytics.example
+DTSTAMP:20260311T141000Z
+DTSTART:20260311T141500Z
+DTEND:20260311T154700Z
+SUMMARY:SEV2 Incident Bridge — INC-2026-0311
+LOCATION:Incident Bridge (virtual)
+ORGANIZER;CN=Marcus Webb:mailto:marcus.webb@acme-analytics.example
+ATTENDEE;CN=Priya Raghavan;ROLE=REQ-PARTICIPANT:mailto:priya.raghavan@acme-analytics.example
+ATTENDEE;CN=Yuki Tanaka;ROLE=REQ-PARTICIPANT:mailto:yuki.tanaka@acme-analytics.example
+ATTENDEE;CN=Sam Osei;ROLE=OPT-PARTICIPANT:mailto:sam.osei@acme-analytics.example
+DESCRIPTION:Ingestion lag + API 502s. Sev2 bridge. Ref INC-2026-0311.
+END:VEVENT
+BEGIN:VEVENT
+UID:postmortem-ingestion-lag-20260312@acme-analytics.example
+DTSTAMP:20260311T160000Z
+DTSTART:20260312T100000Z
+DTEND:20260312T110000Z
+SUMMARY:Postmortem: ingestion lag
+LOCATION:Lighthouse Room
+ORGANIZER;CN=Priya Raghavan:mailto:priya.raghavan@acme-analytics.example
+ATTENDEE;CN=Marcus Webb:mailto:marcus.webb@acme-analytics.example
+ATTENDEE;CN=Yuki Tanaka:mailto:yuki.tanaka@acme-analytics.example
+ATTENDEE;CN=Elena Sokolova:mailto:elena.sokolova@acme-analytics.example
+DESCRIPTION:Blameless postmortem for INC-2026-0311. Action items into DATA-88.
+END:VEVENT
+BEGIN:VEVENT
+UID:soc2-kickoff-20260318@acme-analytics.example
+DTSTAMP:20260310T120000Z
+DTSTART:20260318T160000Z
+DTEND:20260318T170000Z
+SUMMARY:SOC 2 readiness kickoff
+LOCATION:Lighthouse Room
+ORGANIZER;CN=Ingrid Bauer:mailto:ingrid.bauer@acme-analytics.example
+ATTENDEE;CN=Omar Haddad:mailto:omar.haddad@acme-analytics.example
+ATTENDEE;CN=Grace Adeyemi:mailto:grace.adeyemi@acme-analytics.example
+DESCRIPTION:Scope Type II window and control owners.
+END:VEVENT
+BEGIN:VEVENT
+UID:export-ga-review-20260514@acme-analytics.example
+DTSTAMP:20260508T120000Z
+DTSTART:20260514T170000Z
+DTEND:20260514T173000Z
+SUMMARY:Scheduled export GA — go/no-go
+LOCATION:Bridge / Harbor City HQ
+ORGANIZER;CN=Elena Sokolova:mailto:elena.sokolova@acme-analytics.example
+ATTENDEE;CN=Priya Raghavan:mailto:priya.raghavan@acme-analytics.example
+ATTENDEE;CN=Carlos Mendes:mailto:carlos.mendes@acme-analytics.example
+DESCRIPTION:GA decision for scheduled report exports (target 2026-05-18).
+END:VEVENT
+BEGIN:VEVENT
+UID:bluewater-qbr-20260416@acme-analytics.example
+DTSTAMP:20260401T120000Z
+DTSTART:20260416T150000Z
+DTEND:20260416T160000Z
+SUMMARY:Bluewater QBR
+LOCATION:Tidewater Quay (Bluewater HQ)
+ORGANIZER;CN=Aisha Diallo:mailto:aisha.diallo@acme-analytics.example
+ATTENDEE;CN=Noah Lindqvist:mailto:noah.lindqvist@acme-analytics.example
+ATTENDEE;CN=Bluewater AM;ROLE=REQ-PARTICIPANT:mailto:account@bluewater-logistics.example
+DESCRIPTION:Quarterly business review with Bluewater Logistics (ACCT-1001).
+END:VEVENT
+BEGIN:VEVENT
+UID:oncall-handoff-20260401@acme-analytics.example
+DTSTAMP:20260328T120000Z
+DTSTART:20260401T160000Z
+DTEND:20260401T162000Z
+SUMMARY:On-call handoff
+LOCATION:Bridge / Harbor City HQ
+ORGANIZER;CN=Yuki Tanaka:mailto:yuki.tanaka@acme-analytics.example
+ATTENDEE;CN=Diego Fuentes:mailto:diego.fuentes@acme-analytics.example
+DESCRIPTION:Weekly primary/secondary on-call rotation handoff.
+END:VEVENT
+END:VCALENDAR

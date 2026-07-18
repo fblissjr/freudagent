@@ -1,0 +1,119 @@
+employee_id,full_name,title,department,manager_employee_id,status_as_of
+EMP-1001,Renata Voss,CEO,Executive,,active
+EMP-1002,Grace Adeyemi,CFO,Finance,EMP-1001,active
+EMP-1003,Johan Brandt,VP Engineering,Engineering,EMP-1001,active
+EMP-1004,Maya Kaplan,VP People,People,EMP-1001,active
+EMP-1005,Diego Fuentes,Head of IT,IT,EMP-1002,active
+EMP-1006,Sylvia Ngata,General Counsel,Legal & Compliance,EMP-1001,active
+EMP-1007,Ravi Chandran,Security Engineer,Security,EMP-1005,active
+EMP-1008,Nora Vasquez,VP Customer Experience,Customer Experience,EMP-1001,active
+EMP-1009,Theo Marchand,VP Sales,Sales,EMP-1001,active
+EMP-1010,Priya Raghavan,Engineering Manager,Engineering,EMP-1003,active
+EMP-1011,Marcus Webb,Senior Backend Engineer,Engineering,EMP-1010,active
+EMP-1012,Elena Sokolova,Data Engineer,Engineering,EMP-1010,active
+EMP-1013,Dana Kim,Frontend Engineer,Engineering,EMP-1010,active
+EMP-1014,Tom Alvarez,Site Reliability Engineer,Engineering,EMP-1010,active
+EMP-1015,Yuki Tanaka,Support Lead,Customer Experience,EMP-1008,active
+EMP-1016,Sam Osei,Support Engineer,Customer Experience,EMP-1015,active
+EMP-1017,Ingrid Bauer,Product Manager,Product,EMP-1001,active
+EMP-1018,Carlos Mendes,Customer Success Manager,Customer Experience,EMP-1008,active
+EMP-1019,Aisha Diallo,Account Executive,Sales,EMP-1009,active
+EMP-1020,Noah Lindqvist,Data Engineer,Engineering,EMP-1010,active
+EMP-1021,Fatima al-Rashid,QA Engineer,Engineering,EMP-1010,active
+EMP-1022,Uma Tremblay,Senior Backend Engineer,Engineering,EMP-1010,active
+EMP-1023,Idris Oyelaran,Senior Frontend Engineer,Engineering,EMP-1003,active
+EMP-1025,Dahlia Castellano,Backend Engineer,Engineering,EMP-1003,active
+EMP-1026,Jasper Ishikawa,Senior Frontend Engineer,Engineering,EMP-1010,active
+EMP-1028,Yusuf Mistry,Backend Engineer,Engineering,EMP-1003,active
+EMP-1029,Viktor Lindholm,Machine Learning Engineer,Engineering,EMP-1010,active
+EMP-1030,Omar Haddad,IT Support Specialist,IT,EMP-1005,active
+EMP-1031,Lena Fischer,IT Systems Engineer,IT,EMP-1005,active
+EMP-1033,Imani Engberg,Machine Learning Engineer,Engineering,EMP-1010,active
+EMP-1034,Niko Xu,Staff Engineer,Engineering,EMP-1003,active
+EMP-1036,Celeste Zielinski,Frontend Engineer,Engineering,EMP-1010,active
+EMP-1037,Petra Wilder,Senior Frontend Engineer,Engineering,EMP-1003,active
+EMP-1038,Liora Larsen,Platform Engineer,Engineering,EMP-1003,active
+EMP-1039,Wesley Varga,Machine Learning Engineer,Engineering,EMP-1010,active
+EMP-1040,Cedric Ashby,Senior Backend Engineer,Engineering,EMP-1003,active
+EMP-1043,Selim Ibsen,Senior Frontend Engineer,Engineering,EMP-1003,active
+EMP-1045,Zoe Xu,Backend Engineer,Engineering,EMP-1003,active
+EMP-1046,Ulric Kovac,Frontend Engineer,Engineering,EMP-1010,active
+EMP-1047,Bruno Jovergaard,Frontend Engineer,Engineering,EMP-1010,active
+EMP-1048,Lorenzo Rourke,Data Engineer,Engineering,EMP-1010,active
+EMP-1050,Felipe Castellano,Frontend Engineer,Engineering,EMP-1003,active
+EMP-1051,Quentin Mistry,Senior Frontend Engineer,Engineering,EMP-1003,active
+EMP-1052,Rania Ueno,Frontend Engineer,Engineering,EMP-1003,active
+EMP-1054,Ulric Jovergaard,Senior Frontend Engineer,Engineering,EMP-1003,active
+EMP-1055,Mateo Pereira,Site Reliability Engineer,Engineering,EMP-1010,active
+EMP-1056,Viktor Gutierrez,Senior Frontend Engineer,Engineering,EMP-1003,active
+EMP-1057,Oscar Ishikawa,Backend Engineer,Engineering,EMP-1010,active
+EMP-1058,Mateo Abara,Site Reliability Engineer,Engineering,EMP-1003,active
+EMP-1060,Hana Tremblay,Machine Learning Engineer,Engineering,EMP-1003,active
+EMP-1061,Mateo Ashby,Senior Backend Engineer,Engineering,EMP-1003,active
+EMP-1062,Uma Ibsen,Senior Frontend Engineer,Engineering,EMP-1010,active
+EMP-1063,Farah Grimaldi,Platform Engineer,Engineering,EMP-1003,active
+EMP-1064,Ximena Zabel,Platform Engineer,Engineering,EMP-1003,active
+EMP-1066,Emilio Nunez,Backend Engineer,Engineering,EMP-1003,active
+EMP-1067,Rosa Ortega,Sales Development Representative,Sales,EMP-1009,active
+EMP-1068,Rosa Nunez,Senior Account Executive,Sales,EMP-1009,active
+EMP-1070,Viktor Pereira,Account Executive,Sales,EMP-1009,active
+EMP-1071,Imani Sandoval,Sales Engineer,Sales,EMP-1009,active
+EMP-1072,Esme Vasilenko,Senior Account Executive,Sales,EMP-1009,active
+EMP-1073,Aaron Moreau,Sales Development Representative,Sales,EMP-1009,active
+EMP-1074,Greta Abara,Account Executive,Sales,EMP-1009,active
+EMP-1075,Wanda Falk,Sales Engineer,Sales,EMP-1009,active
+EMP-1077,Anika Haas,Senior Account Executive,Sales,EMP-1009,active
+EMP-1078,Idris Jovergaard,Sales Engineer,Sales,EMP-1009,active
+EMP-1079,Zane Novak,Sales Development Representative,Sales,EMP-1009,active
+EMP-1080,Tara Kovac,Sales Development Representative,Sales,EMP-1009,active
+EMP-1081,Ophelia Eberhardt,Senior Account Executive,Sales,EMP-1009,active
+EMP-1082,Kai Zabel,Sales Development Representative,Sales,EMP-1009,active
+EMP-1083,Greta Zielinski,Sales Development Representative,Sales,EMP-1009,active
+EMP-1084,Pablo Ortega,Senior Support Engineer,Customer Experience,EMP-1008,active
+EMP-1085,Jasper Haas,Customer Success Manager,Customer Experience,EMP-1008,active
+EMP-1086,Anika Dvorak,Senior Support Engineer,Customer Experience,EMP-1008,active
+EMP-1087,Kira Thorne,Support Engineer,Customer Experience,EMP-1008,active
+EMP-1088,Kira Nunez,Customer Success Manager,Customer Experience,EMP-1008,active
+EMP-1089,Selim Varga,Onboarding Specialist,Customer Experience,EMP-1008,active
+EMP-1092,Rania Eberhardt,Onboarding Specialist,Customer Experience,EMP-1008,active
+EMP-1093,Cedric Halloran,Senior Support Engineer,Customer Experience,EMP-1008,active
+EMP-1094,Selim Halloran,Customer Success Manager,Customer Experience,EMP-1008,active
+EMP-1095,Idris Quist,Senior Support Engineer,Customer Experience,EMP-1008,active
+EMP-1096,Zoe Ishikawa,Senior Support Engineer,Customer Experience,EMP-1008,active
+EMP-1097,Thea Derevko,Onboarding Specialist,Customer Experience,EMP-1008,active
+EMP-1098,Felipe Grimaldi,Customer Success Manager,Customer Experience,EMP-1008,active
+EMP-1100,Juno Wilder,Customer Success Manager,Customer Experience,EMP-1008,active
+EMP-1101,Cedric Rourke,Senior Support Engineer,Customer Experience,EMP-1008,active
+EMP-1102,Viktor Varga,Product Designer,Product,EMP-1017,active
+EMP-1103,Sven Yamada,Product Manager,Product,EMP-1017,active
+EMP-1105,Cedric Moreau,Senior Product Manager,Product,EMP-1017,active
+EMP-1107,Talia Reyes,Data Engineer,Engineering,EMP-1010,active
+EMP-1108,Mateo Varga,Product Designer,Product,EMP-1017,active
+EMP-1109,Thea Yamada,UX Researcher,Product,EMP-1017,active
+EMP-1110,Lorenzo Ueno,Product Manager,Product,EMP-1017,active
+EMP-1111,Zoe Gutierrez,Head of Marketing,Marketing,EMP-1001,active
+EMP-1112,Bruno Mistry,Marketing Coordinator,Marketing,EMP-1111,active
+EMP-1113,Farah Abara,Demand Generation Specialist,Marketing,EMP-1111,active
+EMP-1114,Lorenzo Sandoval,Product Marketing Manager,Marketing,EMP-1111,active
+EMP-1116,Mira Lindholm,Product Marketing Manager,Marketing,EMP-1111,active
+EMP-1117,Liora Nunez,Product Marketing Manager,Marketing,EMP-1111,active
+EMP-1118,Wanda Nunez,Product Marketing Manager,Marketing,EMP-1111,active
+EMP-1119,Dahlia Tremblay,Marketing Coordinator,Marketing,EMP-1111,active
+EMP-1120,Petra Xu,Accounts Payable Specialist,Finance,EMP-1002,active
+EMP-1121,Cedric Dvorak,Senior Financial Analyst,Finance,EMP-1002,active
+EMP-1122,Sven Ashby,Financial Analyst,Finance,EMP-1002,active
+EMP-1123,Niko Derevko,Financial Analyst,Finance,EMP-1002,active
+EMP-1125,Ulric Quist,Senior Financial Analyst,Finance,EMP-1002,active
+EMP-1126,Hana Engberg,Financial Analyst,Finance,EMP-1002,active
+EMP-1127,Cedric Thorne,HR Business Partner,People,EMP-1004,active
+EMP-1128,Nadine Nunez,Recruiter,People,EMP-1004,active
+EMP-1129,Kai Wilder,HR Business Partner,People,EMP-1004,active
+EMP-1130,Niko Ishikawa,People Operations Specialist,People,EMP-1004,active
+EMP-1131,Bruno Yoon,Talent Acquisition Lead,People,EMP-1004,active
+EMP-1132,Bruno Bellini,IT Support Specialist,IT,EMP-1005,active
+EMP-1134,Yara Ishikawa,IT Support Specialist,IT,EMP-1005,active
+EMP-1136,Emilio Thorne,Corporate Counsel,Legal & Compliance,EMP-1006,active
+EMP-1137,Juno Halloran,Compliance Analyst,Legal & Compliance,EMP-1006,active
+EMP-1138,Wanda Kovac,Security Operations Analyst,Security,EMP-1007,active
+EMP-1139,Bianca Tremblay,Security Analyst,Security,EMP-1007,active
+EMP-1140,Nadine Ustinov,Security Operations Analyst,Security,EMP-1007,active

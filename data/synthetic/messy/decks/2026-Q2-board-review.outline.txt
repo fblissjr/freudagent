@@ -1,0 +1,137 @@
+Slide 1: Acme Analytics - Q2 2026 Board Review
+	- Prepared for the board of directors
+	- Presenter: renata.voss (CEO)
+	- Harbor City HQ
+	Notes:
+		renata.voss opening. Keep the tone confident but not spun. The board
+		already saw the March incident postmortem so don't bury it - lead into
+		it honestly on slide 4. Aim for 25 min, leave 20 for Q&A.
+
+Slide 2: Agenda
+	- Q1 recap and financials
+	- The March incident and what shipped since
+	- Product: scheduled exports GA
+	- SOC 2 progress
+	- Hiring plan
+	- Risks
+
+Slide 3: Q1 Recap
+	- Net revenue retention held at 108%
+	- Two SMB accounts downgraded in Q1: combined -$79.2k ARR
+	- Enterprise pipeline grew, three deals in late stage
+	- Logo count up net +14
+	Notes:
+		The two SMB downgrades were both price-sensitivity, not product churn -
+		one moved to a competitor on cost, one shrank seats after a reorg. If
+		asked, aisha.diallo has the deal notes. Don't let -$79.2k dominate the
+		narrative; NRR at 108% is the headline.
+
+Slide 4: The March Incident (INC-2026-0311)
+	- 2026-03-11: partial outage, dashboards degraded ~4 hours
+	- Root cause: a bad config push to the ingestion tier
+	- Customer impact: delayed data, no data loss
+	- johan.brandt led response; postmortem completed and shared
+	Notes:
+		Be straight about this. No data was lost and DR was not needed, but the
+		blast radius was bigger than it should have been because the config
+		change wasn't staged. priya.raghavan's team has since added a staged
+		rollout gate. If a board member pushes on "could this happen again" -
+		yes in theory, but the staged gate and the new canary check make it far
+		less likely. Do not claim it's impossible.
+
+Slide 5: What Shipped Since the Incident
+	- Staged rollout gate for all ingestion config changes
+	- Canary check on config pushes before full fleet
+	- Expanded on-call runbook and alerting coverage
+	- Postmortem action items: 9 of 11 closed
+	Notes:
+		The two open action items are both low-severity (a dashboard polish item
+		and a doc update). johan.brandt can speak to them if pressed.
+
+Slide 6: Product - Scheduled Report Exports (GA 2026-05-18)
+	- Went GA 2026-05-18 after an 8-account private beta
+	- CSV and Parquet output, scheduled or on-demand
+	- Staleness banner flags snapshots older than one hour
+	- Early adoption ahead of plan
+	Notes:
+		The staleness banner has been a quiet win - support ticket volume in the
+		"my export doesn't match the dashboard" category dropped sharply per
+		yuki.tanaka's team. ingrid.bauer owns the roadmap. One known follow-up:
+		Parquet files ship uncompressed today, being fixed.
+
+Slide 7: Product Roadmap - Next Two Quarters
+	- Export compression and delivery to customer cloud storage
+	- Deeper cohort analytics
+	- Evaluate multi-region active-active (evaluation only)
+	- Alerting on metric anomalies
+	Notes:
+		IMPORTANT: multi-region active-active is on the roadmap as an EVALUATION,
+		not a commitment. Don't over-promise multi-region if asked. Our position
+		is single-region with tested DR is adequate for 2026; active-active is
+		something we're scoping, not something we've committed to shipping. If a
+		board member wants us to commit, say we'll bring a scoped proposal, not a
+		date.
+
+Slide 8: SOC 2 Progress
+	- SOC 2 Type II audit in progress
+	- Observation window opened Q1, targeting report in H2
+	- No major gaps found in readiness assessment
+	- Security owner: johan.brandt
+	Notes:
+		"In progress" is accurate - we are mid-observation-window, not done.
+		Don't say "SOC 2 certified". Two minor readiness findings were remediated
+		before the window opened.
+
+Slide 9: Hiring Plan
+	- Eng: +3 (two backend, one SRE) - SRE is the priority given the incident
+	- CX: +2 (one CSM, one support engineer)
+	- Backfill one AE seat
+	- Total open reqs: 6
+	Notes:
+		The SRE hire is the one renata.voss cares most about - it's the direct
+		organizational answer to the March incident. priya.raghavan is the hiring
+		manager.
+
+Slide 10: Financial Summary
+	- ARR: $6.41M (up from $6.02M at end of Q4)
+	- Gross margin: 78%
+	- Cash runway: 19 months at current burn
+	- Q1 net new ARR: +$0.39M (net of the $79.2k downgrades)
+	Notes:
+		Runway number assumes no new raise and current hiring plan. If we close
+		the three late-stage enterprise deals, the net-new ARR picture improves
+		materially in Q2. renata.voss to frame this as "comfortable but not
+		complacent."
+
+Slide 11: Customer Health
+	- NRR 108%, GRR 94%
+	- Two SMB downgrades in Q1 (see slide 3)
+	- Enterprise NPS up quarter over quarter
+	- nora.vasquez (VP CX) leading a proactive-outreach program
+	Notes:
+		GRR at 94% is fine for our segment mix. nora.vasquez's outreach program
+		is aimed at the SMB tier where the downgrades happened.
+
+Slide 12: Risks
+	- Single-region architecture: DR is tested, but no active-active failover
+	- Concentration: top 10 accounts are 41% of ARR
+	- SOC 2 timing: audit report is H2, some enterprise deals want it sooner
+	- Hiring: SRE market is tight
+	Notes:
+		Put the single-region risk on the slide honestly - the board should hear
+		it from us, not discover it. Framing: it's a known, accepted risk for
+		2026 with tested DR as the mitigation; active-active is under evaluation
+		(tie back to slide 7). Do not present active-active as a committed fix.
+
+Slide 13: Asks of the Board
+	- Approval to open the 6 reqs
+	- Intro help on two named enterprise targets
+	- Guidance on timing of a potential Series B conversation
+
+Slide 14: Thank You / Q&A
+	- Questions
+	- renata.voss and johan.brandt available for follow-up
+	Notes:
+		Anticipated hard questions: (1) "will the incident recur" - see slide 4
+		notes; (2) "when is multi-region" - see slide 7 notes, evaluation not
+		commitment; (3) "SOC 2 date" - H2, don't tighten it.

@@ -70,6 +70,14 @@ cover/
 
 # Django stuff:
 *.log
+# ...but the public synthetic corpus ships fixture logs (syslog/CEF/gateway
+# samples). Un-ignore them; they are committed corpus data, not local logs.
+# GENERAL RULE: data/synthetic/ is public-by-construction -- prefer anchored
+# rules (e.g. /internal/, not internal/) so a broad pattern here never
+# silently drops a corpus file. tests/test_synthetic_data.py enforces this
+# both ways: every MANIFEST path must be tracked, and no corpus file may
+# carry private data. If either trips, fix the rule -- do not just git add.
+!data/synthetic/**/*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal

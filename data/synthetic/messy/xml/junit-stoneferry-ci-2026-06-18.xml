@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="acme-analytics-api" tests="15" failures="2" errors="1" time="42.187">
+  <testsuite name="ingest.pipeline" tests="6" failures="1" errors="0" skipped="0" time="18.902" timestamp="2026-06-18T03:11:42Z" hostname="stoneferry-runner-07">
+    <properties>
+      <property name="commit" value="a1f9c3d"/>
+      <property name="branch" value="main"/>
+    </properties>
+    <testcase classname="ingest.pipeline.batch" name="test_batch_dedup_by_key" time="2.311"/>
+    <testcase classname="ingest.pipeline.batch" name="test_idempotent_reingest" time="3.004"/>
+    <testcase classname="ingest.pipeline.batch" name="test_event_grain_mapping" time="1.882"/>
+    <testcase classname="ingest.pipeline.lag" name="test_lag_alert_threshold" time="4.221">
+      <failure message="expected lag_seconds &lt;= 300 but got 512" type="AssertionError">
+self.assertLessEqual(lag_seconds, 300)
+AssertionError: 512 not less than or equal to 300
+  at ingest/pipeline/lag_test.py:88 in test_lag_alert_threshold
+      </failure>
+    </testcase>
+    <testcase classname="ingest.pipeline.lag" name="test_backpressure_drains" time="5.010"/>
+    <testcase classname="ingest.pipeline.lag" name="test_502_retry_backoff" time="2.474"/>
+  </testsuite>
+  <testsuite name="api.usage" tests="5" failures="1" errors="1" skipped="0" time="15.603" timestamp="2026-06-18T03:12:04Z" hostname="stoneferry-runner-07">
+    <testcase classname="api.usage.pagination" name="test_page_links_next_prev" time="1.204"/>
+    <testcase classname="api.usage.pagination" name="test_last_page_next_null" time="0.998"/>
+    <testcase classname="api.usage.auth" name="test_scoped_token_required" time="2.117">
+      <failure message="expected HTTP 401 but received 502" type="AssertionError">
+Response status 502 (upstream gateway) -- see INC-2026-0311 remediation
+  at api/usage/auth_test.py:142 in test_scoped_token_required
+      </failure>
+    </testcase>
+    <testcase classname="api.usage.export" name="test_scheduled_export_ga" time="6.442"/>
+    <testcase classname="api.usage.export" name="test_export_signed_url" time="4.842">
+      <error message="ConnectionResetError: connection reset by peer" type="ConnectionResetError">
+Traceback (most recent call last):
+  File "api/usage/export_test.py", line 61, in test_export_signed_url
+    resp = client.get(signed_url, timeout=10)
+  File "acme/httpclient.py", line 204, in get
+    return self._send(req)
+  File "acme/httpclient.py", line 233, in _send
+    sock.recv(4096)
+ConnectionResetError: [Errno 104] connection reset by peer
+      </error>
+    </testcase>
+  </testsuite>
+  <testsuite name="auth.rbac" tests="4" failures="0" errors="0" skipped="1" time="7.682" timestamp="2026-06-18T03:12:31Z" hostname="stoneferry-runner-07">
+    <testcase classname="auth.rbac.roles" name="test_admin_can_rotate_keys" time="2.001"/>
+    <testcase classname="auth.rbac.roles" name="test_viewer_cannot_export" time="1.774"/>
+    <testcase classname="auth.rbac.roles" name="test_token_scope_enforced" time="3.907"/>
+    <testcase classname="auth.rbac.roles" name="test_legacy_basic_auth_disabled" time="0.000">
+      <skipped message="legacy basic auth removed in 2026-05 release"/>
+    </testcase>
+  </testsuite>
+</testsuites>

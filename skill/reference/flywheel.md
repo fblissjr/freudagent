@@ -71,3 +71,23 @@ Cross-phase dependencies become SDK handoffs. Early exit conditions (no correcti
 needed, threshold not met) are branching logic in the orchestrator agent.
 
 The flywheel IS the Agent SDK harness adapter.
+
+## Dev / eval data
+
+`data/synthetic/` is a committed, all-fictional corpus for developing and
+evaluating this loop end to end (see its `README.md`). Directly relevant here:
+
+- `feedback/annotation_corrections.jsonl` -- typed corrections in the
+  `CorrectionType` taxonomy above, ready-made Phase 1 input.
+- `eval/conflicts.jsonl` -- the answer key for conflicting "facts": each record
+  gives the competing sources, the correct value, and the **resolution rule**
+  (`recency_supersession`, `process_status`, `document_type_authority`,
+  `system_of_record`, `org_authority`). This is the ground truth for the
+  conflicting-feedback-resolution problem the flywheel must eventually handle.
+- `governance/` -- system-of-record and source-authority registries (the
+  scoring model in structured form); `eval/citation_edges.csv` -- the
+  source-centrality graph. `time/` -- staleness ground truth (page histories,
+  snapshots, policy supersession).
+
+The corpus is regenerated deterministically; see its README for the
+`generate_synthetic_data.py` + `build_citation_graph.py` sequence.
