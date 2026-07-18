@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Pre-commit guard for the public synthetic corpus (data/synthetic/).
+#
+# data/synthetic/ is public-by-construction, so before a commit that touches
+# it we run the two safety guards from tests/test_synthetic_data.py:
+#   - no private data in the corpus (real email / public IP / home path / secret)
+#   - every MANIFEST path is git-tracked
+# It runs ONLY when a corpus file or .gitignore is staged, so ordinary commits
+# pay nothing. The same tests run in `uv run pytest` as the hard backstop; this
+# hook is fast local feedback, not the sole guarantee. Emergency bypass:
+# `git commit --no-verify`.
+#
+# One-time per clone:  git config core.hooksPath .githooks
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM || true)
+if ! printf '%s\n' "$staged" | grep -qE '^(data/synthetic/|\.gitignore$)'; then
+    exit 0
+fi
+
+# Fail open if the toolchain is unavailable (e.g. a GUI git client without uv
+# on PATH) -- CI/`uv run pytest` still enforces the guards.
+if ! command -v uv >/dev/null 2>&1; then
+    echo "pre-commit: uv not found; skipping corpus guard (CI still enforces it)."
+    exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)"
+echo "pre-commit: checking synthetic-corpus safety guards..."
+if ! output=$(uv run --no-sync pytest tests/test_synthetic_data.py \
+        -k "private_data or git_tracked" -q 2>&1); then
+    printf '%s\n' "$output"
+    echo
+    echo "pre-commit: corpus safety guard FAILED. Fix the file or the .gitignore"
+    echo "rule -- do NOT just 'git add'. Emergency bypass: git commit --no-verify"
+    exit 1
+fi
+exit 0
