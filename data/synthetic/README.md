@@ -12,6 +12,14 @@ transcript, personal, or machine-specific content appears in this folder --
 that data stays in the gitignored private paths (`data/*.duckdb`,
 `data/papers/`).
 
+> **Contributing:** this directory is **public-by-construction** -- the
+> manifest inventories whatever lands here and it is all committed. Never drop
+> real exports, logs, or personal data under `data/synthetic/`; keep emails on
+> `.example`, IPs in the RFC 5737 doc ranges, and no home paths or secrets. Two
+> guards in `tests/test_synthetic_data.py` enforce this (every manifest path is
+> tracked; no corpus file carries private data) -- if one trips, fix the file
+> or the `.gitignore` rule, don't just `git add`.
+
 ## Layout
 
 ```
