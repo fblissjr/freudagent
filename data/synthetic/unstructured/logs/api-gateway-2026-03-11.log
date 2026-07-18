@@ -1,0 +1,762 @@
+2026-03-11T13:30:18Z INFO api-gateway req_id=r-0088019 method=POST path=/v1/auth/token status=200 latency_ms=491 upstream=metering-api
+2026-03-11T13:30:37Z INFO api-gateway req_id=r-0088047 method=GET path=/v1/exports status=200 latency_ms=485 upstream=metering-api
+2026-03-11T13:30:56Z INFO api-gateway req_id=r-0088050 method=GET path=/v1/exports status=200 latency_ms=524 upstream=metering-api
+2026-03-11T13:31:03Z INFO api-gateway req_id=r-0088068 method=GET path=/v1/dashboards status=200 latency_ms=559 upstream=metering-api
+2026-03-11T13:31:21Z WARN api-gateway req_id=r-0088075 method=GET path=/v1/reports status=401 latency_ms=647 upstream=metering-api
+2026-03-11T13:31:26Z INFO api-gateway req_id=r-0088091 method=POST path=/v1/usage/batch status=200 latency_ms=469 upstream=metering-api
+2026-03-11T13:31:37Z INFO api-gateway req_id=r-0088106 method=GET path=/v1/exports status=200 latency_ms=319 upstream=metering-api
+2026-03-11T13:31:45Z INFO api-gateway req_id=r-0088114 method=POST path=/v1/auth/token status=200 latency_ms=358 upstream=metering-api
+2026-03-11T13:32:07Z INFO api-gateway req_id=r-0088148 method=POST path=/v1/auth/token status=200 latency_ms=744 upstream=metering-api
+2026-03-11T13:32:27Z INFO api-gateway req_id=r-0088185 method=GET path=/v1/exports status=200 latency_ms=375 upstream=metering-api
+2026-03-11T13:32:47Z INFO api-gateway req_id=r-0088209 method=POST path=/v1/auth/token status=200 latency_ms=703 upstream=metering-api
+2026-03-11T13:32:52Z INFO api-gateway req_id=r-0088225 method=GET path=/v1/usage status=200 latency_ms=84 upstream=metering-api
+2026-03-11T13:33:01Z INFO api-gateway req_id=r-0088229 method=GET path=/v1/dashboards status=200 latency_ms=101 upstream=metering-api
+2026-03-11T13:33:11Z INFO api-gateway req_id=r-0088237 method=POST path=/v1/auth/token status=200 latency_ms=74 upstream=metering-api
+2026-03-11T13:33:22Z WARN api-gateway req_id=r-0088266 method=GET path=/v1/exports status=401 latency_ms=625 upstream=metering-api
+2026-03-11T13:33:35Z INFO api-gateway req_id=r-0088305 method=POST path=/v1/auth/token status=200 latency_ms=359 upstream=metering-api
+2026-03-11T13:33:54Z INFO api-gateway req_id=r-0088310 method=POST path=/v1/auth/token status=200 latency_ms=565 upstream=metering-api
+2026-03-11T13:34:03Z INFO api-gateway req_id=r-0088315 method=POST path=/v1/usage/batch status=200 latency_ms=864 upstream=metering-api
+2026-03-11T13:34:20Z WARN api-gateway req_id=r-0088353 method=GET path=/v1/dashboards status=400 latency_ms=420 upstream=metering-api
+2026-03-11T13:34:35Z INFO api-gateway req_id=r-0088357 method=GET path=/v1/exports status=200 latency_ms=643 upstream=metering-api
+2026-03-11T13:34:43Z INFO api-gateway req_id=r-0088392 method=GET path=/v1/dashboards status=200 latency_ms=467 upstream=metering-api
+2026-03-11T13:35:04Z INFO api-gateway req_id=r-0088404 method=POST path=/v1/auth/token status=200 latency_ms=316 upstream=metering-api
+2026-03-11T13:35:17Z INFO api-gateway req_id=r-0088418 method=POST path=/v1/usage/batch status=200 latency_ms=71 upstream=metering-api
+2026-03-11T13:35:31Z INFO api-gateway req_id=r-0088434 method=GET path=/v1/usage status=200 latency_ms=77 upstream=metering-api
+2026-03-11T13:35:51Z WARN api-gateway req_id=r-0088449 method=GET path=/v1/usage status=404 latency_ms=521 upstream=metering-api
+2026-03-11T13:36:03Z INFO api-gateway req_id=r-0088480 method=POST path=/v1/usage/batch status=200 latency_ms=587 upstream=metering-api
+2026-03-11T13:36:12Z INFO api-gateway req_id=r-0088512 method=GET path=/v1/exports status=200 latency_ms=673 upstream=metering-api
+2026-03-11T13:36:33Z INFO api-gateway req_id=r-0088544 method=GET path=/v1/usage status=200 latency_ms=255 upstream=metering-api
+2026-03-11T13:36:47Z INFO api-gateway req_id=r-0088549 method=POST path=/v1/usage/batch status=200 latency_ms=478 upstream=metering-api
+2026-03-11T13:37:07Z INFO api-gateway req_id=r-0088565 method=GET path=/v1/reports status=200 latency_ms=314 upstream=metering-api
+2026-03-11T13:37:31Z INFO api-gateway req_id=r-0088584 method=POST path=/v1/usage/batch status=200 latency_ms=272 upstream=metering-api
+2026-03-11T13:37:50Z INFO api-gateway req_id=r-0088615 method=GET path=/v1/reports status=200 latency_ms=617 upstream=metering-api
+2026-03-11T13:38:05Z INFO api-gateway req_id=r-0088649 method=GET path=/v1/reports status=200 latency_ms=630 upstream=metering-api
+2026-03-11T13:38:26Z INFO api-gateway req_id=r-0088652 method=POST path=/v1/usage/batch status=200 latency_ms=46 upstream=metering-api
+2026-03-11T13:38:36Z INFO api-gateway req_id=r-0088689 method=GET path=/v1/reports status=200 latency_ms=413 upstream=metering-api
+2026-03-11T13:38:44Z INFO api-gateway req_id=r-0088706 method=POST path=/v1/auth/token status=200 latency_ms=764 upstream=metering-api
+2026-03-11T13:38:56Z INFO api-gateway req_id=r-0088709 method=POST path=/v1/auth/token status=200 latency_ms=540 upstream=metering-api
+2026-03-11T13:39:08Z INFO api-gateway req_id=r-0088727 method=GET path=/v1/reports status=200 latency_ms=699 upstream=metering-api
+2026-03-11T13:39:22Z INFO api-gateway req_id=r-0088732 method=POST path=/v1/usage/batch status=200 latency_ms=665 upstream=metering-api
+2026-03-11T13:39:32Z INFO api-gateway req_id=r-0088759 method=GET path=/v1/dashboards status=200 latency_ms=548 upstream=metering-api
+2026-03-11T13:39:50Z INFO api-gateway req_id=r-0088772 method=POST path=/v1/usage/batch status=200 latency_ms=754 upstream=metering-api
+2026-03-11T13:39:55Z INFO api-gateway req_id=r-0088800 method=POST path=/v1/auth/token status=200 latency_ms=204 upstream=metering-api
+2026-03-11T13:40:12Z WARN api-gateway req_id=r-0088816 method=GET path=/v1/usage status=404 latency_ms=168 upstream=metering-api
+2026-03-11T13:40:35Z INFO api-gateway req_id=r-0088841 method=GET path=/v1/reports status=200 latency_ms=398 upstream=metering-api
+2026-03-11T13:40:52Z INFO api-gateway req_id=r-0088865 method=GET path=/v1/usage status=200 latency_ms=477 upstream=metering-api
+2026-03-11T13:41:09Z INFO api-gateway req_id=r-0088878 method=GET path=/v1/exports status=200 latency_ms=140 upstream=metering-api
+2026-03-11T13:41:17Z WARN api-gateway req_id=r-0088890 method=GET path=/v1/reports status=404 latency_ms=367 upstream=metering-api
+2026-03-11T13:41:26Z INFO api-gateway req_id=r-0088893 method=GET path=/v1/dashboards status=200 latency_ms=820 upstream=metering-api
+2026-03-11T13:41:49Z INFO api-gateway req_id=r-0088903 method=GET path=/v1/exports status=200 latency_ms=667 upstream=metering-api
+2026-03-11T13:42:01Z INFO api-gateway req_id=r-0088907 method=GET path=/v1/usage status=200 latency_ms=41 upstream=metering-api
+2026-03-11T13:42:09Z INFO api-gateway req_id=r-0088943 method=POST path=/v1/auth/token status=200 latency_ms=150 upstream=metering-api
+2026-03-11T13:42:19Z INFO api-gateway req_id=r-0088968 method=GET path=/v1/reports status=200 latency_ms=165 upstream=metering-api
+2026-03-11T13:42:34Z INFO api-gateway req_id=r-0089007 method=GET path=/v1/usage status=200 latency_ms=590 upstream=metering-api
+2026-03-11T13:42:53Z INFO api-gateway req_id=r-0089036 method=POST path=/v1/usage/batch status=200 latency_ms=388 upstream=metering-api
+2026-03-11T13:43:15Z INFO api-gateway req_id=r-0089045 method=GET path=/v1/usage status=200 latency_ms=894 upstream=metering-api
+2026-03-11T13:43:39Z INFO api-gateway req_id=r-0089081 method=POST path=/v1/usage/batch status=200 latency_ms=152 upstream=metering-api
+2026-03-11T13:44:01Z INFO api-gateway req_id=r-0089089 method=GET path=/v1/usage status=200 latency_ms=417 upstream=metering-api
+2026-03-11T13:44:16Z INFO api-gateway req_id=r-0089100 method=GET path=/v1/dashboards status=200 latency_ms=643 upstream=metering-api
+2026-03-11T13:44:30Z INFO api-gateway req_id=r-0089130 method=GET path=/v1/exports status=200 latency_ms=873 upstream=metering-api
+2026-03-11T13:44:39Z INFO api-gateway req_id=r-0089167 method=POST path=/v1/auth/token status=200 latency_ms=137 upstream=metering-api
+2026-03-11T13:44:46Z INFO api-gateway req_id=r-0089202 method=GET path=/v1/dashboards status=200 latency_ms=522 upstream=metering-api
+2026-03-11T13:44:59Z INFO api-gateway req_id=r-0089208 method=GET path=/v1/dashboards status=200 latency_ms=814 upstream=metering-api
+2026-03-11T13:45:18Z INFO api-gateway req_id=r-0089241 method=GET path=/v1/usage status=200 latency_ms=267 upstream=metering-api
+2026-03-11T13:45:25Z INFO api-gateway req_id=r-0089265 method=GET path=/v1/usage status=200 latency_ms=893 upstream=metering-api
+2026-03-11T13:45:37Z INFO api-gateway req_id=r-0089293 method=POST path=/v1/usage/batch status=200 latency_ms=435 upstream=metering-api
+2026-03-11T13:45:47Z INFO api-gateway req_id=r-0089303 method=GET path=/v1/exports status=200 latency_ms=218 upstream=metering-api
+2026-03-11T13:46:04Z INFO api-gateway req_id=r-0089334 method=GET path=/v1/reports status=200 latency_ms=598 upstream=metering-api
+2026-03-11T13:46:17Z INFO api-gateway req_id=r-0089370 method=GET path=/v1/reports status=200 latency_ms=732 upstream=metering-api
+2026-03-11T13:46:36Z INFO api-gateway req_id=r-0089407 method=GET path=/v1/reports status=200 latency_ms=822 upstream=metering-api
+2026-03-11T13:46:51Z INFO api-gateway req_id=r-0089439 method=GET path=/v1/reports status=200 latency_ms=169 upstream=metering-api
+2026-03-11T13:47:15Z INFO api-gateway req_id=r-0089468 method=POST path=/v1/auth/token status=200 latency_ms=457 upstream=metering-api
+2026-03-11T13:47:37Z INFO api-gateway req_id=r-0089481 method=POST path=/v1/usage/batch status=200 latency_ms=521 upstream=metering-api
+2026-03-11T13:47:58Z INFO api-gateway req_id=r-0089516 method=GET path=/v1/reports status=200 latency_ms=128 upstream=metering-api
+2026-03-11T13:48:14Z INFO api-gateway req_id=r-0089546 method=POST path=/v1/usage/batch status=200 latency_ms=643 upstream=metering-api
+2026-03-11T13:48:19Z WARN api-gateway req_id=r-0089563 method=POST path=/v1/usage/batch status=400 latency_ms=470 upstream=metering-api
+2026-03-11T13:48:34Z INFO api-gateway req_id=r-0089571 method=GET path=/v1/exports status=200 latency_ms=439 upstream=metering-api
+2026-03-11T13:48:55Z INFO api-gateway req_id=r-0089580 method=POST path=/v1/auth/token status=201 latency_ms=438 upstream=metering-api
+2026-03-11T13:49:08Z INFO api-gateway req_id=r-0089615 method=GET path=/v1/usage status=200 latency_ms=565 upstream=metering-api
+2026-03-11T13:49:24Z INFO api-gateway req_id=r-0089619 method=GET path=/v1/usage status=200 latency_ms=279 upstream=metering-api
+2026-03-11T13:49:40Z INFO api-gateway req_id=r-0089651 method=GET path=/v1/exports status=200 latency_ms=601 upstream=metering-api
+2026-03-11T13:49:48Z INFO api-gateway req_id=r-0089670 method=GET path=/v1/dashboards status=200 latency_ms=566 upstream=metering-api
+2026-03-11T13:50:11Z INFO api-gateway req_id=r-0089700 method=POST path=/v1/usage/batch status=200 latency_ms=130 upstream=metering-api
+2026-03-11T13:50:35Z INFO api-gateway req_id=r-0089738 method=GET path=/v1/reports status=200 latency_ms=642 upstream=metering-api
+2026-03-11T13:50:48Z INFO api-gateway req_id=r-0089765 method=GET path=/v1/exports status=200 latency_ms=175 upstream=metering-api
+2026-03-11T13:50:55Z INFO api-gateway req_id=r-0089783 method=GET path=/v1/reports status=200 latency_ms=845 upstream=metering-api
+2026-03-11T13:51:10Z INFO api-gateway req_id=r-0089812 method=POST path=/v1/auth/token status=200 latency_ms=759 upstream=metering-api
+2026-03-11T13:51:26Z INFO api-gateway req_id=r-0089840 method=POST path=/v1/usage/batch status=200 latency_ms=451 upstream=metering-api
+2026-03-11T13:51:49Z INFO api-gateway req_id=r-0089865 method=GET path=/v1/dashboards status=200 latency_ms=724 upstream=metering-api
+2026-03-11T13:52:09Z INFO api-gateway req_id=r-0089890 method=GET path=/v1/reports status=200 latency_ms=280 upstream=metering-api
+2026-03-11T13:52:25Z INFO api-gateway req_id=r-0089901 method=GET path=/v1/usage status=200 latency_ms=424 upstream=metering-api
+2026-03-11T13:52:37Z INFO api-gateway req_id=r-0089921 method=GET path=/v1/dashboards status=200 latency_ms=185 upstream=metering-api
+2026-03-11T13:53:01Z INFO api-gateway req_id=r-0089937 method=GET path=/v1/reports status=200 latency_ms=578 upstream=metering-api
+2026-03-11T13:53:24Z INFO api-gateway req_id=r-0089971 method=GET path=/v1/exports status=200 latency_ms=397 upstream=metering-api
+2026-03-11T13:53:30Z INFO api-gateway req_id=r-0090009 method=GET path=/v1/usage status=200 latency_ms=564 upstream=metering-api
+2026-03-11T13:53:38Z INFO api-gateway req_id=r-0090023 method=GET path=/v1/dashboards status=200 latency_ms=699 upstream=metering-api
+2026-03-11T13:53:45Z INFO api-gateway req_id=r-0090049 method=GET path=/v1/usage status=200 latency_ms=470 upstream=metering-api
+2026-03-11T13:54:02Z WARN api-gateway req_id=r-0090059 method=GET path=/v1/usage status=400 latency_ms=509 upstream=metering-api
+2026-03-11T13:54:13Z INFO api-gateway req_id=r-0090081 method=GET path=/v1/exports status=200 latency_ms=188 upstream=metering-api
+2026-03-11T13:54:30Z INFO api-gateway req_id=r-0090095 method=POST path=/v1/auth/token status=200 latency_ms=883 upstream=metering-api
+2026-03-11T13:54:49Z INFO api-gateway req_id=r-0090099 method=GET path=/v1/usage status=200 latency_ms=582 upstream=metering-api
+2026-03-11T13:55:02Z INFO api-gateway req_id=r-0090113 method=GET path=/v1/usage status=200 latency_ms=221 upstream=metering-api
+2026-03-11T13:55:19Z INFO api-gateway req_id=r-0090119 method=GET path=/v1/dashboards status=201 latency_ms=81 upstream=metering-api
+2026-03-11T13:55:34Z INFO api-gateway req_id=r-0090135 method=GET path=/v1/exports status=200 latency_ms=585 upstream=metering-api
+2026-03-11T13:55:51Z WARN api-gateway req_id=r-0090165 method=GET path=/v1/dashboards status=401 latency_ms=721 upstream=metering-api
+2026-03-11T13:56:07Z INFO api-gateway req_id=r-0090182 method=POST path=/v1/auth/token status=200 latency_ms=317 upstream=metering-api
+2026-03-11T13:56:25Z INFO api-gateway req_id=r-0090199 method=GET path=/v1/dashboards status=200 latency_ms=296 upstream=metering-api
+2026-03-11T13:56:37Z INFO api-gateway req_id=r-0090237 method=GET path=/v1/usage status=200 latency_ms=784 upstream=metering-api
+2026-03-11T13:56:48Z INFO api-gateway req_id=r-0090257 method=GET path=/v1/dashboards status=200 latency_ms=181 upstream=metering-api
+2026-03-11T13:57:05Z INFO api-gateway req_id=r-0090292 method=GET path=/v1/dashboards status=200 latency_ms=559 upstream=metering-api
+2026-03-11T13:57:27Z INFO api-gateway req_id=r-0090330 method=GET path=/v1/usage status=200 latency_ms=300 upstream=metering-api
+2026-03-11T13:57:48Z INFO api-gateway req_id=r-0090356 method=POST path=/v1/usage/batch status=200 latency_ms=235 upstream=metering-api
+2026-03-11T13:58:08Z WARN api-gateway req_id=r-0090365 method=GET path=/v1/reports status=400 latency_ms=203 upstream=metering-api
+2026-03-11T13:58:20Z INFO api-gateway req_id=r-0090388 method=GET path=/v1/usage status=200 latency_ms=746 upstream=metering-api
+2026-03-11T13:58:30Z INFO api-gateway req_id=r-0090420 method=GET path=/v1/usage status=200 latency_ms=594 upstream=metering-api
+2026-03-11T13:58:43Z INFO api-gateway req_id=r-0090457 method=GET path=/v1/exports status=200 latency_ms=432 upstream=metering-api
+2026-03-11T13:59:00Z INFO api-gateway req_id=r-0090484 method=GET path=/v1/usage status=200 latency_ms=844 upstream=metering-api
+2026-03-11T13:59:06Z INFO api-gateway req_id=r-0090514 method=POST path=/v1/usage/batch status=200 latency_ms=334 upstream=metering-api
+2026-03-11T13:59:29Z INFO api-gateway req_id=r-0090531 method=GET path=/v1/reports status=200 latency_ms=172 upstream=metering-api
+2026-03-11T13:59:38Z INFO api-gateway req_id=r-0090536 method=GET path=/v1/usage status=200 latency_ms=265 upstream=metering-api
+2026-03-11T13:59:55Z INFO api-gateway req_id=r-0090568 method=GET path=/v1/reports status=200 latency_ms=57 upstream=metering-api
+2026-03-11T14:00:11Z INFO api-gateway req_id=r-0090595 method=POST path=/v1/usage/batch status=200 latency_ms=371 upstream=metering-api
+2026-03-11T14:00:22Z INFO api-gateway req_id=r-0090598 method=POST path=/v1/auth/token status=200 latency_ms=621 upstream=metering-api
+2026-03-11T14:00:41Z INFO api-gateway req_id=r-0090619 method=GET path=/v1/dashboards status=200 latency_ms=831 upstream=metering-api
+2026-03-11T14:01:02Z WARN api-gateway req_id=r-0090642 method=POST path=/v1/usage/batch status=404 latency_ms=875 upstream=metering-api
+2026-03-11T14:01:15Z INFO api-gateway req_id=r-0090668 method=POST path=/v1/usage/batch status=200 latency_ms=773 upstream=metering-api
+2026-03-11T14:01:21Z WARN api-gateway req_id=r-0090686 method=GET path=/v1/usage status=404 latency_ms=614 upstream=metering-api
+2026-03-11T14:01:42Z INFO api-gateway req_id=r-0090699 method=GET path=/v1/usage status=200 latency_ms=876 upstream=metering-api
+2026-03-11T14:02:05Z INFO api-gateway req_id=r-0090728 method=GET path=/v1/exports status=200 latency_ms=307 upstream=metering-api
+2026-03-11T14:02:10Z WARN api-gateway req_id=r-0090763 method=POST path=/v1/usage/batch status=200 latency_ms=4562 upstream=metering-api
+2026-03-11T14:02:20Z INFO api-gateway req_id=r-0090766 method=GET path=/v1/dashboards status=200 latency_ms=417 upstream=metering-api
+2026-03-11T14:02:20Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=561793 lag_seconds=526 msg=consumer_lag_high
+2026-03-11T14:02:30Z WARN api-gateway req_id=r-0090791 method=GET path=/v1/usage status=200 latency_ms=5337 upstream=metering-api
+2026-03-11T14:02:54Z INFO api-gateway req_id=r-0090809 method=GET path=/v1/exports status=200 latency_ms=262 upstream=metering-api
+2026-03-11T14:03:17Z ERROR api-gateway req_id=r-0090818 method=POST path=/v1/usage/batch status=502 latency_ms=12443 upstream=metering-api error=upstream_timeout
+2026-03-11T14:03:28Z INFO api-gateway req_id=r-0090840 method=GET path=/v1/reports status=200 latency_ms=883 upstream=metering-api
+2026-03-11T14:03:47Z INFO api-gateway req_id=r-0090869 method=GET path=/v1/exports status=200 latency_ms=270 upstream=metering-api
+2026-03-11T14:04:00Z INFO api-gateway req_id=r-0090872 method=GET path=/v1/usage status=200 latency_ms=374 upstream=metering-api
+2026-03-11T14:04:05Z ERROR api-gateway req_id=r-0090894 method=POST path=/v1/usage/batch status=502 latency_ms=9595 upstream=metering-api error=upstream_timeout
+2026-03-11T14:04:05Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=368127 lag_seconds=1503 msg=consumer_lag_high
+2026-03-11T14:04:27Z INFO api-gateway req_id=r-0090900 method=POST path=/v1/auth/token status=200 latency_ms=48 upstream=metering-api
+2026-03-11T14:04:32Z INFO api-gateway req_id=r-0090925 method=GET path=/v1/exports status=200 latency_ms=400 upstream=metering-api
+2026-03-11T14:04:40Z INFO api-gateway req_id=r-0090953 method=GET path=/v1/reports status=200 latency_ms=790 upstream=metering-api
+2026-03-11T14:04:57Z INFO api-gateway req_id=r-0090986 method=GET path=/v1/dashboards status=200 latency_ms=594 upstream=metering-api
+2026-03-11T14:05:19Z WARN api-gateway req_id=r-0090999 method=POST path=/v1/usage/batch status=400 latency_ms=780 upstream=metering-api
+2026-03-11T14:05:41Z INFO api-gateway req_id=r-0091013 method=GET path=/v1/reports status=200 latency_ms=848 upstream=metering-api
+2026-03-11T14:06:01Z INFO api-gateway req_id=r-0091043 method=GET path=/v1/reports status=200 latency_ms=117 upstream=metering-api
+2026-03-11T14:06:21Z INFO api-gateway req_id=r-0091077 method=POST path=/v1/auth/token status=200 latency_ms=582 upstream=metering-api
+2026-03-11T14:06:34Z INFO api-gateway req_id=r-0091085 method=GET path=/v1/exports status=200 latency_ms=812 upstream=metering-api
+2026-03-11T14:06:50Z WARN api-gateway req_id=r-0091111 method=GET path=/v1/usage status=200 latency_ms=6899 upstream=metering-api
+2026-03-11T14:07:14Z INFO api-gateway req_id=r-0091129 method=GET path=/v1/exports status=200 latency_ms=45 upstream=metering-api
+2026-03-11T14:07:37Z ERROR api-gateway req_id=r-0091165 method=GET path=/v1/usage status=502 latency_ms=11808 upstream=metering-api error=upstream_timeout
+2026-03-11T14:07:55Z INFO api-gateway req_id=r-0091197 method=POST path=/v1/auth/token status=200 latency_ms=332 upstream=metering-api
+2026-03-11T14:08:14Z ERROR api-gateway req_id=r-0091201 method=GET path=/v1/usage status=502 latency_ms=10179 upstream=metering-api error=upstream_timeout
+2026-03-11T14:08:22Z ERROR api-gateway req_id=r-0091214 method=GET path=/v1/usage status=502 latency_ms=11546 upstream=metering-api error=upstream_timeout
+2026-03-11T14:08:43Z INFO api-gateway req_id=r-0091239 method=GET path=/v1/dashboards status=200 latency_ms=697 upstream=metering-api
+2026-03-11T14:09:05Z INFO api-gateway req_id=r-0091269 method=GET path=/v1/reports status=200 latency_ms=769 upstream=metering-api
+2026-03-11T14:09:27Z ERROR api-gateway req_id=r-0091283 method=POST path=/v1/usage/batch status=502 latency_ms=10073 upstream=metering-api error=upstream_timeout
+2026-03-11T14:09:43Z INFO api-gateway req_id=r-0091297 method=GET path=/v1/reports status=200 latency_ms=285 upstream=metering-api
+2026-03-11T14:09:55Z INFO api-gateway req_id=r-0091312 method=GET path=/v1/dashboards status=200 latency_ms=862 upstream=metering-api
+2026-03-11T14:10:07Z INFO api-gateway req_id=r-0091343 method=GET path=/v1/dashboards status=200 latency_ms=186 upstream=metering-api
+2026-03-11T14:10:25Z INFO api-gateway req_id=r-0091364 method=GET path=/v1/dashboards status=200 latency_ms=159 upstream=metering-api
+2026-03-11T14:10:48Z INFO api-gateway req_id=r-0091403 method=GET path=/v1/usage status=200 latency_ms=220 upstream=metering-api
+2026-03-11T14:11:03Z ERROR api-gateway req_id=r-0091442 method=GET path=/v1/usage status=502 latency_ms=12563 upstream=metering-api error=upstream_timeout
+2026-03-11T14:11:24Z INFO api-gateway req_id=r-0091462 method=GET path=/v1/dashboards status=200 latency_ms=437 upstream=metering-api
+2026-03-11T14:11:42Z INFO api-gateway req_id=r-0091478 method=GET path=/v1/reports status=200 latency_ms=315 upstream=metering-api
+2026-03-11T14:12:01Z INFO api-gateway req_id=r-0091517 method=GET path=/v1/reports status=200 latency_ms=644 upstream=metering-api
+2026-03-11T14:12:24Z INFO api-gateway req_id=r-0091549 method=GET path=/v1/exports status=200 latency_ms=496 upstream=metering-api
+2026-03-11T14:12:32Z INFO api-gateway req_id=r-0091563 method=GET path=/v1/usage status=201 latency_ms=52 upstream=metering-api
+2026-03-11T14:12:45Z INFO api-gateway req_id=r-0091593 method=GET path=/v1/dashboards status=200 latency_ms=754 upstream=metering-api
+2026-03-11T14:13:09Z INFO api-gateway req_id=r-0091599 method=POST path=/v1/auth/token status=200 latency_ms=293 upstream=metering-api
+2026-03-11T14:13:32Z INFO api-gateway req_id=r-0091633 method=POST path=/v1/usage/batch status=200 latency_ms=599 upstream=metering-api
+2026-03-11T14:13:54Z INFO api-gateway req_id=r-0091665 method=POST path=/v1/auth/token status=200 latency_ms=745 upstream=metering-api
+2026-03-11T14:14:03Z ERROR api-gateway req_id=r-0091673 method=POST path=/v1/usage/batch status=502 latency_ms=12264 upstream=metering-api error=upstream_timeout
+2026-03-11T14:14:18Z INFO api-gateway req_id=r-0091676 method=GET path=/v1/reports status=200 latency_ms=214 upstream=metering-api
+2026-03-11T14:14:26Z INFO api-gateway req_id=r-0091712 method=GET path=/v1/reports status=200 latency_ms=718 upstream=metering-api
+2026-03-11T14:14:39Z INFO api-gateway req_id=r-0091735 method=GET path=/v1/usage status=200 latency_ms=776 upstream=metering-api
+2026-03-11T14:14:50Z INFO api-gateway req_id=r-0091740 method=GET path=/v1/exports status=200 latency_ms=626 upstream=metering-api
+2026-03-11T14:14:55Z INFO api-gateway req_id=r-0091751 method=GET path=/v1/exports status=200 latency_ms=428 upstream=metering-api
+2026-03-11T14:15:17Z INFO api-gateway req_id=r-0091763 method=GET path=/v1/reports status=200 latency_ms=196 upstream=metering-api
+2026-03-11T14:15:33Z WARN api-gateway req_id=r-0091768 method=POST path=/v1/usage/batch status=200 latency_ms=5081 upstream=metering-api
+2026-03-11T14:15:38Z INFO api-gateway req_id=r-0091773 method=GET path=/v1/reports status=200 latency_ms=170 upstream=metering-api
+2026-03-11T14:15:56Z INFO api-gateway req_id=r-0091792 method=GET path=/v1/dashboards status=200 latency_ms=579 upstream=metering-api
+2026-03-11T14:16:14Z INFO api-gateway req_id=r-0091830 method=GET path=/v1/dashboards status=200 latency_ms=199 upstream=metering-api
+2026-03-11T14:16:31Z INFO api-gateway req_id=r-0091847 method=GET path=/v1/dashboards status=200 latency_ms=839 upstream=metering-api
+2026-03-11T14:16:53Z INFO api-gateway req_id=r-0091858 method=GET path=/v1/dashboards status=200 latency_ms=410 upstream=metering-api
+2026-03-11T14:17:04Z INFO api-gateway req_id=r-0091888 method=GET path=/v1/reports status=200 latency_ms=275 upstream=metering-api
+2026-03-11T14:17:27Z ERROR api-gateway req_id=r-0091898 method=GET path=/v1/usage status=502 latency_ms=11703 upstream=metering-api error=upstream_timeout
+2026-03-11T14:17:39Z ERROR api-gateway req_id=r-0091932 method=POST path=/v1/usage/batch status=502 latency_ms=10239 upstream=metering-api error=upstream_timeout
+2026-03-11T14:17:54Z INFO api-gateway req_id=r-0091935 method=GET path=/v1/reports status=200 latency_ms=166 upstream=metering-api
+2026-03-11T14:18:13Z INFO api-gateway req_id=r-0091942 method=GET path=/v1/reports status=200 latency_ms=847 upstream=metering-api
+2026-03-11T14:18:23Z ERROR api-gateway req_id=r-0091951 method=GET path=/v1/usage status=502 latency_ms=11888 upstream=metering-api error=upstream_timeout
+2026-03-11T14:18:39Z INFO api-gateway req_id=r-0091962 method=POST path=/v1/auth/token status=200 latency_ms=591 upstream=metering-api
+2026-03-11T14:18:46Z INFO api-gateway req_id=r-0091982 method=GET path=/v1/dashboards status=200 latency_ms=298 upstream=metering-api
+2026-03-11T14:19:10Z INFO api-gateway req_id=r-0092006 method=GET path=/v1/exports status=200 latency_ms=412 upstream=metering-api
+2026-03-11T14:19:24Z INFO api-gateway req_id=r-0092040 method=POST path=/v1/auth/token status=200 latency_ms=543 upstream=metering-api
+2026-03-11T14:19:34Z ERROR api-gateway req_id=r-0092075 method=GET path=/v1/usage status=502 latency_ms=10170 upstream=metering-api error=upstream_timeout
+2026-03-11T14:19:57Z INFO api-gateway req_id=r-0092079 method=GET path=/v1/dashboards status=200 latency_ms=890 upstream=metering-api
+2026-03-11T14:20:21Z INFO api-gateway req_id=r-0092106 method=GET path=/v1/dashboards status=200 latency_ms=53 upstream=metering-api
+2026-03-11T14:20:32Z INFO api-gateway req_id=r-0092141 method=GET path=/v1/exports status=200 latency_ms=359 upstream=metering-api
+2026-03-11T14:20:51Z INFO api-gateway req_id=r-0092146 method=POST path=/v1/auth/token status=200 latency_ms=102 upstream=metering-api
+2026-03-11T14:20:51Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=584937 lag_seconds=309 msg=consumer_lag_high
+2026-03-11T14:21:14Z INFO api-gateway req_id=r-0092149 method=GET path=/v1/dashboards status=200 latency_ms=815 upstream=metering-api
+2026-03-11T14:21:33Z INFO api-gateway req_id=r-0092157 method=GET path=/v1/exports status=200 latency_ms=481 upstream=metering-api
+2026-03-11T14:21:33Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=173814 lag_seconds=2286 msg=consumer_lag_high
+2026-03-11T14:21:54Z INFO api-gateway req_id=r-0092165 method=GET path=/v1/exports status=200 latency_ms=769 upstream=metering-api
+2026-03-11T14:22:06Z INFO api-gateway req_id=r-0092193 method=GET path=/v1/dashboards status=200 latency_ms=144 upstream=metering-api
+2026-03-11T14:22:28Z INFO api-gateway req_id=r-0092196 method=GET path=/v1/dashboards status=200 latency_ms=329 upstream=metering-api
+2026-03-11T14:22:38Z INFO api-gateway req_id=r-0092202 method=GET path=/v1/dashboards status=200 latency_ms=373 upstream=metering-api
+2026-03-11T14:22:45Z INFO api-gateway req_id=r-0092211 method=GET path=/v1/dashboards status=200 latency_ms=439 upstream=metering-api
+2026-03-11T14:23:08Z INFO api-gateway req_id=r-0092250 method=GET path=/v1/dashboards status=200 latency_ms=542 upstream=metering-api
+2026-03-11T14:23:29Z INFO api-gateway req_id=r-0092281 method=POST path=/v1/usage/batch status=200 latency_ms=564 upstream=metering-api
+2026-03-11T14:23:29Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=780927 lag_seconds=2328 msg=consumer_lag_high
+2026-03-11T14:23:40Z WARN api-gateway req_id=r-0092289 method=GET path=/v1/usage status=200 latency_ms=7319 upstream=metering-api
+2026-03-11T14:23:50Z INFO api-gateway req_id=r-0092327 method=GET path=/v1/reports status=200 latency_ms=444 upstream=metering-api
+2026-03-11T14:23:58Z INFO api-gateway req_id=r-0092340 method=GET path=/v1/exports status=200 latency_ms=482 upstream=metering-api
+2026-03-11T14:24:12Z ERROR api-gateway req_id=r-0092379 method=POST path=/v1/usage/batch status=502 latency_ms=9775 upstream=metering-api error=upstream_timeout
+2026-03-11T14:24:21Z INFO api-gateway req_id=r-0092400 method=GET path=/v1/reports status=200 latency_ms=767 upstream=metering-api
+2026-03-11T14:24:31Z ERROR api-gateway req_id=r-0092432 method=GET path=/v1/usage status=502 latency_ms=13274 upstream=metering-api error=upstream_timeout
+2026-03-11T14:24:54Z INFO api-gateway req_id=r-0092435 method=POST path=/v1/auth/token status=200 latency_ms=686 upstream=metering-api
+2026-03-11T14:25:07Z INFO api-gateway req_id=r-0092441 method=POST path=/v1/usage/batch status=200 latency_ms=423 upstream=metering-api
+2026-03-11T14:25:28Z INFO api-gateway req_id=r-0092467 method=GET path=/v1/dashboards status=200 latency_ms=53 upstream=metering-api
+2026-03-11T14:25:35Z INFO api-gateway req_id=r-0092506 method=GET path=/v1/dashboards status=200 latency_ms=40 upstream=metering-api
+2026-03-11T14:25:52Z WARN api-gateway req_id=r-0092531 method=POST path=/v1/usage/batch status=200 latency_ms=4015 upstream=metering-api
+2026-03-11T14:26:07Z ERROR api-gateway req_id=r-0092568 method=GET path=/v1/usage status=502 latency_ms=14670 upstream=metering-api error=upstream_timeout
+2026-03-11T14:26:30Z WARN api-gateway req_id=r-0092588 method=GET path=/v1/usage status=200 latency_ms=5636 upstream=metering-api
+2026-03-11T14:26:30Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=893687 lag_seconds=1064 msg=consumer_lag_high
+2026-03-11T14:26:50Z INFO api-gateway req_id=r-0092596 method=GET path=/v1/exports status=200 latency_ms=275 upstream=metering-api
+2026-03-11T14:27:06Z INFO api-gateway req_id=r-0092611 method=POST path=/v1/auth/token status=200 latency_ms=455 upstream=metering-api
+2026-03-11T14:27:18Z INFO api-gateway req_id=r-0092649 method=GET path=/v1/reports status=200 latency_ms=300 upstream=metering-api
+2026-03-11T14:27:42Z INFO api-gateway req_id=r-0092658 method=GET path=/v1/exports status=200 latency_ms=304 upstream=metering-api
+2026-03-11T14:27:57Z INFO api-gateway req_id=r-0092667 method=GET path=/v1/reports status=200 latency_ms=543 upstream=metering-api
+2026-03-11T14:27:57Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=826408 lag_seconds=534 msg=consumer_lag_high
+2026-03-11T14:28:16Z INFO api-gateway req_id=r-0092703 method=POST path=/v1/auth/token status=200 latency_ms=826 upstream=metering-api
+2026-03-11T14:28:25Z INFO api-gateway req_id=r-0092708 method=POST path=/v1/usage/batch status=200 latency_ms=638 upstream=metering-api
+2026-03-11T14:28:33Z INFO api-gateway req_id=r-0092733 method=POST path=/v1/auth/token status=200 latency_ms=507 upstream=metering-api
+2026-03-11T14:28:45Z INFO api-gateway req_id=r-0092772 method=GET path=/v1/exports status=200 latency_ms=691 upstream=metering-api
+2026-03-11T14:29:01Z INFO api-gateway req_id=r-0092776 method=GET path=/v1/exports status=200 latency_ms=581 upstream=metering-api
+2026-03-11T14:29:13Z WARN api-gateway req_id=r-0092809 method=GET path=/v1/exports status=404 latency_ms=340 upstream=metering-api
+2026-03-11T14:29:24Z INFO api-gateway req_id=r-0092845 method=POST path=/v1/auth/token status=200 latency_ms=457 upstream=metering-api
+2026-03-11T14:29:39Z INFO api-gateway req_id=r-0092851 method=GET path=/v1/reports status=201 latency_ms=336 upstream=metering-api
+2026-03-11T14:29:39Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=753163 lag_seconds=1048 msg=consumer_lag_high
+2026-03-11T14:29:48Z INFO api-gateway req_id=r-0092868 method=GET path=/v1/reports status=200 latency_ms=371 upstream=metering-api
+2026-03-11T14:30:06Z INFO api-gateway req_id=r-0092883 method=GET path=/v1/dashboards status=200 latency_ms=641 upstream=metering-api
+2026-03-11T14:30:27Z INFO api-gateway req_id=r-0092922 method=GET path=/v1/usage status=200 latency_ms=146 upstream=metering-api
+2026-03-11T14:30:34Z INFO api-gateway req_id=r-0092940 method=GET path=/v1/dashboards status=201 latency_ms=414 upstream=metering-api
+2026-03-11T14:30:47Z INFO api-gateway req_id=r-0092949 method=GET path=/v1/exports status=200 latency_ms=744 upstream=metering-api
+2026-03-11T14:30:53Z INFO api-gateway req_id=r-0092969 method=GET path=/v1/usage status=200 latency_ms=211 upstream=metering-api
+2026-03-11T14:31:08Z INFO api-gateway req_id=r-0092994 method=POST path=/v1/usage/batch status=200 latency_ms=748 upstream=metering-api
+2026-03-11T14:31:08Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=425069 lag_seconds=1432 msg=consumer_lag_high
+2026-03-11T14:31:13Z INFO api-gateway req_id=r-0093015 method=POST path=/v1/usage/batch status=201 latency_ms=102 upstream=metering-api
+2026-03-11T14:31:19Z INFO api-gateway req_id=r-0093029 method=POST path=/v1/usage/batch status=200 latency_ms=771 upstream=metering-api
+2026-03-11T14:31:39Z INFO api-gateway req_id=r-0093050 method=GET path=/v1/dashboards status=200 latency_ms=466 upstream=metering-api
+2026-03-11T14:32:03Z ERROR api-gateway req_id=r-0093078 method=POST path=/v1/usage/batch status=502 latency_ms=14877 upstream=metering-api error=upstream_timeout
+2026-03-11T14:32:25Z INFO api-gateway req_id=r-0093101 method=GET path=/v1/reports status=200 latency_ms=762 upstream=metering-api
+2026-03-11T14:32:25Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=170608 lag_seconds=1157 msg=consumer_lag_high
+2026-03-11T14:32:46Z INFO api-gateway req_id=r-0093118 method=POST path=/v1/auth/token status=200 latency_ms=747 upstream=metering-api
+2026-03-11T14:33:05Z WARN api-gateway req_id=r-0093139 method=GET path=/v1/exports status=400 latency_ms=135 upstream=metering-api
+2026-03-11T14:33:13Z WARN api-gateway req_id=r-0093151 method=POST path=/v1/usage/batch status=200 latency_ms=8367 upstream=metering-api
+2026-03-11T14:33:33Z INFO api-gateway req_id=r-0093174 method=GET path=/v1/dashboards status=200 latency_ms=253 upstream=metering-api
+2026-03-11T14:33:47Z INFO api-gateway req_id=r-0093184 method=GET path=/v1/reports status=200 latency_ms=890 upstream=metering-api
+2026-03-11T14:34:05Z INFO api-gateway req_id=r-0093219 method=GET path=/v1/exports status=200 latency_ms=471 upstream=metering-api
+2026-03-11T14:34:28Z WARN api-gateway req_id=r-0093224 method=POST path=/v1/usage/batch status=200 latency_ms=4546 upstream=metering-api
+2026-03-11T14:34:49Z WARN api-gateway req_id=r-0093250 method=GET path=/v1/usage status=400 latency_ms=667 upstream=metering-api
+2026-03-11T14:34:49Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=316590 lag_seconds=839 msg=consumer_lag_high
+2026-03-11T14:34:56Z INFO api-gateway req_id=r-0093269 method=POST path=/v1/auth/token status=200 latency_ms=502 upstream=metering-api
+2026-03-11T14:35:14Z ERROR api-gateway req_id=r-0093306 method=POST path=/v1/usage/batch status=502 latency_ms=12947 upstream=metering-api error=upstream_timeout
+2026-03-11T14:35:37Z INFO api-gateway req_id=r-0093314 method=POST path=/v1/auth/token status=200 latency_ms=211 upstream=metering-api
+2026-03-11T14:36:00Z ERROR api-gateway req_id=r-0093333 method=GET path=/v1/usage status=502 latency_ms=11835 upstream=metering-api error=upstream_timeout
+2026-03-11T14:36:14Z INFO api-gateway req_id=r-0093338 method=GET path=/v1/exports status=201 latency_ms=399 upstream=metering-api
+2026-03-11T14:36:23Z WARN api-gateway req_id=r-0093353 method=GET path=/v1/usage status=200 latency_ms=3463 upstream=metering-api
+2026-03-11T14:36:44Z INFO api-gateway req_id=r-0093391 method=GET path=/v1/dashboards status=200 latency_ms=131 upstream=metering-api
+2026-03-11T14:37:06Z INFO api-gateway req_id=r-0093395 method=GET path=/v1/usage status=200 latency_ms=443 upstream=metering-api
+2026-03-11T14:37:27Z INFO api-gateway req_id=r-0093434 method=GET path=/v1/exports status=200 latency_ms=662 upstream=metering-api
+2026-03-11T14:37:51Z INFO api-gateway req_id=r-0093444 method=POST path=/v1/usage/batch status=200 latency_ms=751 upstream=metering-api
+2026-03-11T14:37:57Z INFO api-gateway req_id=r-0093479 method=GET path=/v1/dashboards status=200 latency_ms=330 upstream=metering-api
+2026-03-11T14:38:02Z WARN api-gateway req_id=r-0093491 method=GET path=/v1/usage status=200 latency_ms=5052 upstream=metering-api
+2026-03-11T14:38:10Z ERROR api-gateway req_id=r-0093515 method=GET path=/v1/usage status=502 latency_ms=13630 upstream=metering-api error=upstream_timeout
+2026-03-11T14:38:27Z INFO api-gateway req_id=r-0093536 method=GET path=/v1/reports status=200 latency_ms=514 upstream=metering-api
+2026-03-11T14:38:50Z WARN api-gateway req_id=r-0093555 method=GET path=/v1/usage status=200 latency_ms=5474 upstream=metering-api
+2026-03-11T14:39:00Z INFO api-gateway req_id=r-0093592 method=GET path=/v1/exports status=200 latency_ms=321 upstream=metering-api
+2026-03-11T14:39:16Z INFO api-gateway req_id=r-0093605 method=GET path=/v1/reports status=201 latency_ms=575 upstream=metering-api
+2026-03-11T14:39:37Z ERROR api-gateway req_id=r-0093631 method=POST path=/v1/usage/batch status=502 latency_ms=10415 upstream=metering-api error=upstream_timeout
+2026-03-11T14:39:59Z INFO api-gateway req_id=r-0093668 method=GET path=/v1/dashboards status=200 latency_ms=730 upstream=metering-api
+2026-03-11T14:40:06Z INFO api-gateway req_id=r-0093699 method=GET path=/v1/reports status=200 latency_ms=639 upstream=metering-api
+2026-03-11T14:40:11Z INFO api-gateway req_id=r-0093712 method=POST path=/v1/auth/token status=200 latency_ms=60 upstream=metering-api
+2026-03-11T14:40:35Z INFO api-gateway req_id=r-0093740 method=GET path=/v1/reports status=200 latency_ms=648 upstream=metering-api
+2026-03-11T14:40:53Z INFO api-gateway req_id=r-0093772 method=POST path=/v1/usage/batch status=200 latency_ms=128 upstream=metering-api
+2026-03-11T14:40:53Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=636663 lag_seconds=2155 msg=consumer_lag_high
+2026-03-11T14:41:05Z INFO api-gateway req_id=r-0093795 method=GET path=/v1/dashboards status=201 latency_ms=252 upstream=metering-api
+2026-03-11T14:41:18Z INFO api-gateway req_id=r-0093799 method=POST path=/v1/usage/batch status=200 latency_ms=420 upstream=metering-api
+2026-03-11T14:41:34Z INFO api-gateway req_id=r-0093821 method=GET path=/v1/exports status=201 latency_ms=79 upstream=metering-api
+2026-03-11T14:41:49Z INFO api-gateway req_id=r-0093849 method=GET path=/v1/exports status=200 latency_ms=528 upstream=metering-api
+2026-03-11T14:41:59Z INFO api-gateway req_id=r-0093866 method=POST path=/v1/auth/token status=200 latency_ms=266 upstream=metering-api
+2026-03-11T14:42:05Z INFO api-gateway req_id=r-0093882 method=GET path=/v1/exports status=200 latency_ms=182 upstream=metering-api
+2026-03-11T14:42:17Z INFO api-gateway req_id=r-0093905 method=GET path=/v1/reports status=200 latency_ms=798 upstream=metering-api
+2026-03-11T14:42:17Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=287287 lag_seconds=428 msg=consumer_lag_high
+2026-03-11T14:42:29Z ERROR api-gateway req_id=r-0093933 method=POST path=/v1/usage/batch status=502 latency_ms=13384 upstream=metering-api error=upstream_timeout
+2026-03-11T14:42:48Z INFO api-gateway req_id=r-0093965 method=GET path=/v1/reports status=200 latency_ms=91 upstream=metering-api
+2026-03-11T14:43:03Z ERROR api-gateway req_id=r-0093980 method=GET path=/v1/usage status=502 latency_ms=13731 upstream=metering-api error=upstream_timeout
+2026-03-11T14:43:13Z INFO api-gateway req_id=r-0094013 method=GET path=/v1/reports status=200 latency_ms=399 upstream=metering-api
+2026-03-11T14:43:21Z WARN api-gateway req_id=r-0094027 method=GET path=/v1/reports status=400 latency_ms=48 upstream=metering-api
+2026-03-11T14:43:40Z INFO api-gateway req_id=r-0094044 method=POST path=/v1/auth/token status=201 latency_ms=458 upstream=metering-api
+2026-03-11T14:44:04Z INFO api-gateway req_id=r-0094080 method=GET path=/v1/reports status=200 latency_ms=606 upstream=metering-api
+2026-03-11T14:44:04Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=169283 lag_seconds=563 msg=consumer_lag_high
+2026-03-11T14:44:15Z INFO api-gateway req_id=r-0094086 method=GET path=/v1/dashboards status=200 latency_ms=805 upstream=metering-api
+2026-03-11T14:44:29Z WARN api-gateway req_id=r-0094093 method=POST path=/v1/usage/batch status=200 latency_ms=5202 upstream=metering-api
+2026-03-11T14:44:29Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=835996 lag_seconds=1966 msg=consumer_lag_high
+2026-03-11T14:44:47Z ERROR api-gateway req_id=r-0094098 method=GET path=/v1/usage status=502 latency_ms=10876 upstream=metering-api error=upstream_timeout
+2026-03-11T14:44:54Z INFO api-gateway req_id=r-0094131 method=GET path=/v1/dashboards status=200 latency_ms=254 upstream=metering-api
+2026-03-11T14:45:16Z INFO api-gateway req_id=r-0094148 method=GET path=/v1/dashboards status=200 latency_ms=895 upstream=metering-api
+2026-03-11T14:45:33Z INFO api-gateway req_id=r-0094160 method=GET path=/v1/dashboards status=200 latency_ms=307 upstream=metering-api
+2026-03-11T14:45:49Z WARN api-gateway req_id=r-0094199 method=POST path=/v1/auth/token status=400 latency_ms=882 upstream=metering-api
+2026-03-11T14:46:07Z INFO api-gateway req_id=r-0094211 method=GET path=/v1/reports status=200 latency_ms=480 upstream=metering-api
+2026-03-11T14:46:25Z ERROR api-gateway req_id=r-0094222 method=GET path=/v1/usage status=502 latency_ms=14964 upstream=metering-api error=upstream_timeout
+2026-03-11T14:46:45Z WARN api-gateway req_id=r-0094247 method=POST path=/v1/usage/batch status=200 latency_ms=4553 upstream=metering-api
+2026-03-11T14:47:03Z INFO api-gateway req_id=r-0094255 method=GET path=/v1/dashboards status=200 latency_ms=804 upstream=metering-api
+2026-03-11T14:47:10Z ERROR api-gateway req_id=r-0094275 method=GET path=/v1/usage status=502 latency_ms=14468 upstream=metering-api error=upstream_timeout
+2026-03-11T14:47:18Z INFO api-gateway req_id=r-0094312 method=GET path=/v1/exports status=200 latency_ms=423 upstream=metering-api
+2026-03-11T14:47:31Z INFO api-gateway req_id=r-0094322 method=GET path=/v1/dashboards status=200 latency_ms=886 upstream=metering-api
+2026-03-11T14:47:55Z INFO api-gateway req_id=r-0094345 method=GET path=/v1/dashboards status=200 latency_ms=489 upstream=metering-api
+2026-03-11T14:48:02Z WARN api-gateway req_id=r-0094362 method=GET path=/v1/usage status=200 latency_ms=4592 upstream=metering-api
+2026-03-11T14:48:07Z INFO api-gateway req_id=r-0094377 method=GET path=/v1/usage status=200 latency_ms=182 upstream=metering-api
+2026-03-11T14:48:26Z INFO api-gateway req_id=r-0094407 method=GET path=/v1/reports status=201 latency_ms=426 upstream=metering-api
+2026-03-11T14:48:34Z INFO api-gateway req_id=r-0094420 method=GET path=/v1/dashboards status=201 latency_ms=505 upstream=metering-api
+2026-03-11T14:48:50Z INFO api-gateway req_id=r-0094432 method=GET path=/v1/usage status=200 latency_ms=529 upstream=metering-api
+2026-03-11T14:48:57Z ERROR api-gateway req_id=r-0094468 method=GET path=/v1/usage status=502 latency_ms=12884 upstream=metering-api error=upstream_timeout
+2026-03-11T14:48:57Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=464743 lag_seconds=2259 msg=consumer_lag_high
+2026-03-11T14:49:18Z INFO api-gateway req_id=r-0094475 method=POST path=/v1/usage/batch status=200 latency_ms=410 upstream=metering-api
+2026-03-11T14:49:41Z ERROR api-gateway req_id=r-0094481 method=POST path=/v1/usage/batch status=502 latency_ms=11587 upstream=metering-api error=upstream_timeout
+2026-03-11T14:49:59Z INFO api-gateway req_id=r-0094492 method=GET path=/v1/reports status=200 latency_ms=272 upstream=metering-api
+2026-03-11T14:50:14Z ERROR api-gateway req_id=r-0094509 method=POST path=/v1/usage/batch status=502 latency_ms=9666 upstream=metering-api error=upstream_timeout
+2026-03-11T14:50:20Z INFO api-gateway req_id=r-0094531 method=GET path=/v1/reports status=200 latency_ms=614 upstream=metering-api
+2026-03-11T14:50:20Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=613112 lag_seconds=2138 msg=consumer_lag_high
+2026-03-11T14:50:38Z WARN api-gateway req_id=r-0094558 method=GET path=/v1/usage status=200 latency_ms=8712 upstream=metering-api
+2026-03-11T14:50:45Z INFO api-gateway req_id=r-0094595 method=POST path=/v1/auth/token status=200 latency_ms=87 upstream=metering-api
+2026-03-11T14:50:54Z ERROR api-gateway req_id=r-0094599 method=POST path=/v1/usage/batch status=502 latency_ms=14764 upstream=metering-api error=upstream_timeout
+2026-03-11T14:50:54Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=201852 lag_seconds=418 msg=consumer_lag_high
+2026-03-11T14:51:03Z ERROR api-gateway req_id=r-0094604 method=GET path=/v1/usage status=502 latency_ms=9330 upstream=metering-api error=upstream_timeout
+2026-03-11T14:51:19Z INFO api-gateway req_id=r-0094623 method=GET path=/v1/dashboards status=200 latency_ms=563 upstream=metering-api
+2026-03-11T14:51:28Z ERROR api-gateway req_id=r-0094662 method=POST path=/v1/usage/batch status=502 latency_ms=14911 upstream=metering-api error=upstream_timeout
+2026-03-11T14:51:46Z INFO api-gateway req_id=r-0094674 method=GET path=/v1/reports status=200 latency_ms=422 upstream=metering-api
+2026-03-11T14:52:06Z INFO api-gateway req_id=r-0094686 method=GET path=/v1/reports status=200 latency_ms=880 upstream=metering-api
+2026-03-11T14:52:29Z INFO api-gateway req_id=r-0094720 method=GET path=/v1/dashboards status=200 latency_ms=511 upstream=metering-api
+2026-03-11T14:52:51Z INFO api-gateway req_id=r-0094744 method=GET path=/v1/exports status=200 latency_ms=240 upstream=metering-api
+2026-03-11T14:52:56Z INFO api-gateway req_id=r-0094768 method=GET path=/v1/dashboards status=200 latency_ms=881 upstream=metering-api
+2026-03-11T14:53:17Z WARN api-gateway req_id=r-0094785 method=GET path=/v1/usage status=200 latency_ms=8247 upstream=metering-api
+2026-03-11T14:53:30Z INFO api-gateway req_id=r-0094808 method=GET path=/v1/reports status=200 latency_ms=697 upstream=metering-api
+2026-03-11T14:53:44Z INFO api-gateway req_id=r-0094817 method=GET path=/v1/exports status=200 latency_ms=757 upstream=metering-api
+2026-03-11T14:53:57Z INFO api-gateway req_id=r-0094852 method=GET path=/v1/dashboards status=200 latency_ms=276 upstream=metering-api
+2026-03-11T14:54:19Z INFO api-gateway req_id=r-0094881 method=GET path=/v1/dashboards status=200 latency_ms=70 upstream=metering-api
+2026-03-11T14:54:36Z INFO api-gateway req_id=r-0094892 method=GET path=/v1/dashboards status=200 latency_ms=148 upstream=metering-api
+2026-03-11T14:55:00Z INFO api-gateway req_id=r-0094913 method=GET path=/v1/dashboards status=201 latency_ms=766 upstream=metering-api
+2026-03-11T14:55:17Z INFO api-gateway req_id=r-0094925 method=POST path=/v1/auth/token status=201 latency_ms=513 upstream=metering-api
+2026-03-11T14:55:26Z INFO api-gateway req_id=r-0094940 method=GET path=/v1/dashboards status=200 latency_ms=892 upstream=metering-api
+2026-03-11T14:55:45Z INFO api-gateway req_id=r-0094974 method=GET path=/v1/dashboards status=200 latency_ms=139 upstream=metering-api
+2026-03-11T14:56:01Z INFO api-gateway req_id=r-0094987 method=GET path=/v1/reports status=201 latency_ms=313 upstream=metering-api
+2026-03-11T14:56:23Z WARN api-gateway req_id=r-0094998 method=POST path=/v1/usage/batch status=200 latency_ms=5959 upstream=metering-api
+2026-03-11T14:56:29Z ERROR api-gateway req_id=r-0095037 method=POST path=/v1/usage/batch status=502 latency_ms=11359 upstream=metering-api error=upstream_timeout
+2026-03-11T14:56:39Z INFO api-gateway req_id=r-0095051 method=GET path=/v1/reports status=200 latency_ms=834 upstream=metering-api
+2026-03-11T14:56:47Z INFO api-gateway req_id=r-0095072 method=GET path=/v1/dashboards status=200 latency_ms=661 upstream=metering-api
+2026-03-11T14:56:59Z INFO api-gateway req_id=r-0095084 method=GET path=/v1/dashboards status=200 latency_ms=312 upstream=metering-api
+2026-03-11T14:57:15Z INFO api-gateway req_id=r-0095111 method=GET path=/v1/exports status=200 latency_ms=508 upstream=metering-api
+2026-03-11T14:57:22Z WARN api-gateway req_id=r-0095148 method=POST path=/v1/usage/batch status=200 latency_ms=7813 upstream=metering-api
+2026-03-11T14:57:46Z INFO api-gateway req_id=r-0095180 method=POST path=/v1/usage/batch status=200 latency_ms=549 upstream=metering-api
+2026-03-11T14:58:10Z WARN api-gateway req_id=r-0095184 method=POST path=/v1/usage/batch status=200 latency_ms=7048 upstream=metering-api
+2026-03-11T14:58:10Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=823753 lag_seconds=1772 msg=consumer_lag_high
+2026-03-11T14:58:17Z INFO api-gateway req_id=r-0095215 method=GET path=/v1/usage status=200 latency_ms=89 upstream=metering-api
+2026-03-11T14:58:17Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=872598 lag_seconds=1975 msg=consumer_lag_high
+2026-03-11T14:58:36Z INFO api-gateway req_id=r-0095237 method=GET path=/v1/exports status=200 latency_ms=83 upstream=metering-api
+2026-03-11T14:58:43Z INFO api-gateway req_id=r-0095257 method=GET path=/v1/exports status=200 latency_ms=714 upstream=metering-api
+2026-03-11T14:59:06Z INFO api-gateway req_id=r-0095288 method=POST path=/v1/auth/token status=200 latency_ms=609 upstream=metering-api
+2026-03-11T14:59:15Z INFO api-gateway req_id=r-0095323 method=GET path=/v1/exports status=200 latency_ms=791 upstream=metering-api
+2026-03-11T14:59:24Z INFO api-gateway req_id=r-0095361 method=GET path=/v1/dashboards status=201 latency_ms=372 upstream=metering-api
+2026-03-11T14:59:33Z INFO api-gateway req_id=r-0095364 method=GET path=/v1/dashboards status=200 latency_ms=248 upstream=metering-api
+2026-03-11T14:59:33Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=299836 lag_seconds=2209 msg=consumer_lag_high
+2026-03-11T14:59:42Z INFO api-gateway req_id=r-0095368 method=POST path=/v1/auth/token status=200 latency_ms=281 upstream=metering-api
+2026-03-11T15:00:05Z INFO api-gateway req_id=r-0095380 method=GET path=/v1/exports status=200 latency_ms=93 upstream=metering-api
+2026-03-11T15:00:13Z INFO api-gateway req_id=r-0095412 method=POST path=/v1/usage/batch status=200 latency_ms=82 upstream=metering-api
+2026-03-11T15:00:26Z INFO api-gateway req_id=r-0095440 method=GET path=/v1/dashboards status=200 latency_ms=702 upstream=metering-api
+2026-03-11T15:00:39Z INFO api-gateway req_id=r-0095468 method=POST path=/v1/auth/token status=200 latency_ms=791 upstream=metering-api
+2026-03-11T15:01:02Z INFO api-gateway req_id=r-0095479 method=POST path=/v1/auth/token status=200 latency_ms=380 upstream=metering-api
+2026-03-11T15:01:07Z INFO api-gateway req_id=r-0095502 method=GET path=/v1/usage status=200 latency_ms=564 upstream=metering-api
+2026-03-11T15:01:31Z INFO api-gateway req_id=r-0095533 method=POST path=/v1/auth/token status=201 latency_ms=414 upstream=metering-api
+2026-03-11T15:01:44Z INFO api-gateway req_id=r-0095550 method=POST path=/v1/auth/token status=200 latency_ms=678 upstream=metering-api
+2026-03-11T15:02:04Z INFO api-gateway req_id=r-0095589 method=GET path=/v1/exports status=200 latency_ms=241 upstream=metering-api
+2026-03-11T15:02:04Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=260219 lag_seconds=1642 msg=consumer_lag_high
+2026-03-11T15:02:20Z INFO api-gateway req_id=r-0095594 method=POST path=/v1/auth/token status=200 latency_ms=573 upstream=metering-api
+2026-03-11T15:02:26Z INFO api-gateway req_id=r-0095609 method=GET path=/v1/reports status=200 latency_ms=478 upstream=metering-api
+2026-03-11T15:02:47Z INFO api-gateway req_id=r-0095630 method=GET path=/v1/dashboards status=200 latency_ms=580 upstream=metering-api
+2026-03-11T15:03:07Z INFO api-gateway req_id=r-0095641 method=POST path=/v1/auth/token status=200 latency_ms=809 upstream=metering-api
+2026-03-11T15:03:24Z WARN api-gateway req_id=r-0095667 method=GET path=/v1/usage status=200 latency_ms=5860 upstream=metering-api
+2026-03-11T15:03:41Z INFO api-gateway req_id=r-0095703 method=POST path=/v1/auth/token status=200 latency_ms=766 upstream=metering-api
+2026-03-11T15:03:54Z INFO api-gateway req_id=r-0095734 method=GET path=/v1/reports status=200 latency_ms=617 upstream=metering-api
+2026-03-11T15:04:13Z INFO api-gateway req_id=r-0095744 method=GET path=/v1/reports status=200 latency_ms=397 upstream=metering-api
+2026-03-11T15:04:20Z INFO api-gateway req_id=r-0095767 method=POST path=/v1/auth/token status=200 latency_ms=806 upstream=metering-api
+2026-03-11T15:04:35Z INFO api-gateway req_id=r-0095782 method=POST path=/v1/usage/batch status=200 latency_ms=629 upstream=metering-api
+2026-03-11T15:04:58Z INFO api-gateway req_id=r-0095817 method=POST path=/v1/auth/token status=200 latency_ms=501 upstream=metering-api
+2026-03-11T15:05:20Z WARN api-gateway req_id=r-0095834 method=POST path=/v1/usage/batch status=200 latency_ms=6356 upstream=metering-api
+2026-03-11T15:05:44Z INFO api-gateway req_id=r-0095851 method=GET path=/v1/exports status=200 latency_ms=888 upstream=metering-api
+2026-03-11T15:05:51Z INFO api-gateway req_id=r-0095872 method=GET path=/v1/reports status=200 latency_ms=96 upstream=metering-api
+2026-03-11T15:06:01Z ERROR api-gateway req_id=r-0095875 method=POST path=/v1/usage/batch status=502 latency_ms=11748 upstream=metering-api error=upstream_timeout
+2026-03-11T15:06:16Z INFO api-gateway req_id=r-0095908 method=GET path=/v1/reports status=200 latency_ms=794 upstream=metering-api
+2026-03-11T15:06:33Z INFO api-gateway req_id=r-0095942 method=POST path=/v1/auth/token status=200 latency_ms=45 upstream=metering-api
+2026-03-11T15:06:48Z INFO api-gateway req_id=r-0095963 method=POST path=/v1/auth/token status=200 latency_ms=600 upstream=metering-api
+2026-03-11T15:06:48Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=867429 lag_seconds=1220 msg=consumer_lag_high
+2026-03-11T15:06:55Z INFO api-gateway req_id=r-0095975 method=GET path=/v1/exports status=200 latency_ms=738 upstream=metering-api
+2026-03-11T15:07:01Z ERROR api-gateway req_id=r-0096002 method=GET path=/v1/usage status=502 latency_ms=11739 upstream=metering-api error=upstream_timeout
+2026-03-11T15:07:13Z INFO api-gateway req_id=r-0096012 method=GET path=/v1/dashboards status=200 latency_ms=365 upstream=metering-api
+2026-03-11T15:07:26Z ERROR api-gateway req_id=r-0096035 method=GET path=/v1/usage status=502 latency_ms=14314 upstream=metering-api error=upstream_timeout
+2026-03-11T15:07:26Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=633470 lag_seconds=1543 msg=consumer_lag_high
+2026-03-11T15:07:32Z INFO api-gateway req_id=r-0096059 method=GET path=/v1/usage status=200 latency_ms=772 upstream=metering-api
+2026-03-11T15:07:41Z ERROR api-gateway req_id=r-0096071 method=POST path=/v1/usage/batch status=502 latency_ms=11602 upstream=metering-api error=upstream_timeout
+2026-03-11T15:07:59Z INFO api-gateway req_id=r-0096074 method=GET path=/v1/reports status=201 latency_ms=378 upstream=metering-api
+2026-03-11T15:08:14Z INFO api-gateway req_id=r-0096101 method=GET path=/v1/dashboards status=200 latency_ms=528 upstream=metering-api
+2026-03-11T15:08:38Z INFO api-gateway req_id=r-0096108 method=GET path=/v1/dashboards status=200 latency_ms=767 upstream=metering-api
+2026-03-11T15:08:56Z INFO api-gateway req_id=r-0096116 method=GET path=/v1/reports status=200 latency_ms=706 upstream=metering-api
+2026-03-11T15:09:16Z INFO api-gateway req_id=r-0096129 method=GET path=/v1/reports status=200 latency_ms=430 upstream=metering-api
+2026-03-11T15:09:25Z WARN api-gateway req_id=r-0096167 method=GET path=/v1/usage status=401 latency_ms=808 upstream=metering-api
+2026-03-11T15:09:48Z INFO api-gateway req_id=r-0096186 method=GET path=/v1/exports status=200 latency_ms=612 upstream=metering-api
+2026-03-11T15:10:10Z INFO api-gateway req_id=r-0096207 method=GET path=/v1/exports status=200 latency_ms=682 upstream=metering-api
+2026-03-11T15:10:29Z ERROR api-gateway req_id=r-0096231 method=POST path=/v1/usage/batch status=502 latency_ms=10347 upstream=metering-api error=upstream_timeout
+2026-03-11T15:10:43Z INFO api-gateway req_id=r-0096251 method=GET path=/v1/reports status=200 latency_ms=272 upstream=metering-api
+2026-03-11T15:10:54Z INFO api-gateway req_id=r-0096258 method=GET path=/v1/usage status=200 latency_ms=741 upstream=metering-api
+2026-03-11T15:11:13Z ERROR api-gateway req_id=r-0096284 method=POST path=/v1/usage/batch status=502 latency_ms=11906 upstream=metering-api error=upstream_timeout
+2026-03-11T15:11:37Z INFO api-gateway req_id=r-0096301 method=GET path=/v1/reports status=200 latency_ms=327 upstream=metering-api
+2026-03-11T15:11:37Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=423515 lag_seconds=1937 msg=consumer_lag_high
+2026-03-11T15:11:44Z ERROR api-gateway req_id=r-0096334 method=POST path=/v1/usage/batch status=502 latency_ms=12372 upstream=metering-api error=upstream_timeout
+2026-03-11T15:11:53Z WARN api-gateway req_id=r-0096343 method=POST path=/v1/usage/batch status=200 latency_ms=5070 upstream=metering-api
+2026-03-11T15:12:09Z INFO api-gateway req_id=r-0096351 method=GET path=/v1/dashboards status=200 latency_ms=553 upstream=metering-api
+2026-03-11T15:12:32Z INFO api-gateway req_id=r-0096378 method=GET path=/v1/reports status=200 latency_ms=518 upstream=metering-api
+2026-03-11T15:12:50Z INFO api-gateway req_id=r-0096406 method=GET path=/v1/exports status=200 latency_ms=95 upstream=metering-api
+2026-03-11T15:13:00Z INFO api-gateway req_id=r-0096445 method=GET path=/v1/exports status=200 latency_ms=517 upstream=metering-api
+2026-03-11T15:13:11Z INFO api-gateway req_id=r-0096458 method=GET path=/v1/exports status=200 latency_ms=551 upstream=metering-api
+2026-03-11T15:13:18Z INFO api-gateway req_id=r-0096494 method=GET path=/v1/reports status=200 latency_ms=316 upstream=metering-api
+2026-03-11T15:13:33Z WARN api-gateway req_id=r-0096514 method=GET path=/v1/usage status=200 latency_ms=4266 upstream=metering-api
+2026-03-11T15:13:42Z INFO api-gateway req_id=r-0096519 method=GET path=/v1/dashboards status=200 latency_ms=127 upstream=metering-api
+2026-03-11T15:13:54Z INFO api-gateway req_id=r-0096550 method=GET path=/v1/exports status=200 latency_ms=606 upstream=metering-api
+2026-03-11T15:14:00Z ERROR api-gateway req_id=r-0096553 method=GET path=/v1/usage status=502 latency_ms=10703 upstream=metering-api error=upstream_timeout
+2026-03-11T15:14:07Z INFO api-gateway req_id=r-0096571 method=POST path=/v1/auth/token status=200 latency_ms=433 upstream=metering-api
+2026-03-11T15:14:14Z INFO api-gateway req_id=r-0096603 method=GET path=/v1/dashboards status=200 latency_ms=598 upstream=metering-api
+2026-03-11T15:14:27Z INFO api-gateway req_id=r-0096641 method=GET path=/v1/usage status=200 latency_ms=299 upstream=metering-api
+2026-03-11T15:14:37Z INFO api-gateway req_id=r-0096663 method=POST path=/v1/usage/batch status=200 latency_ms=335 upstream=metering-api
+2026-03-11T15:14:55Z INFO api-gateway req_id=r-0096670 method=GET path=/v1/reports status=200 latency_ms=736 upstream=metering-api
+2026-03-11T15:15:00Z WARN api-gateway req_id=r-0096682 method=GET path=/v1/reports status=401 latency_ms=267 upstream=metering-api
+2026-03-11T15:15:16Z ERROR api-gateway req_id=r-0096697 method=POST path=/v1/usage/batch status=502 latency_ms=14855 upstream=metering-api error=upstream_timeout
+2026-03-11T15:15:16Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=322473 lag_seconds=2302 msg=consumer_lag_high
+2026-03-11T15:15:29Z WARN api-gateway req_id=r-0096734 method=GET path=/v1/usage status=200 latency_ms=5329 upstream=metering-api
+2026-03-11T15:15:46Z INFO api-gateway req_id=r-0096749 method=POST path=/v1/auth/token status=200 latency_ms=818 upstream=metering-api
+2026-03-11T15:16:08Z INFO api-gateway req_id=r-0096776 method=GET path=/v1/reports status=200 latency_ms=639 upstream=metering-api
+2026-03-11T15:16:28Z INFO api-gateway req_id=r-0096783 method=GET path=/v1/exports status=200 latency_ms=656 upstream=metering-api
+2026-03-11T15:16:38Z INFO api-gateway req_id=r-0096810 method=GET path=/v1/usage status=201 latency_ms=572 upstream=metering-api
+2026-03-11T15:16:44Z INFO api-gateway req_id=r-0096830 method=GET path=/v1/exports status=200 latency_ms=807 upstream=metering-api
+2026-03-11T15:16:49Z INFO api-gateway req_id=r-0096845 method=GET path=/v1/dashboards status=200 latency_ms=693 upstream=metering-api
+2026-03-11T15:16:55Z INFO api-gateway req_id=r-0096849 method=GET path=/v1/dashboards status=200 latency_ms=454 upstream=metering-api
+2026-03-11T15:17:03Z INFO api-gateway req_id=r-0096884 method=GET path=/v1/exports status=200 latency_ms=90 upstream=metering-api
+2026-03-11T15:17:17Z INFO api-gateway req_id=r-0096918 method=GET path=/v1/dashboards status=200 latency_ms=264 upstream=metering-api
+2026-03-11T15:17:25Z INFO api-gateway req_id=r-0096929 method=GET path=/v1/exports status=200 latency_ms=637 upstream=metering-api
+2026-03-11T15:17:36Z WARN api-gateway req_id=r-0096938 method=GET path=/v1/usage status=200 latency_ms=5483 upstream=metering-api
+2026-03-11T15:17:52Z INFO api-gateway req_id=r-0096968 method=GET path=/v1/reports status=200 latency_ms=486 upstream=metering-api
+2026-03-11T15:18:03Z WARN api-gateway req_id=r-0096984 method=POST path=/v1/usage/batch status=200 latency_ms=5207 upstream=metering-api
+2026-03-11T15:18:25Z INFO api-gateway req_id=r-0096987 method=POST path=/v1/usage/batch status=200 latency_ms=310 upstream=metering-api
+2026-03-11T15:18:33Z INFO api-gateway req_id=r-0097014 method=GET path=/v1/exports status=200 latency_ms=843 upstream=metering-api
+2026-03-11T15:18:39Z INFO api-gateway req_id=r-0097035 method=POST path=/v1/auth/token status=200 latency_ms=821 upstream=metering-api
+2026-03-11T15:18:59Z INFO api-gateway req_id=r-0097065 method=GET path=/v1/dashboards status=200 latency_ms=355 upstream=metering-api
+2026-03-11T15:19:08Z INFO api-gateway req_id=r-0097080 method=POST path=/v1/usage/batch status=200 latency_ms=264 upstream=metering-api
+2026-03-11T15:19:15Z WARN api-gateway req_id=r-0097109 method=POST path=/v1/usage/batch status=200 latency_ms=5608 upstream=metering-api
+2026-03-11T15:19:21Z INFO api-gateway req_id=r-0097117 method=GET path=/v1/exports status=200 latency_ms=335 upstream=metering-api
+2026-03-11T15:19:27Z INFO api-gateway req_id=r-0097124 method=GET path=/v1/usage status=200 latency_ms=569 upstream=metering-api
+2026-03-11T15:19:47Z INFO api-gateway req_id=r-0097149 method=GET path=/v1/exports status=200 latency_ms=777 upstream=metering-api
+2026-03-11T15:19:47Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=889237 lag_seconds=663 msg=consumer_lag_high
+2026-03-11T15:20:10Z INFO api-gateway req_id=r-0097171 method=GET path=/v1/exports status=200 latency_ms=493 upstream=metering-api
+2026-03-11T15:20:32Z INFO api-gateway req_id=r-0097180 method=GET path=/v1/dashboards status=200 latency_ms=556 upstream=metering-api
+2026-03-11T15:20:52Z INFO api-gateway req_id=r-0097197 method=GET path=/v1/usage status=200 latency_ms=766 upstream=metering-api
+2026-03-11T15:21:02Z INFO api-gateway req_id=r-0097201 method=POST path=/v1/auth/token status=200 latency_ms=125 upstream=metering-api
+2026-03-11T15:21:21Z ERROR api-gateway req_id=r-0097239 method=POST path=/v1/usage/batch status=502 latency_ms=9362 upstream=metering-api error=upstream_timeout
+2026-03-11T15:21:36Z INFO api-gateway req_id=r-0097253 method=GET path=/v1/usage status=200 latency_ms=560 upstream=metering-api
+2026-03-11T15:21:47Z INFO api-gateway req_id=r-0097264 method=POST path=/v1/auth/token status=200 latency_ms=672 upstream=metering-api
+2026-03-11T15:22:07Z WARN api-gateway req_id=r-0097278 method=GET path=/v1/usage status=200 latency_ms=5068 upstream=metering-api
+2026-03-11T15:22:30Z INFO api-gateway req_id=r-0097311 method=GET path=/v1/reports status=200 latency_ms=391 upstream=metering-api
+2026-03-11T15:22:45Z INFO api-gateway req_id=r-0097314 method=GET path=/v1/exports status=200 latency_ms=648 upstream=metering-api
+2026-03-11T15:22:59Z ERROR api-gateway req_id=r-0097320 method=GET path=/v1/usage status=502 latency_ms=13379 upstream=metering-api error=upstream_timeout
+2026-03-11T15:23:07Z INFO api-gateway req_id=r-0097335 method=GET path=/v1/reports status=201 latency_ms=485 upstream=metering-api
+2026-03-11T15:23:17Z INFO api-gateway req_id=r-0097347 method=GET path=/v1/exports status=200 latency_ms=656 upstream=metering-api
+2026-03-11T15:23:22Z INFO api-gateway req_id=r-0097357 method=GET path=/v1/dashboards status=200 latency_ms=854 upstream=metering-api
+2026-03-11T15:23:42Z INFO api-gateway req_id=r-0097368 method=POST path=/v1/auth/token status=200 latency_ms=148 upstream=metering-api
+2026-03-11T15:23:56Z INFO api-gateway req_id=r-0097386 method=GET path=/v1/exports status=200 latency_ms=651 upstream=metering-api
+2026-03-11T15:24:02Z WARN api-gateway req_id=r-0097390 method=POST path=/v1/usage/batch status=200 latency_ms=7519 upstream=metering-api
+2026-03-11T15:24:22Z INFO api-gateway req_id=r-0097399 method=POST path=/v1/auth/token status=200 latency_ms=44 upstream=metering-api
+2026-03-11T15:24:43Z INFO api-gateway req_id=r-0097433 method=GET path=/v1/reports status=200 latency_ms=777 upstream=metering-api
+2026-03-11T15:24:43Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=656065 lag_seconds=670 msg=consumer_lag_high
+2026-03-11T15:24:55Z INFO api-gateway req_id=r-0097438 method=GET path=/v1/dashboards status=200 latency_ms=140 upstream=metering-api
+2026-03-11T15:25:10Z WARN api-gateway req_id=r-0097463 method=POST path=/v1/usage/batch status=200 latency_ms=6030 upstream=metering-api
+2026-03-11T15:25:25Z INFO api-gateway req_id=r-0097497 method=POST path=/v1/auth/token status=200 latency_ms=492 upstream=metering-api
+2026-03-11T15:25:31Z INFO api-gateway req_id=r-0097526 method=GET path=/v1/usage status=201 latency_ms=821 upstream=metering-api
+2026-03-11T15:25:37Z INFO api-gateway req_id=r-0097529 method=GET path=/v1/dashboards status=200 latency_ms=381 upstream=metering-api
+2026-03-11T15:25:58Z WARN api-gateway req_id=r-0097555 method=POST path=/v1/usage/batch status=200 latency_ms=6629 upstream=metering-api
+2026-03-11T15:26:18Z INFO api-gateway req_id=r-0097582 method=GET path=/v1/dashboards status=200 latency_ms=802 upstream=metering-api
+2026-03-11T15:26:37Z INFO api-gateway req_id=r-0097598 method=POST path=/v1/usage/batch status=200 latency_ms=477 upstream=metering-api
+2026-03-11T15:26:57Z INFO api-gateway req_id=r-0097619 method=GET path=/v1/exports status=200 latency_ms=400 upstream=metering-api
+2026-03-11T15:27:13Z INFO api-gateway req_id=r-0097642 method=GET path=/v1/usage status=200 latency_ms=244 upstream=metering-api
+2026-03-11T15:27:13Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=682054 lag_seconds=1873 msg=consumer_lag_high
+2026-03-11T15:27:25Z INFO api-gateway req_id=r-0097659 method=GET path=/v1/exports status=200 latency_ms=783 upstream=metering-api
+2026-03-11T15:27:49Z INFO api-gateway req_id=r-0097666 method=GET path=/v1/exports status=200 latency_ms=625 upstream=metering-api
+2026-03-11T15:28:11Z INFO api-gateway req_id=r-0097680 method=POST path=/v1/auth/token status=200 latency_ms=113 upstream=metering-api
+2026-03-11T15:28:21Z INFO api-gateway req_id=r-0097698 method=GET path=/v1/reports status=200 latency_ms=229 upstream=metering-api
+2026-03-11T15:28:38Z INFO api-gateway req_id=r-0097725 method=GET path=/v1/reports status=200 latency_ms=110 upstream=metering-api
+2026-03-11T15:28:59Z INFO api-gateway req_id=r-0097760 method=POST path=/v1/usage/batch status=200 latency_ms=197 upstream=metering-api
+2026-03-11T15:29:19Z INFO api-gateway req_id=r-0097764 method=GET path=/v1/exports status=200 latency_ms=716 upstream=metering-api
+2026-03-11T15:29:40Z INFO api-gateway req_id=r-0097789 method=GET path=/v1/exports status=200 latency_ms=485 upstream=metering-api
+2026-03-11T15:30:00Z INFO api-gateway req_id=r-0097828 method=POST path=/v1/usage/batch status=200 latency_ms=328 upstream=metering-api
+2026-03-11T15:30:13Z ERROR api-gateway req_id=r-0097843 method=GET path=/v1/usage status=502 latency_ms=13415 upstream=metering-api error=upstream_timeout
+2026-03-11T15:30:25Z INFO api-gateway req_id=r-0097854 method=GET path=/v1/exports status=200 latency_ms=376 upstream=metering-api
+2026-03-11T15:30:25Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=582607 lag_seconds=1115 msg=consumer_lag_high
+2026-03-11T15:30:45Z INFO api-gateway req_id=r-0097888 method=GET path=/v1/reports status=200 latency_ms=855 upstream=metering-api
+2026-03-11T15:31:03Z INFO api-gateway req_id=r-0097927 method=GET path=/v1/dashboards status=200 latency_ms=69 upstream=metering-api
+2026-03-11T15:31:25Z INFO api-gateway req_id=r-0097945 method=POST path=/v1/auth/token status=200 latency_ms=533 upstream=metering-api
+2026-03-11T15:31:46Z INFO api-gateway req_id=r-0097982 method=GET path=/v1/exports status=200 latency_ms=755 upstream=metering-api
+2026-03-11T15:31:46Z WARN usage-consumer group=usage-aggregators partition=11 lag_events=878784 lag_seconds=1196 msg=consumer_lag_high
+2026-03-11T15:31:54Z INFO api-gateway req_id=r-0098020 method=POST path=/v1/auth/token status=200 latency_ms=538 upstream=metering-api
+2026-03-11T15:31:59Z INFO api-gateway req_id=r-0098038 method=GET path=/v1/reports status=200 latency_ms=587 upstream=metering-api
+2026-03-11T15:32:11Z INFO api-gateway req_id=r-0098074 method=GET path=/v1/dashboards status=200 latency_ms=608 upstream=metering-api
+2026-03-11T15:32:35Z INFO api-gateway req_id=r-0098081 method=GET path=/v1/exports status=200 latency_ms=713 upstream=metering-api
+2026-03-11T15:32:55Z INFO api-gateway req_id=r-0098098 method=GET path=/v1/exports status=200 latency_ms=614 upstream=metering-api
+2026-03-11T15:33:13Z INFO api-gateway req_id=r-0098130 method=POST path=/v1/auth/token status=200 latency_ms=257 upstream=metering-api
+2026-03-11T15:33:32Z INFO api-gateway req_id=r-0098161 method=GET path=/v1/exports status=200 latency_ms=230 upstream=metering-api
+2026-03-11T15:33:32Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=836811 lag_seconds=2154 msg=consumer_lag_high
+2026-03-11T15:33:43Z INFO api-gateway req_id=r-0098186 method=GET path=/v1/reports status=200 latency_ms=311 upstream=metering-api
+2026-03-11T15:33:52Z INFO api-gateway req_id=r-0098197 method=GET path=/v1/exports status=200 latency_ms=202 upstream=metering-api
+2026-03-11T15:33:59Z WARN api-gateway req_id=r-0098232 method=GET path=/v1/usage status=200 latency_ms=5664 upstream=metering-api
+2026-03-11T15:34:07Z INFO api-gateway req_id=r-0098246 method=GET path=/v1/reports status=200 latency_ms=111 upstream=metering-api
+2026-03-11T15:34:24Z WARN api-gateway req_id=r-0098276 method=POST path=/v1/usage/batch status=200 latency_ms=3917 upstream=metering-api
+2026-03-11T15:34:29Z WARN api-gateway req_id=r-0098291 method=POST path=/v1/usage/batch status=200 latency_ms=3440 upstream=metering-api
+2026-03-11T15:34:52Z INFO api-gateway req_id=r-0098312 method=GET path=/v1/exports status=200 latency_ms=641 upstream=metering-api
+2026-03-11T15:34:57Z INFO api-gateway req_id=r-0098320 method=GET path=/v1/exports status=200 latency_ms=161 upstream=metering-api
+2026-03-11T15:35:03Z INFO api-gateway req_id=r-0098358 method=GET path=/v1/usage status=200 latency_ms=647 upstream=metering-api
+2026-03-11T15:35:03Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=500137 lag_seconds=1880 msg=consumer_lag_high
+2026-03-11T15:35:14Z ERROR api-gateway req_id=r-0098373 method=GET path=/v1/usage status=502 latency_ms=12711 upstream=metering-api error=upstream_timeout
+2026-03-11T15:35:19Z WARN api-gateway req_id=r-0098378 method=POST path=/v1/usage/batch status=200 latency_ms=6441 upstream=metering-api
+2026-03-11T15:35:25Z INFO api-gateway req_id=r-0098413 method=GET path=/v1/reports status=200 latency_ms=894 upstream=metering-api
+2026-03-11T15:35:31Z WARN api-gateway req_id=r-0098419 method=POST path=/v1/usage/batch status=200 latency_ms=8653 upstream=metering-api
+2026-03-11T15:35:50Z INFO api-gateway req_id=r-0098444 method=GET path=/v1/usage status=200 latency_ms=660 upstream=metering-api
+2026-03-11T15:36:14Z INFO api-gateway req_id=r-0098458 method=GET path=/v1/exports status=200 latency_ms=125 upstream=metering-api
+2026-03-11T15:36:24Z INFO api-gateway req_id=r-0098475 method=GET path=/v1/dashboards status=200 latency_ms=472 upstream=metering-api
+2026-03-11T15:36:36Z ERROR api-gateway req_id=r-0098496 method=GET path=/v1/usage status=502 latency_ms=11114 upstream=metering-api error=upstream_timeout
+2026-03-11T15:37:00Z INFO api-gateway req_id=r-0098525 method=GET path=/v1/reports status=200 latency_ms=153 upstream=metering-api
+2026-03-11T15:37:20Z INFO api-gateway req_id=r-0098542 method=GET path=/v1/dashboards status=200 latency_ms=370 upstream=metering-api
+2026-03-11T15:37:29Z INFO api-gateway req_id=r-0098554 method=GET path=/v1/usage status=200 latency_ms=665 upstream=metering-api
+2026-03-11T15:37:34Z INFO api-gateway req_id=r-0098569 method=POST path=/v1/auth/token status=200 latency_ms=717 upstream=metering-api
+2026-03-11T15:37:56Z INFO api-gateway req_id=r-0098584 method=GET path=/v1/reports status=200 latency_ms=735 upstream=metering-api
+2026-03-11T15:38:16Z INFO api-gateway req_id=r-0098610 method=GET path=/v1/reports status=200 latency_ms=585 upstream=metering-api
+2026-03-11T15:38:33Z INFO api-gateway req_id=r-0098624 method=GET path=/v1/dashboards status=200 latency_ms=245 upstream=metering-api
+2026-03-11T15:38:33Z WARN usage-consumer group=usage-aggregators partition=7 lag_events=214807 lag_seconds=1869 msg=consumer_lag_high
+2026-03-11T15:38:52Z INFO api-gateway req_id=r-0098634 method=GET path=/v1/usage status=200 latency_ms=623 upstream=metering-api
+2026-03-11T15:39:06Z ERROR api-gateway req_id=r-0098641 method=GET path=/v1/usage status=502 latency_ms=14094 upstream=metering-api error=upstream_timeout
+2026-03-11T15:39:11Z INFO api-gateway req_id=r-0098649 method=GET path=/v1/reports status=200 latency_ms=341 upstream=metering-api
+2026-03-11T15:39:31Z INFO api-gateway req_id=r-0098681 method=GET path=/v1/dashboards status=200 latency_ms=308 upstream=metering-api
+2026-03-11T15:39:47Z ERROR api-gateway req_id=r-0098688 method=GET path=/v1/usage status=502 latency_ms=11631 upstream=metering-api error=upstream_timeout
+2026-03-11T15:40:11Z INFO api-gateway req_id=r-0098701 method=GET path=/v1/dashboards status=200 latency_ms=755 upstream=metering-api
+2026-03-11T15:40:30Z ERROR api-gateway req_id=r-0098732 method=GET path=/v1/usage status=502 latency_ms=9852 upstream=metering-api error=upstream_timeout
+2026-03-11T15:40:52Z INFO api-gateway req_id=r-0098752 method=GET path=/v1/exports status=200 latency_ms=201 upstream=metering-api
+2026-03-11T15:41:08Z ERROR api-gateway req_id=r-0098771 method=GET path=/v1/usage status=502 latency_ms=12360 upstream=metering-api error=upstream_timeout
+2026-03-11T15:41:13Z INFO api-gateway req_id=r-0098799 method=GET path=/v1/exports status=200 latency_ms=232 upstream=metering-api
+2026-03-11T15:41:18Z INFO api-gateway req_id=r-0098807 method=POST path=/v1/auth/token status=200 latency_ms=585 upstream=metering-api
+2026-03-11T15:41:37Z INFO api-gateway req_id=r-0098832 method=POST path=/v1/usage/batch status=200 latency_ms=753 upstream=metering-api
+2026-03-11T15:41:47Z INFO api-gateway req_id=r-0098838 method=GET path=/v1/reports status=200 latency_ms=721 upstream=metering-api
+2026-03-11T15:42:04Z INFO api-gateway req_id=r-0098849 method=GET path=/v1/reports status=200 latency_ms=469 upstream=metering-api
+2026-03-11T15:42:24Z INFO api-gateway req_id=r-0098870 method=GET path=/v1/exports status=201 latency_ms=425 upstream=metering-api
+2026-03-11T15:42:31Z INFO api-gateway req_id=r-0098875 method=GET path=/v1/reports status=200 latency_ms=369 upstream=metering-api
+2026-03-11T15:42:52Z INFO api-gateway req_id=r-0098901 method=GET path=/v1/dashboards status=200 latency_ms=848 upstream=metering-api
+2026-03-11T15:43:15Z INFO api-gateway req_id=r-0098915 method=GET path=/v1/dashboards status=200 latency_ms=213 upstream=metering-api
+2026-03-11T15:43:28Z INFO api-gateway req_id=r-0098935 method=GET path=/v1/reports status=200 latency_ms=60 upstream=metering-api
+2026-03-11T15:43:38Z ERROR api-gateway req_id=r-0098969 method=GET path=/v1/usage status=502 latency_ms=11578 upstream=metering-api error=upstream_timeout
+2026-03-11T15:43:38Z WARN usage-consumer group=usage-aggregators partition=3 lag_events=358860 lag_seconds=1625 msg=consumer_lag_high
+2026-03-11T15:43:50Z ERROR api-gateway req_id=r-0098982 method=POST path=/v1/usage/batch status=502 latency_ms=14254 upstream=metering-api error=upstream_timeout
+2026-03-11T15:43:59Z INFO api-gateway req_id=r-0098988 method=GET path=/v1/dashboards status=200 latency_ms=800 upstream=metering-api
+2026-03-11T15:44:09Z ERROR api-gateway req_id=r-0098996 method=GET path=/v1/usage status=502 latency_ms=12548 upstream=metering-api error=upstream_timeout
+2026-03-11T15:44:24Z INFO api-gateway req_id=r-0099023 method=POST path=/v1/auth/token status=200 latency_ms=146 upstream=metering-api
+2026-03-11T15:44:48Z INFO api-gateway req_id=r-0099045 method=GET path=/v1/usage status=200 latency_ms=605 upstream=metering-api
+2026-03-11T15:44:59Z ERROR api-gateway req_id=r-0099056 method=POST path=/v1/usage/batch status=502 latency_ms=12934 upstream=metering-api error=upstream_timeout
+2026-03-11T15:45:16Z WARN api-gateway req_id=r-0099086 method=POST path=/v1/usage/batch status=200 latency_ms=8332 upstream=metering-api
+2026-03-11T15:45:25Z INFO api-gateway req_id=r-0099121 method=GET path=/v1/dashboards status=200 latency_ms=792 upstream=metering-api
+2026-03-11T15:45:40Z INFO api-gateway req_id=r-0099142 method=GET path=/v1/reports status=200 latency_ms=98 upstream=metering-api
+2026-03-11T15:45:57Z WARN api-gateway req_id=r-0099153 method=GET path=/v1/usage status=401 latency_ms=581 upstream=metering-api
+2026-03-11T15:46:05Z INFO api-gateway req_id=r-0099176 method=GET path=/v1/dashboards status=200 latency_ms=338 upstream=metering-api
+2026-03-11T15:46:19Z INFO api-gateway req_id=r-0099188 method=POST path=/v1/usage/batch status=200 latency_ms=700 upstream=metering-api
+2026-03-11T15:46:31Z WARN api-gateway req_id=r-0099202 method=POST path=/v1/usage/batch status=200 latency_ms=5044 upstream=metering-api
+2026-03-11T15:46:42Z INFO api-gateway req_id=r-0099239 method=POST path=/v1/auth/token status=200 latency_ms=135 upstream=metering-api
+2026-03-11T15:47:04Z INFO api-gateway req_id=r-0099248 method=POST path=/v1/usage/batch status=200 latency_ms=298 upstream=metering-api
+2026-03-11T15:47:27Z INFO api-gateway req_id=r-0099266 method=POST path=/v1/usage/batch status=200 latency_ms=232 upstream=metering-api
+2026-03-11T15:47:46Z WARN api-gateway req_id=r-0099290 method=GET path=/v1/dashboards status=400 latency_ms=582 upstream=metering-api
+2026-03-11T15:47:54Z INFO api-gateway req_id=r-0099298 method=GET path=/v1/usage status=200 latency_ms=66 upstream=metering-api
+2026-03-11T15:48:16Z INFO api-gateway req_id=r-0099336 method=GET path=/v1/usage status=200 latency_ms=202 upstream=metering-api
+2026-03-11T15:48:37Z INFO api-gateway req_id=r-0099344 method=GET path=/v1/dashboards status=200 latency_ms=885 upstream=metering-api
+2026-03-11T15:48:47Z INFO api-gateway req_id=r-0099365 method=GET path=/v1/reports status=201 latency_ms=644 upstream=metering-api
+2026-03-11T15:49:11Z INFO api-gateway req_id=r-0099392 method=GET path=/v1/dashboards status=200 latency_ms=853 upstream=metering-api
+2026-03-11T15:49:27Z INFO api-gateway req_id=r-0099416 method=POST path=/v1/auth/token status=200 latency_ms=271 upstream=metering-api
+2026-03-11T15:49:34Z INFO api-gateway req_id=r-0099430 method=GET path=/v1/dashboards status=200 latency_ms=852 upstream=metering-api
+2026-03-11T15:49:49Z INFO api-gateway req_id=r-0099447 method=GET path=/v1/usage status=200 latency_ms=316 upstream=metering-api
+2026-03-11T15:50:11Z INFO api-gateway req_id=r-0099455 method=GET path=/v1/usage status=200 latency_ms=689 upstream=metering-api
+2026-03-11T15:50:34Z INFO api-gateway req_id=r-0099464 method=GET path=/v1/dashboards status=200 latency_ms=103 upstream=metering-api
+2026-03-11T15:50:40Z INFO api-gateway req_id=r-0099500 method=POST path=/v1/usage/batch status=200 latency_ms=725 upstream=metering-api
+2026-03-11T15:50:55Z INFO api-gateway req_id=r-0099536 method=GET path=/v1/reports status=200 latency_ms=165 upstream=metering-api
+2026-03-11T15:51:11Z INFO api-gateway req_id=r-0099560 method=POST path=/v1/auth/token status=200 latency_ms=72 upstream=metering-api
+2026-03-11T15:51:20Z WARN api-gateway req_id=r-0099570 method=GET path=/v1/exports status=400 latency_ms=346 upstream=metering-api
+2026-03-11T15:51:38Z INFO api-gateway req_id=r-0099576 method=GET path=/v1/exports status=200 latency_ms=174 upstream=metering-api
+2026-03-11T15:51:54Z INFO api-gateway req_id=r-0099586 method=GET path=/v1/usage status=200 latency_ms=229 upstream=metering-api
+2026-03-11T15:52:18Z INFO api-gateway req_id=r-0099620 method=GET path=/v1/reports status=200 latency_ms=397 upstream=metering-api
+2026-03-11T15:52:32Z INFO api-gateway req_id=r-0099633 method=GET path=/v1/usage status=200 latency_ms=862 upstream=metering-api
+2026-03-11T15:52:41Z INFO api-gateway req_id=r-0099666 method=GET path=/v1/reports status=200 latency_ms=364 upstream=metering-api
+2026-03-11T15:52:51Z INFO api-gateway req_id=r-0099683 method=GET path=/v1/exports status=200 latency_ms=386 upstream=metering-api
+2026-03-11T15:53:00Z INFO api-gateway req_id=r-0099689 method=POST path=/v1/usage/batch status=200 latency_ms=756 upstream=metering-api
+2026-03-11T15:53:22Z INFO api-gateway req_id=r-0099724 method=GET path=/v1/usage status=200 latency_ms=822 upstream=metering-api
+2026-03-11T15:53:42Z INFO api-gateway req_id=r-0099739 method=GET path=/v1/reports status=200 latency_ms=283 upstream=metering-api
+2026-03-11T15:53:47Z INFO api-gateway req_id=r-0099759 method=GET path=/v1/exports status=200 latency_ms=453 upstream=metering-api
+2026-03-11T15:54:09Z INFO api-gateway req_id=r-0099792 method=GET path=/v1/usage status=200 latency_ms=892 upstream=metering-api
+2026-03-11T15:54:14Z INFO api-gateway req_id=r-0099800 method=POST path=/v1/auth/token status=200 latency_ms=858 upstream=metering-api
+2026-03-11T15:54:21Z INFO api-gateway req_id=r-0099818 method=GET path=/v1/dashboards status=200 latency_ms=837 upstream=metering-api
+2026-03-11T15:54:44Z INFO api-gateway req_id=r-0099838 method=GET path=/v1/reports status=200 latency_ms=866 upstream=metering-api
+2026-03-11T15:55:08Z INFO api-gateway req_id=r-0099871 method=GET path=/v1/dashboards status=200 latency_ms=380 upstream=metering-api
+2026-03-11T15:55:17Z WARN api-gateway req_id=r-0099890 method=GET path=/v1/usage status=400 latency_ms=606 upstream=metering-api
+2026-03-11T15:55:22Z INFO api-gateway req_id=r-0099898 method=GET path=/v1/dashboards status=200 latency_ms=417 upstream=metering-api
+2026-03-11T15:55:35Z INFO api-gateway req_id=r-0099919 method=POST path=/v1/usage/batch status=200 latency_ms=804 upstream=metering-api
+2026-03-11T15:55:53Z WARN api-gateway req_id=r-0099948 method=POST path=/v1/auth/token status=400 latency_ms=642 upstream=metering-api
+2026-03-11T15:56:11Z INFO api-gateway req_id=r-0099976 method=GET path=/v1/reports status=200 latency_ms=416 upstream=metering-api
+2026-03-11T15:56:26Z INFO api-gateway req_id=r-0100006 method=GET path=/v1/exports status=200 latency_ms=153 upstream=metering-api
+2026-03-11T15:56:38Z INFO api-gateway req_id=r-0100030 method=GET path=/v1/dashboards status=200 latency_ms=849 upstream=metering-api
+2026-03-11T15:56:47Z INFO api-gateway req_id=r-0100038 method=POST path=/v1/auth/token status=200 latency_ms=578 upstream=metering-api
+2026-03-11T15:57:01Z INFO api-gateway req_id=r-0100044 method=POST path=/v1/auth/token status=200 latency_ms=724 upstream=metering-api
+2026-03-11T15:57:13Z INFO api-gateway req_id=r-0100054 method=GET path=/v1/exports status=200 latency_ms=828 upstream=metering-api
+2026-03-11T15:57:24Z INFO api-gateway req_id=r-0100080 method=GET path=/v1/dashboards status=200 latency_ms=894 upstream=metering-api
+2026-03-11T15:57:30Z INFO api-gateway req_id=r-0100103 method=GET path=/v1/usage status=200 latency_ms=179 upstream=metering-api
+2026-03-11T15:57:43Z INFO api-gateway req_id=r-0100126 method=POST path=/v1/usage/batch status=200 latency_ms=698 upstream=metering-api
+2026-03-11T15:57:54Z INFO api-gateway req_id=r-0100165 method=GET path=/v1/exports status=200 latency_ms=358 upstream=metering-api
+2026-03-11T15:58:12Z INFO api-gateway req_id=r-0100176 method=GET path=/v1/dashboards status=200 latency_ms=117 upstream=metering-api
+2026-03-11T15:58:18Z INFO api-gateway req_id=r-0100180 method=GET path=/v1/exports status=200 latency_ms=99 upstream=metering-api
+2026-03-11T15:58:30Z INFO api-gateway req_id=r-0100194 method=POST path=/v1/auth/token status=200 latency_ms=138 upstream=metering-api
+2026-03-11T15:58:49Z INFO api-gateway req_id=r-0100212 method=GET path=/v1/exports status=200 latency_ms=419 upstream=metering-api
+2026-03-11T15:59:05Z INFO api-gateway req_id=r-0100239 method=POST path=/v1/usage/batch status=200 latency_ms=671 upstream=metering-api
+2026-03-11T15:59:18Z INFO api-gateway req_id=r-0100278 method=GET path=/v1/exports status=200 latency_ms=706 upstream=metering-api
+2026-03-11T15:59:41Z INFO api-gateway req_id=r-0100295 method=GET path=/v1/reports status=200 latency_ms=536 upstream=metering-api
+2026-03-11T16:00:02Z INFO api-gateway req_id=r-0100311 method=GET path=/v1/dashboards status=200 latency_ms=350 upstream=metering-api
+2026-03-11T16:00:24Z INFO api-gateway req_id=r-0100327 method=GET path=/v1/exports status=200 latency_ms=131 upstream=metering-api
+2026-03-11T16:00:44Z INFO api-gateway req_id=r-0100333 method=GET path=/v1/reports status=200 latency_ms=605 upstream=metering-api
+2026-03-11T16:00:54Z INFO api-gateway req_id=r-0100347 method=GET path=/v1/dashboards status=200 latency_ms=674 upstream=metering-api
+2026-03-11T16:01:18Z INFO api-gateway req_id=r-0100381 method=GET path=/v1/dashboards status=200 latency_ms=258 upstream=metering-api
+2026-03-11T16:01:36Z INFO api-gateway req_id=r-0100417 method=POST path=/v1/auth/token status=200 latency_ms=48 upstream=metering-api
+2026-03-11T16:01:46Z INFO api-gateway req_id=r-0100429 method=GET path=/v1/usage status=200 latency_ms=526 upstream=metering-api
+2026-03-11T16:01:58Z INFO api-gateway req_id=r-0100449 method=GET path=/v1/reports status=200 latency_ms=121 upstream=metering-api
+2026-03-11T16:02:12Z INFO api-gateway req_id=r-0100456 method=GET path=/v1/dashboards status=200 latency_ms=739 upstream=metering-api
+2026-03-11T16:02:29Z INFO api-gateway req_id=r-0100495 method=POST path=/v1/auth/token status=200 latency_ms=619 upstream=metering-api
+2026-03-11T16:02:51Z INFO api-gateway req_id=r-0100529 method=GET path=/v1/usage status=200 latency_ms=439 upstream=metering-api
+2026-03-11T16:03:09Z INFO api-gateway req_id=r-0100534 method=GET path=/v1/reports status=200 latency_ms=348 upstream=metering-api
+2026-03-11T16:03:33Z INFO api-gateway req_id=r-0100554 method=GET path=/v1/reports status=200 latency_ms=589 upstream=metering-api
+2026-03-11T16:03:50Z INFO api-gateway req_id=r-0100579 method=GET path=/v1/dashboards status=200 latency_ms=410 upstream=metering-api
+2026-03-11T16:04:13Z INFO api-gateway req_id=r-0100608 method=GET path=/v1/exports status=200 latency_ms=708 upstream=metering-api
+2026-03-11T16:04:27Z INFO api-gateway req_id=r-0100611 method=GET path=/v1/usage status=201 latency_ms=678 upstream=metering-api
+2026-03-11T16:04:47Z INFO api-gateway req_id=r-0100647 method=POST path=/v1/auth/token status=200 latency_ms=495 upstream=metering-api
+2026-03-11T16:04:56Z INFO api-gateway req_id=r-0100683 method=GET path=/v1/exports status=200 latency_ms=189 upstream=metering-api
+2026-03-11T16:05:20Z INFO api-gateway req_id=r-0100694 method=POST path=/v1/auth/token status=200 latency_ms=129 upstream=metering-api
+2026-03-11T16:05:39Z INFO api-gateway req_id=r-0100712 method=POST path=/v1/auth/token status=200 latency_ms=466 upstream=metering-api
+2026-03-11T16:05:51Z INFO api-gateway req_id=r-0100719 method=POST path=/v1/auth/token status=200 latency_ms=339 upstream=metering-api
+2026-03-11T16:06:08Z INFO api-gateway req_id=r-0100725 method=POST path=/v1/usage/batch status=200 latency_ms=374 upstream=metering-api
+2026-03-11T16:06:28Z INFO api-gateway req_id=r-0100738 method=POST path=/v1/auth/token status=200 latency_ms=824 upstream=metering-api
+2026-03-11T16:06:36Z INFO api-gateway req_id=r-0100759 method=GET path=/v1/exports status=200 latency_ms=861 upstream=metering-api
+2026-03-11T16:06:59Z INFO api-gateway req_id=r-0100788 method=POST path=/v1/usage/batch status=200 latency_ms=552 upstream=metering-api
+2026-03-11T16:07:10Z WARN api-gateway req_id=r-0100826 method=POST path=/v1/usage/batch status=401 latency_ms=374 upstream=metering-api
+2026-03-11T16:07:24Z INFO api-gateway req_id=r-0100832 method=GET path=/v1/dashboards status=200 latency_ms=306 upstream=metering-api
+2026-03-11T16:07:34Z INFO api-gateway req_id=r-0100848 method=GET path=/v1/usage status=200 latency_ms=724 upstream=metering-api
+2026-03-11T16:07:57Z INFO api-gateway req_id=r-0100883 method=GET path=/v1/dashboards status=200 latency_ms=723 upstream=metering-api
+2026-03-11T16:08:17Z INFO api-gateway req_id=r-0100893 method=POST path=/v1/usage/batch status=200 latency_ms=177 upstream=metering-api
+2026-03-11T16:08:31Z INFO api-gateway req_id=r-0100925 method=GET path=/v1/exports status=200 latency_ms=730 upstream=metering-api
+2026-03-11T16:08:54Z INFO api-gateway req_id=r-0100928 method=GET path=/v1/usage status=201 latency_ms=782 upstream=metering-api
+2026-03-11T16:09:09Z INFO api-gateway req_id=r-0100940 method=GET path=/v1/dashboards status=200 latency_ms=757 upstream=metering-api
+2026-03-11T16:09:28Z INFO api-gateway req_id=r-0100978 method=GET path=/v1/dashboards status=200 latency_ms=785 upstream=metering-api
+2026-03-11T16:09:47Z INFO api-gateway req_id=r-0101010 method=GET path=/v1/exports status=200 latency_ms=315 upstream=metering-api
+2026-03-11T16:10:07Z INFO api-gateway req_id=r-0101030 method=GET path=/v1/exports status=200 latency_ms=757 upstream=metering-api
+2026-03-11T16:10:21Z INFO api-gateway req_id=r-0101050 method=GET path=/v1/usage status=200 latency_ms=432 upstream=metering-api
+2026-03-11T16:10:42Z WARN api-gateway req_id=r-0101074 method=GET path=/v1/dashboards status=401 latency_ms=687 upstream=metering-api
+2026-03-11T16:10:50Z INFO api-gateway req_id=r-0101105 method=GET path=/v1/reports status=200 latency_ms=882 upstream=metering-api
+2026-03-11T16:11:08Z INFO api-gateway req_id=r-0101144 method=POST path=/v1/auth/token status=200 latency_ms=535 upstream=metering-api
+2026-03-11T16:11:17Z INFO api-gateway req_id=r-0101162 method=POST path=/v1/auth/token status=200 latency_ms=212 upstream=metering-api
+2026-03-11T16:11:41Z INFO api-gateway req_id=r-0101170 method=POST path=/v1/auth/token status=200 latency_ms=334 upstream=metering-api
+2026-03-11T16:11:51Z INFO api-gateway req_id=r-0101206 method=GET path=/v1/exports status=200 latency_ms=162 upstream=metering-api
+2026-03-11T16:12:08Z INFO api-gateway req_id=r-0101234 method=GET path=/v1/usage status=200 latency_ms=211 upstream=metering-api
+2026-03-11T16:12:18Z INFO api-gateway req_id=r-0101261 method=GET path=/v1/usage status=200 latency_ms=786 upstream=metering-api
+2026-03-11T16:12:27Z INFO api-gateway req_id=r-0101292 method=POST path=/v1/usage/batch status=200 latency_ms=158 upstream=metering-api
+2026-03-11T16:12:47Z INFO api-gateway req_id=r-0101327 method=POST path=/v1/usage/batch status=200 latency_ms=224 upstream=metering-api
+2026-03-11T16:12:58Z INFO api-gateway req_id=r-0101364 method=POST path=/v1/usage/batch status=200 latency_ms=329 upstream=metering-api
+2026-03-11T16:13:17Z INFO api-gateway req_id=r-0101393 method=GET path=/v1/reports status=200 latency_ms=497 upstream=metering-api
+2026-03-11T16:13:27Z INFO api-gateway req_id=r-0101431 method=POST path=/v1/auth/token status=200 latency_ms=514 upstream=metering-api
+2026-03-11T16:13:43Z WARN api-gateway req_id=r-0101435 method=POST path=/v1/auth/token status=404 latency_ms=229 upstream=metering-api
+2026-03-11T16:14:03Z WARN api-gateway req_id=r-0101445 method=GET path=/v1/dashboards status=400 latency_ms=323 upstream=metering-api
+2026-03-11T16:14:17Z INFO api-gateway req_id=r-0101459 method=POST path=/v1/auth/token status=200 latency_ms=800 upstream=metering-api
+2026-03-11T16:14:27Z INFO api-gateway req_id=r-0101483 method=POST path=/v1/auth/token status=200 latency_ms=157 upstream=metering-api
+2026-03-11T16:14:35Z INFO api-gateway req_id=r-0101488 method=GET path=/v1/dashboards status=200 latency_ms=318 upstream=metering-api
+2026-03-11T16:14:41Z INFO api-gateway req_id=r-0101504 method=GET path=/v1/exports status=200 latency_ms=575 upstream=metering-api
+2026-03-11T16:14:46Z INFO api-gateway req_id=r-0101537 method=POST path=/v1/auth/token status=200 latency_ms=713 upstream=metering-api
+2026-03-11T16:15:02Z INFO api-gateway req_id=r-0101555 method=POST path=/v1/usage/batch status=200 latency_ms=193 upstream=metering-api
+2026-03-11T16:15:23Z INFO api-gateway req_id=r-0101577 method=POST path=/v1/usage/batch status=200 latency_ms=679 upstream=metering-api
+2026-03-11T16:15:45Z INFO api-gateway req_id=r-0101603 method=POST path=/v1/auth/token status=200 latency_ms=464 upstream=metering-api
+2026-03-11T16:15:50Z INFO api-gateway req_id=r-0101638 method=GET path=/v1/dashboards status=200 latency_ms=639 upstream=metering-api
+2026-03-11T16:16:12Z INFO api-gateway req_id=r-0101659 method=POST path=/v1/auth/token status=200 latency_ms=688 upstream=metering-api
+2026-03-11T16:16:29Z INFO api-gateway req_id=r-0101662 method=GET path=/v1/dashboards status=200 latency_ms=675 upstream=metering-api
+2026-03-11T16:16:42Z INFO api-gateway req_id=r-0101669 method=GET path=/v1/dashboards status=200 latency_ms=845 upstream=metering-api
+2026-03-11T16:17:02Z INFO api-gateway req_id=r-0101705 method=GET path=/v1/reports status=200 latency_ms=229 upstream=metering-api
+2026-03-11T16:17:25Z INFO api-gateway req_id=r-0101742 method=POST path=/v1/usage/batch status=201 latency_ms=86 upstream=metering-api
+2026-03-11T16:17:38Z INFO api-gateway req_id=r-0101747 method=GET path=/v1/exports status=200 latency_ms=717 upstream=metering-api
+2026-03-11T16:17:44Z INFO api-gateway req_id=r-0101771 method=GET path=/v1/exports status=200 latency_ms=549 upstream=metering-api
+2026-03-11T16:18:08Z INFO api-gateway req_id=r-0101807 method=GET path=/v1/usage status=200 latency_ms=478 upstream=metering-api
+2026-03-11T16:18:17Z INFO api-gateway req_id=r-0101814 method=GET path=/v1/usage status=200 latency_ms=829 upstream=metering-api
+2026-03-11T16:18:36Z INFO api-gateway req_id=r-0101836 method=GET path=/v1/exports status=200 latency_ms=464 upstream=metering-api
+2026-03-11T16:18:41Z INFO api-gateway req_id=r-0101873 method=GET path=/v1/exports status=200 latency_ms=184 upstream=metering-api
+2026-03-11T16:18:52Z INFO api-gateway req_id=r-0101905 method=GET path=/v1/reports status=200 latency_ms=484 upstream=metering-api
+2026-03-11T16:19:11Z INFO api-gateway req_id=r-0101912 method=POST path=/v1/usage/batch status=200 latency_ms=389 upstream=metering-api
+2026-03-11T16:19:19Z WARN api-gateway req_id=r-0101918 method=POST path=/v1/usage/batch status=400 latency_ms=356 upstream=metering-api
+2026-03-11T16:19:32Z INFO api-gateway req_id=r-0101935 method=POST path=/v1/usage/batch status=200 latency_ms=891 upstream=metering-api
+2026-03-11T16:19:55Z INFO api-gateway req_id=r-0101968 method=GET path=/v1/reports status=200 latency_ms=671 upstream=metering-api
+2026-03-11T16:20:09Z INFO api-gateway req_id=r-0101972 method=POST path=/v1/usage/batch status=200 latency_ms=640 upstream=metering-api
+2026-03-11T16:20:33Z INFO api-gateway req_id=r-0102007 method=GET path=/v1/exports status=200 latency_ms=690 upstream=metering-api
+2026-03-11T16:20:56Z INFO api-gateway req_id=r-0102012 method=POST path=/v1/usage/batch status=200 latency_ms=723 upstream=metering-api
+2026-03-11T16:21:12Z INFO api-gateway req_id=r-0102026 method=POST path=/v1/auth/token status=200 latency_ms=627 upstream=metering-api
+2026-03-11T16:21:18Z INFO api-gateway req_id=r-0102041 method=GET path=/v1/reports status=200 latency_ms=227 upstream=metering-api
+2026-03-11T16:21:31Z INFO api-gateway req_id=r-0102073 method=GET path=/v1/dashboards status=200 latency_ms=432 upstream=metering-api
+2026-03-11T16:21:48Z INFO api-gateway req_id=r-0102099 method=GET path=/v1/reports status=200 latency_ms=286 upstream=metering-api
+2026-03-11T16:22:03Z INFO api-gateway req_id=r-0102135 method=GET path=/v1/usage status=200 latency_ms=240 upstream=metering-api
+2026-03-11T16:22:08Z INFO api-gateway req_id=r-0102141 method=POST path=/v1/auth/token status=200 latency_ms=462 upstream=metering-api
+2026-03-11T16:22:31Z INFO api-gateway req_id=r-0102146 method=GET path=/v1/reports status=200 latency_ms=235 upstream=metering-api
+2026-03-11T16:22:52Z WARN api-gateway req_id=r-0102160 method=GET path=/v1/exports status=404 latency_ms=435 upstream=metering-api
+2026-03-11T16:23:09Z INFO api-gateway req_id=r-0102182 method=GET path=/v1/exports status=200 latency_ms=92 upstream=metering-api
+2026-03-11T16:23:18Z INFO api-gateway req_id=r-0102209 method=GET path=/v1/dashboards status=200 latency_ms=753 upstream=metering-api
+2026-03-11T16:23:31Z INFO api-gateway req_id=r-0102239 method=GET path=/v1/dashboards status=200 latency_ms=340 upstream=metering-api
+2026-03-11T16:23:37Z INFO api-gateway req_id=r-0102253 method=POST path=/v1/auth/token status=200 latency_ms=296 upstream=metering-api
+2026-03-11T16:23:46Z WARN api-gateway req_id=r-0102283 method=POST path=/v1/auth/token status=400 latency_ms=490 upstream=metering-api
+2026-03-11T16:24:06Z INFO api-gateway req_id=r-0102304 method=GET path=/v1/exports status=200 latency_ms=638 upstream=metering-api
+2026-03-11T16:24:16Z INFO api-gateway req_id=r-0102314 method=POST path=/v1/usage/batch status=200 latency_ms=366 upstream=metering-api
+2026-03-11T16:24:21Z INFO api-gateway req_id=r-0102333 method=POST path=/v1/auth/token status=200 latency_ms=606 upstream=metering-api
+2026-03-11T16:24:35Z INFO api-gateway req_id=r-0102366 method=GET path=/v1/reports status=200 latency_ms=232 upstream=metering-api
+2026-03-11T16:24:43Z INFO api-gateway req_id=r-0102394 method=GET path=/v1/dashboards status=200 latency_ms=533 upstream=metering-api
+2026-03-11T16:24:51Z INFO api-gateway req_id=r-0102405 method=GET path=/v1/dashboards status=200 latency_ms=155 upstream=metering-api
+2026-03-11T16:25:13Z INFO api-gateway req_id=r-0102425 method=GET path=/v1/exports status=200 latency_ms=503 upstream=metering-api
+2026-03-11T16:25:18Z INFO api-gateway req_id=r-0102443 method=GET path=/v1/dashboards status=200 latency_ms=711 upstream=metering-api
+2026-03-11T16:25:23Z INFO api-gateway req_id=r-0102448 method=GET path=/v1/reports status=200 latency_ms=840 upstream=metering-api
+2026-03-11T16:25:38Z INFO api-gateway req_id=r-0102486 method=GET path=/v1/exports status=200 latency_ms=80 upstream=metering-api
+2026-03-11T16:25:55Z INFO api-gateway req_id=r-0102504 method=POST path=/v1/auth/token status=201 latency_ms=220 upstream=metering-api
+2026-03-11T16:26:03Z INFO api-gateway req_id=r-0102535 method=GET path=/v1/dashboards status=200 latency_ms=222 upstream=metering-api
+2026-03-11T16:26:09Z INFO api-gateway req_id=r-0102566 method=GET path=/v1/dashboards status=200 latency_ms=60 upstream=metering-api
+2026-03-11T16:26:28Z INFO api-gateway req_id=r-0102592 method=GET path=/v1/dashboards status=200 latency_ms=524 upstream=metering-api
+2026-03-11T16:26:40Z INFO api-gateway req_id=r-0102621 method=GET path=/v1/usage status=200 latency_ms=357 upstream=metering-api
+2026-03-11T16:26:47Z INFO api-gateway req_id=r-0102627 method=GET path=/v1/exports status=200 latency_ms=321 upstream=metering-api
+2026-03-11T16:27:11Z INFO api-gateway req_id=r-0102631 method=GET path=/v1/reports status=200 latency_ms=59 upstream=metering-api
+2026-03-11T16:27:35Z WARN api-gateway req_id=r-0102665 method=GET path=/v1/usage status=400 latency_ms=413 upstream=metering-api
+2026-03-11T16:27:56Z INFO api-gateway req_id=r-0102669 method=POST path=/v1/auth/token status=201 latency_ms=681 upstream=metering-api
+2026-03-11T16:28:06Z INFO api-gateway req_id=r-0102673 method=GET path=/v1/dashboards status=200 latency_ms=785 upstream=metering-api
+2026-03-11T16:28:24Z INFO api-gateway req_id=r-0102687 method=POST path=/v1/usage/batch status=200 latency_ms=105 upstream=metering-api
+2026-03-11T16:28:35Z INFO api-gateway req_id=r-0102699 method=POST path=/v1/auth/token status=200 latency_ms=247 upstream=metering-api
+2026-03-11T16:28:42Z INFO api-gateway req_id=r-0102705 method=POST path=/v1/usage/batch status=200 latency_ms=205 upstream=metering-api
+2026-03-11T16:28:50Z INFO api-gateway req_id=r-0102713 method=POST path=/v1/auth/token status=200 latency_ms=267 upstream=metering-api
+2026-03-11T16:29:04Z INFO api-gateway req_id=r-0102718 method=GET path=/v1/usage status=200 latency_ms=826 upstream=metering-api
+2026-03-11T16:29:19Z INFO api-gateway req_id=r-0102730 method=GET path=/v1/exports status=200 latency_ms=557 upstream=metering-api
+2026-03-11T16:29:40Z INFO api-gateway req_id=r-0102741 method=POST path=/v1/usage/batch status=200 latency_ms=305 upstream=metering-api
+2026-03-11T16:29:57Z INFO api-gateway req_id=r-0102765 method=GET path=/v1/reports status=200 latency_ms=350 upstream=metering-api
+2026-03-11T16:30:03Z INFO api-gateway req_id=r-0102774 method=GET path=/v1/exports status=200 latency_ms=627 upstream=metering-api

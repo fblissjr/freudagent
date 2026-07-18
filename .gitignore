@@ -70,6 +70,9 @@ cover/
 
 # Django stuff:
 *.log
+# ...but the public synthetic corpus ships fixture logs (syslog/CEF/gateway
+# samples). Un-ignore them; they are committed corpus data, not local logs.
+!data/synthetic/**/*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
