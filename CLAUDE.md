@@ -53,8 +53,16 @@ data/
                        README): SaaS exports, relational extracts, documents,
                        human feedback, unstructured streams, and JSONL event
                        streams shaped for `ingest events` -- dev/eval data for
-                       the flywheel. Volume files regenerate deterministically
-                       via scripts/generate_synthetic_data.py; documents are
+                       the flywheel. Also: messy/ + drive_chaos/ (real-world
+                       formats -- OCR, XML, ICS, SQL dumps, mbox, near-dup
+                       drafts -- for structuring evals), time/ (page histories,
+                       org/roadmap snapshots, policy supersession -- staleness),
+                       and governance/ + external/ + eval/ (system-of-record and
+                       source-authority registries, a DACI decision log, and
+                       eval/conflicts.jsonl -- the conflict-resolution answer key
+                       + eval/citation_edges.csv source-centrality graph). Volume
+                       files regenerate deterministically via
+                       scripts/generate_synthetic_data.py; documents are
                        hand-authored and cross-reference generated IDs
 tests/
   conftest.py        - Shared fixtures (in-memory DuckDB store)
@@ -63,7 +71,13 @@ tests/
   test_rlm.py        - RLM provider tests
   test_synthetic_data.py - Synthetic-corpus guards: generator determinism,
                        manifest/disk parity, cross-source references, event
-                       streams ingest idempotently
+                       streams ingest idempotently. Companion suites:
+                       test_synthetic_internal.py (HRIS/ITSM/finance +
+                       GL reconciliations), test_synthetic_granularity.py
+                       (cross-grain rollups), test_synthetic_temporal.py
+                       (snapshots/staleness), test_synthetic_conflicts.py
+                       (conflict schema + resolution-rule vocab), and
+                       test_citation_graph.py
 skill/
   skill.md           - L2: CLI reference, routing table to L3 references
   reference/         - L3: schema, archetypes, hierarchy, flywheel, retrieval thesis, trace-capture, etc.
@@ -71,6 +85,11 @@ scripts/
   trace-hook.sh      - PostToolUse hook for automatic tool_call trace capture
   generate_synthetic_data.py - Deterministic generator for data/synthetic/
                        (fixed seed, fixed dates -- byte-identical re-runs)
+  build_citation_graph.py - Derives data/synthetic/eval/citation_edges.csv
+                       (corpus-wide ID mentions as from_path->to_id edges).
+                       Standalone (scans the whole corpus on disk), not part
+                       of generate(); run it after the generator, then rerun
+                       the generator so MANIFEST re-inventories the CSV
 docs/
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
   tutorial-rlm-provider.md     - RLM provider tutorial
