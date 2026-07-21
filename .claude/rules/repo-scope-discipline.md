@@ -1,5 +1,5 @@
 <!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
-<!-- source: dim_rule 5d9cffebfa514c207c59d08b334fc3c3 effective_from 2026-07-21T16:48:35.669895 -->
+<!-- source: dim_rule 5d9cffebfa514c207c59d08b334fc3c3 effective_from 2026-07-21T16:58:42.141140 -->
 
 
 # Repo scope discipline

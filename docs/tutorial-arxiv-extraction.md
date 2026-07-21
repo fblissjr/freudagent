@@ -50,7 +50,7 @@ uv run freud-schema db init
 declarative data-driven orchestration produce measurably better results than
 code-driven workflow approaches?" To test that, you need structured records of
 what was attempted, what was produced, and what humans corrected. Files can't
-do that. The dimensional schema (9 dimension tables, 11 fact tables, 10 analytical
+do that. The dimensional schema (10 dimension tables, 11 fact tables, 10 analytical
 views) isn't plumbing -- it's the experiment itself.
 
 **Why `init` is separate from `run`:** You set up the database once, then run

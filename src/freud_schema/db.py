@@ -49,6 +49,7 @@ from freud_schema.tables import (
     AgentRole,
     CorrectionType,
     DetectionMethod,
+    FeedbackOriginKind,
     FacetMethod,
     FacetOutputType,
     FindingScope,
@@ -225,6 +226,16 @@ def _build_tables_ddl() -> list[str]:
     {_check_in('output_type', FacetOutputType)},
     {_check_in('record_source', RecordSource)}
 )""",
+        f"""CREATE TABLE IF NOT EXISTS dim_feedback_origin (
+    feedback_origin_key VARCHAR NOT NULL,
+    origin_id VARCHAR NOT NULL,
+    origin_kind VARCHAR NOT NULL DEFAULT 'unspecified',
+    description VARCHAR,
+    record_source VARCHAR NOT NULL DEFAULT 'native',
+    created_at TIMESTAMP DEFAULT current_timestamp,
+    {_check_in('origin_kind', FeedbackOriginKind)},
+    {_check_in('record_source', RecordSource)}
+)""",
         f"""CREATE TABLE IF NOT EXISTS dim_finding_type (
     finding_type_key VARCHAR NOT NULL,
     finding_type VARCHAR NOT NULL,
@@ -314,6 +325,8 @@ def _build_tables_ddl() -> list[str]:
     correction_type VARCHAR NOT NULL,
     notes VARCHAR,
     created_by VARCHAR,
+    feedback_origin_key VARCHAR,
+    origin_kind VARCHAR NOT NULL DEFAULT 'unspecified',
     skill_key VARCHAR NOT NULL,
     skill_domain VARCHAR,
     skill_task_type VARCHAR,
@@ -321,7 +334,8 @@ def _build_tables_ddl() -> list[str]:
     source_key VARCHAR,
     source_path VARCHAR,
 {_lineage_cols()},
-    {_check_in('correction_type', CorrectionType)}
+    {_check_in('correction_type', CorrectionType)},
+    {_check_in('origin_kind', FeedbackOriginKind)}
 )""",
         f"""CREATE TABLE IF NOT EXISTS fact_trace_feedback (
     trace_feedback_key VARCHAR NOT NULL,
@@ -605,6 +619,7 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (7, "v0.26 M5: generic event grain -- fact_event, dim_event_type "
         "registry, event_ingest record_source"),
     (8, "v0.36: fact_proposal.review_notes -- rejections record why, not only who"),
+    (9, "v0.37: feedback origin -- dim_feedback_origin registry, fact_feedback.feedback_origin_key + denormalized origin_kind"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it
@@ -617,7 +632,7 @@ ALL_TABLES: tuple[str, ...] = (
     "fact_tool_use", "fact_message",
     "fact_trace_feedback", "fact_feedback", "fact_trace",
     "fact_extraction", "fact_session",
-    "dim_event_type",
+    "dim_event_type", "dim_feedback_origin",
     "dim_finding_type", "dim_facet_type", "dim_project", "dim_tenant",
     "dim_source", "dim_skill", "dim_rule", "dim_sampling_config",
     "meta_load_log", "meta_schema_version", "meta_key_algorithm",

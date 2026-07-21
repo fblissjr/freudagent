@@ -18,9 +18,10 @@ conventions and a map, nothing more.
 src/freud_schema/
   cli.py             - CLI interface (freud-schema)
   keys.py            - Deterministic sha256/32 surrogate keys: dimension_key(), hash_diff()
-  db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 5
-                       registries (incl. dim_tenant, dim_event_type) + 11 facts (incl.
-                       fact_event), 10 views, meta_load_log, meta_key_algorithm, CHECK
+  db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 6
+                       registries (incl. dim_tenant, dim_event_type,
+                       dim_feedback_origin) + 11 facts (incl. fact_event), 10 views,
+                       meta_load_log, meta_key_algorithm, meta_schema_version, CHECK
                        constraints, indexes. No sequences.
   tables.py          - Pydantic models + 20 enum classes (single source of truth)
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)

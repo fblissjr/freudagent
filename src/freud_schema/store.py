@@ -46,6 +46,8 @@ from freud_schema.tables import (
     Extraction,
     FacetType,
     Feedback,
+    FeedbackOrigin,
+    FeedbackOriginKind,
     Finding,
     FindingType,
     LoadRun,
@@ -114,6 +116,7 @@ _KEY_COLUMNS: dict[str, str] = {
     "dim_project": "project_key",
     "dim_tenant": "tenant_key",
     "dim_facet_type": "facet_type_key",
+    "dim_feedback_origin": "feedback_origin_key",
     "dim_finding_type": "finding_type_key",
     "fact_session": "session_key",
     "fact_trace": "trace_key",
@@ -749,6 +752,35 @@ class ExperimentStore:
         return [FacetType(**d) for d in self._fetchall(
             "SELECT * FROM dim_facet_type ORDER BY tier, facet_id, prompt_version")]
 
+    def register_feedback_origin(self, fo: FeedbackOrigin) -> str:
+        """Register one producer of feedback; idempotent. Key: origin_id.
+
+        This registry is what validates fact_feedback.feedback_origin_key --
+        new producers (a person, a model version, an upstream system) are rows
+        here, never enum edits. The KIND each maps to is closed, because
+        filters are written against the kind.
+        """
+        key = dimension_key(fo.origin_id)
+        if not self._key_exists("dim_feedback_origin", key):
+            self.con.execute(
+                """INSERT INTO dim_feedback_origin (feedback_origin_key,
+                   origin_id, origin_kind, description, record_source)
+                   VALUES (?, ?, ?, ?, ?)""",
+                [key, fo.origin_id, fo.origin_kind, fo.description,
+                 fo.record_source],
+            )
+        return key
+
+    def get_feedback_origin(self, origin_id: str) -> FeedbackOrigin | None:
+        d = self._fetchone(
+            "SELECT * FROM dim_feedback_origin WHERE origin_id = ?", [origin_id])
+        return FeedbackOrigin(**d) if d else None
+
+    def list_feedback_origins(self) -> list[FeedbackOrigin]:
+        rows = self._fetchall(
+            "SELECT * FROM dim_feedback_origin ORDER BY origin_kind, origin_id")
+        return [FeedbackOrigin(**r) for r in rows]
+
     def register_finding_type(self, ft: FindingType) -> str:
         """Register a finding vocabulary entry; idempotent. Key: finding_type.
 
@@ -1256,20 +1288,43 @@ class ExperimentStore:
                 source = self.get_source(ext.source_key)
                 if source:
                     source_path = source.content_path
+        # Origin: the registry validates, and the kind is denormalized so that
+        # excluding model-derived rows from a measurement never needs a join.
+        # Unattributed stays UNSPECIFIED rather than defaulting to HUMAN --
+        # a row that guessed human would contaminate the slice everything is
+        # measured against.
+        origin_key = fb.feedback_origin_key
+        origin_kind = fb.origin_kind
+        if origin_key is not None:
+            d = self._fetchone(
+                "SELECT origin_kind FROM dim_feedback_origin "
+                "WHERE feedback_origin_key = ?", [origin_key])
+            if d is None:
+                raise ValueError(
+                    f"Feedback origin {origin_key} is not registered in "
+                    f"dim_feedback_origin")
+            origin_kind = FeedbackOriginKind(d["origin_kind"])
         # uuid-salted: native event, intrinsically unique, never re-ingested
         key = dimension_key(fb.extraction_key, uuid4().hex)
         self.con.execute(
             """INSERT INTO fact_feedback (feedback_key, extraction_key, session_key,
                correction, correction_type, notes, created_by,
+               feedback_origin_key, origin_kind,
                skill_key, skill_domain, skill_task_type, skill_version,
                source_key, source_path, tenant_key, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, fb.extraction_key, fb.session_key,
              _json(fb.correction), fb.correction_type, fb.notes, fb.created_by,
+             origin_key, origin_kind,
              fb.skill_key, skill_domain, skill_task_type, skill_version,
              source_key, source_path, tenant_key, fb.record_source, fb.etl_run_id],
         )
         return key
+
+    def get_feedback(self, feedback_key: str) -> Feedback | None:
+        d = self._fetchone(
+            "SELECT * FROM fact_feedback WHERE feedback_key = ?", [feedback_key])
+        return Feedback(**d) if d else None
 
     def list_feedback(self, skill_key: str | None = None) -> list[Feedback]:
         query = "SELECT * FROM fact_feedback WHERE 1=1"

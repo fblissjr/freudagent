@@ -27,9 +27,12 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from freud_schema.keys import dimension_key
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     CorrectionType,
+    FeedbackOrigin,
+    FeedbackOriginKind,
     Feedback,
     Finding,
     FindingScope,
@@ -143,6 +146,27 @@ def source_add(
 # ---------------------------------------------------------------------------
 
 
+def feedback_origin_add(
+    store: ExperimentStore,
+    *,
+    origin_id: str,
+    origin_kind: FeedbackOriginKind = FeedbackOriginKind.UNSPECIFIED,
+    description: str | None = None,
+) -> dict:
+    """Register a producer of feedback. Idempotent, keyed on origin_id.
+
+    Open vocabulary: a new person, model version or upstream system is a row,
+    not a schema change. The KIND it maps to is closed, because filters are
+    written against the kind.
+    """
+    key = store.register_feedback_origin(FeedbackOrigin(
+        origin_id=origin_id, origin_kind=origin_kind, description=description))
+    return {
+        "feedback_origin_key": key, "origin_id": origin_id,
+        "origin_kind": origin_kind.value,
+    }
+
+
 def feedback_add(
     store: ExperimentStore,
     *,
@@ -151,10 +175,16 @@ def feedback_add(
     correction: dict,
     notes: str | None = None,
     created_by: str | None = None,
+    origin_id: str | None = None,
 ) -> dict:
     """Add feedback on an extraction. Mirrors `freud-schema feedback add`.
 
     extraction_key may be a full key or a unique prefix.
+
+    origin_id names what produced this judgment and must already be registered
+    in dim_feedback_origin (open vocabulary -- register new producers as rows).
+    Omitting it records origin_kind=unspecified rather than guessing human,
+    because an unattributed row must never end up in the human-only slice.
     """
     ekey = store.resolve_key("fact_extraction", extraction_key)
     ext = store.get_extraction(ekey)
@@ -169,12 +199,15 @@ def feedback_add(
             correction_type=correction_type,
             notes=notes,
             created_by=created_by,
+            feedback_origin_key=(
+                dimension_key(origin_id) if origin_id is not None else None),
             etl_run_id=stats.etl_run_id,
         ))
         stats.rows_written = 1
     return {
         "feedback_key": fb_key, "extraction_key": ekey,
         "correction_type": correction_type.value,
+        "origin_id": origin_id,
         "etl_run_id": stats.etl_run_id,
     }
 

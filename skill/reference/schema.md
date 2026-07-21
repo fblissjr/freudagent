@@ -28,7 +28,7 @@ MCP server works too if that's what's connected). See
   information. Since v0.23 (M3) their natural keys lead with `tenant_id`, so two
   tenants can hold the "same" entity without collision.
 - **Registry dimensions, no SCD-2** (`dim_project`, `dim_tenant`, `dim_facet_type`,
-  `dim_finding_type`, `dim_event_type`). Append-only reference data whose identity
+  `dim_finding_type`, `dim_event_type`, `dim_feedback_origin`). Append-only reference data whose identity
   doesn't evolve the way a skill's or rule's content does.
 - **Lineage envelope on every fact table**: `record_source` (CHECK-constrained
   allowlist: `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`,
@@ -230,6 +230,27 @@ Registry row for a behavioral facet. Entity key: `(facet_id, prompt_version)`.
 
 Adding a facet is a row plus a populator, not a schema migration.
 
+### dim_feedback_origin
+Registry row for one producer of feedback: a named person, a specific model
+version, a usage signal, a downstream system. Entity key: `(origin_id,)`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| feedback_origin_key | VARCHAR | `dimension_key(origin_id)` |
+| origin_id | VARCHAR NOT NULL | Open vocabulary -- register new producers as rows |
+| origin_kind | VARCHAR NOT NULL | human, model, usage_signal, downstream_system, unspecified. CHECK-constrained |
+| description | VARCHAR | |
+| record_source | VARCHAR | Lineage |
+| created_at | TIMESTAMP | |
+
+**Deliberately half-open.** `origin_id` is open for the same reason
+`finding_type` is: which person or which model version is discovered by running
+the loop. `origin_kind` is closed, because it is the column filters are written
+against -- "exclude model-derived rows from this measurement", "hold a
+human-only slice". An open vocabulary there fails silently, one writer recording
+`llm` and another `model` while the exclusion filter misses rows and looks like
+it worked. Adding a kind means measurement code must handle it.
+
 ### dim_finding_type
 Registry row for a finding vocabulary entry. Entity key: `(finding_type,)`.
 
@@ -364,6 +385,8 @@ Human corrections on extractions -- the flywheel signal.
 | skill_version | INTEGER | Denormalized from `dim_skill` at insert |
 | source_path | VARCHAR | Denormalized from `fact_extraction` at insert |
 | correction | JSON NOT NULL | {field: {before, after}} |
+| feedback_origin_key | VARCHAR | Points at `dim_feedback_origin`; NULL when unattributed |
+| origin_kind | VARCHAR NOT NULL | Denormalized from the registry at insert, so excluding model-derived rows never needs a join. Defaults to `unspecified` -- never to `human`, which would contaminate the slice everything is measured against |
 | correction_type | VARCHAR | field_mapping, wrong_value, missing_field, false_positive |
 | notes | VARCHAR | Human explanation |
 | created_by | VARCHAR | Reviewer identifier |
@@ -539,6 +562,8 @@ own those, passed as parameters into the store's `query_*` methods.
 | Column | Valid Values |
 |--------|-------------|
 | dim_skill.status | draft, active, deprecated |
+| dim_feedback_origin.origin_kind | human, model, usage_signal, downstream_system, unspecified |
+| fact_feedback.origin_kind | human, model, usage_signal, downstream_system, unspecified |
 | dim_skill.origin | human_authored, data_derived |
 | dim_source.status | active, archived |
 | dim_rule.scope | global, domain-specific |

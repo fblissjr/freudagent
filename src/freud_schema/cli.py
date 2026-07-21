@@ -25,6 +25,7 @@ from freud_schema.harness import PRESETS, compose_preset, compose_system_prompt
 from freud_schema.models import FreudEntry
 from freud_schema.tables import (
     CorrectionType,
+    FeedbackOriginKind,
     ProposalStatus,
     RuleScope,
     SamplingStrategy,
@@ -163,6 +164,22 @@ def main(argv: list[str] | None = None) -> None:
              "--no-hash makes the source invisible to it)")
     p_source_sub.add_parser("list", help="List all sources")
 
+    # --- Feedback origins (what produced a judgment) ---
+    p_origin = sub.add_parser(
+        "origin", help="Manage feedback origins (what produced a judgment)")
+    p_origin_sub = p_origin.add_subparsers(dest="origin_action")
+    p_origin_add = p_origin_sub.add_parser(
+        "add", help="Register a feedback origin (idempotent)")
+    p_origin_add.add_argument(
+        "--id", required=True, dest="origin_id",
+        help="Stable identifier: a person, a model version, an upstream system")
+    p_origin_add.add_argument(
+        "--kind", required=True,
+        choices=[e.value for e in FeedbackOriginKind],
+        help="Closed set -- filters are written against it")
+    p_origin_add.add_argument("--description", default=None)
+    p_origin_sub.add_parser("list", help="List registered feedback origins")
+
     p_rule = sub.add_parser("rule", help="Manage rules")
     p_rule_sub = p_rule.add_subparsers(dest="rule_action")
     p_rule_add = p_rule_sub.add_parser("add", help="Add a rule")
@@ -185,6 +202,11 @@ def main(argv: list[str] | None = None) -> None:
     p_fb_add.add_argument("--correction", required=True, help="JSON correction data")
     p_fb_add.add_argument("--notes", default=None)
     p_fb_add.add_argument("--by", default=None)
+    p_fb_add.add_argument(
+        "--origin", default=None,
+        help="Registered origin id (see `origin add`). Omitting it records "
+             "origin_kind=unspecified rather than guessing human, so an "
+             "unattributed row never lands in the human-only slice")
 
     # --- Extraction commands ---
     p_ext = sub.add_parser("extraction", help="Manage extractions")
@@ -434,6 +456,9 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "source":
         _handle_source(args)
 
+    elif args.command == "origin":
+        _handle_origin(args)
+
     elif args.command == "rule":
         _handle_rule(args)
 
@@ -571,6 +596,32 @@ def _handle_skill(args) -> None:
             print("Use: skill add|list|deprecate|activate", file=sys.stderr)
 
 
+def _handle_origin(args) -> None:
+    from freud_schema import ops
+
+    with _get_store(args.db) as store:
+        if args.origin_action == "add":
+            result = ops.feedback_origin_add(
+                store, origin_id=args.origin_id,
+                origin_kind=FeedbackOriginKind(args.kind),
+                description=args.description,
+            )
+            print(f"Feedback origin registered: id={result['origin_id']} "
+                  f"kind={result['origin_kind']} "
+                  f"key={result['feedback_origin_key']}")
+        elif args.origin_action == "list":
+            rows = store.list_feedback_origins()
+            if not rows:
+                print("No feedback origins registered.")
+                print("Feedback recorded without one is labeled 'unspecified'.")
+            for o in rows:
+                desc = f"  {o.description}" if o.description else ""
+                print(f"  {o.origin_id:28s} {o.origin_kind.value:18s}"
+                      f"{desc}")
+        else:
+            print("Use: origin add|list", file=sys.stderr)
+
+
 def _handle_source(args) -> None:
     from freud_schema import ops
 
@@ -650,6 +701,7 @@ def _handle_feedback(args) -> None:
                     store, extraction_key=args.extraction_key,
                     correction_type=CorrectionType(args.type),
                     correction=correction, notes=args.notes, created_by=args.by,
+                    origin_id=args.origin,
                 )
             except ValueError as e:
                 print(str(e), file=sys.stderr)

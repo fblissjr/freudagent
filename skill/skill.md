@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.36.0
+version: 0.37.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -72,7 +72,8 @@ sources, sampling configs) and `compile` -- omitting it preserves single-tenant 
 >
 > Prefer the **store-ops server** (`freud-schema mcp-serve`, configured in `.mcp.json`,
 > implementation plan M16): its `query` tool covers reads, and every write goes through
-> a gated tool (`rule_add`, `skill_add`, `source_add`, `feedback_add`, `finding_add`,
+> a gated tool (`rule_add`, `skill_add`, `source_add`, `feedback_add`,
+> `feedback_origin_add`, `finding_add`,
 > `extraction_validate`/`reject`, `proposal_add`/`reject`, `couch_run`, `compile`,
 > `ingest_transcripts`, `ingest_events`) instead of a CLI write-window toggle.
 > `proposal_approve` is never allowlisted -- every approval surfaces the permission
@@ -94,8 +95,21 @@ freud-schema db status                        # Show row counts
 freud-schema db reset                         # Drop and recreate all tables (destructive)
 freud-schema rule add --name always-json --content "..." --priority 10
 freud-schema skill add --domain D --task-type T --content "..." --status active [--version N]
-freud-schema source add --path /data/doc.pdf --media-type application/pdf [--hash]
+freud-schema source add --path /data/doc.pdf --media-type application/pdf [--no-hash]
+freud-schema origin add --id owner --kind human      # what produces feedback
+freud-schema origin list
 ```
+
+Source hashing is on by default; `--no-hash` opts out. The `stale_source`
+detector SKIPS sources with no baseline, so an unhashed source is invisible to
+it rather than merely unmonitored.
+
+`origin` registers what produces a judgment. `origin_id` is open vocabulary (a
+person, a model version, an upstream system); `--kind` is a closed set --
+human, model, usage_signal, downstream_system, unspecified -- because filters
+are written against it. Feedback recorded without an origin is labeled
+`unspecified`, never `human`, so an unattributed row cannot land in the
+human-only slice.
 
 `rule add` requires `--name` -- it doubles as the rule's stable identity and the
 future compile target filename (`.claude/rules/<name>.md`).
@@ -106,7 +120,7 @@ future compile target filename (`.claude/rules/<name>.md`).
 freud-schema extraction list [--status pending]
 freud-schema extraction show <key-or-prefix>
 freud-schema extraction validate <key-or-prefix>
-freud-schema feedback add --extraction-key <key-or-prefix> --type wrong_value --correction '{...}'
+freud-schema feedback add --extraction-key <key-or-prefix> --type wrong_value --correction '{...}' [--origin owner]
 freud-schema feedback list --skill-key <key-or-prefix> --aggregate
 ```
 

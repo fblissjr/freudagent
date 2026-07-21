@@ -105,10 +105,21 @@ row and inserts a new one; rows never mutate.
 | `dim_facet_type` | Behavioral facet registry | facet_id, prompt_version, method, output_type |
 | `dim_finding_type` | Open finding-type vocabulary | finding_type, detection_method |
 | `dim_event_type` | Open event-type vocabulary (M5) | event_type, schema_hint |
+| `dim_feedback_origin` | What produces feedback | origin_id, origin_kind |
 
 `dim_finding_type` validates `fact_finding.finding_type` in the store layer --
 that column has no CHECK constraint, by design (new finding types are rows, not
 enum edits). `dim_event_type` validates `fact_event.event_type` the same way.
+
+`dim_feedback_origin` is half-open, and the split matters. `origin_id` is open
+like the two above -- which person or which model version is discovered by
+running the loop. `origin_kind` is CHECK-constrained (human, model,
+usage_signal, downstream_system, unspecified) because it is the column filters
+are written against: an open vocabulary there fails silently, one writer
+recording `llm` and another `model` while an exclusion filter misses rows and
+looks like it worked. `fact_feedback.origin_kind` is denormalized from it so
+excluding model-derived rows never needs a join, and defaults to `unspecified`
+rather than `human`.
 
 ### Fact tables (event data with denormalized attributes)
 

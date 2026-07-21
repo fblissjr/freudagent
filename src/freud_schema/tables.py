@@ -161,6 +161,28 @@ class DetectionMethod(str, Enum):
     HYBRID = "hybrid"
 
 
+class FeedbackOriginKind(str, Enum):
+    """What produced a piece of feedback.
+
+    Deliberately CLOSED, unlike origin_id. This is the column filters are
+    written against -- "exclude model-derived rows from this measurement",
+    "hold a human-only slice". An open vocabulary here fails silently: one
+    writer records `llm`, another `model`, and the exclusion filter misses
+    rows while looking like it worked. Adding a kind means measurement code
+    has to handle it, which is an engineering decision, not a row.
+
+    UNSPECIFIED is the default on purpose. A row that defaulted to HUMAN
+    would contaminate the slice everything else is measured against, and it
+    would look like a clean measurement while doing it.
+    """
+
+    HUMAN = "human"
+    MODEL = "model"
+    USAGE_SIGNAL = "usage_signal"
+    DOWNSTREAM_SYSTEM = "downstream_system"
+    UNSPECIFIED = "unspecified"
+
+
 class MessageRole(str, Enum):
     USER = "user"
     ASSISTANT = "assistant"
@@ -326,6 +348,24 @@ class FacetType(BaseModel):
     description: str | None = None
     record_source: RecordSource = RecordSource.NATIVE
     created_at: datetime | None = None
+
+
+class FeedbackOrigin(BaseModel):
+    """Registry row for one thing that produces feedback: a named person, a
+    specific model version, a usage signal, a downstream system.
+
+    origin_id is open vocabulary -- which person or which model version is
+    discovered by running the loop and must never require a schema change.
+    The kind it maps to is closed (see FeedbackOriginKind).
+
+    Key: dimension_key(origin_id).
+    """
+
+    feedback_origin_key: str | None = None
+    origin_id: str
+    origin_kind: FeedbackOriginKind = FeedbackOriginKind.UNSPECIFIED
+    description: str | None = None
+    record_source: RecordSource = RecordSource.NATIVE
 
 
 class FindingType(BaseModel):
@@ -633,6 +673,12 @@ class Feedback(BaseModel):
     correction_type: CorrectionType
     notes: str | None = None
     created_by: str | None = None
+    # What produced this judgment. feedback_origin_key points at the registry;
+    # origin_kind is denormalized so excluding model-derived rows from a
+    # measurement never needs a join -- the filter has to be cheap enough that
+    # it always gets written.
+    feedback_origin_key: str | None = None
+    origin_kind: FeedbackOriginKind = FeedbackOriginKind.UNSPECIFIED
     # Denormalized from dim_skill
     skill_domain: str | None = None
     skill_task_type: str | None = None

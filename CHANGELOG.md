@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.37.0
+
+Schema version 9. Group 3 (feedback provenance) closed -- the control that makes
+model-generated feedback safe to accept, landed before any exists, because
+retrofitting provenance onto unlabeled rows is not possible.
+
+### Added
+
+- **`dim_feedback_origin`** -- an open registry of what produces feedback: a
+  named person, a specific model version, a usage signal, a downstream system.
+  New producers are rows, not schema changes, same as `dim_finding_type`.
+- **`FeedbackOriginKind`** -- a CLOSED enum (human, model, usage_signal,
+  downstream_system, unspecified), CHECK-constrained on both the registry and
+  the fact.
+
+  The split is the design. Identity is open because which model version or which
+  person is discovered by running the loop. Kind is closed because it is the
+  column filters are written against, and an open vocabulary there fails
+  silently: one writer records `llm`, another `model`, and the exclusion filter
+  misses rows while looking like it worked.
+- **`fact_feedback.feedback_origin_key` + denormalized `origin_kind`** -- so
+  excluding model-derived rows from a measurement never needs a join. The filter
+  has to be cheap enough that it always gets written.
+
+  It defaults to `unspecified`, never `human`. A row that guessed human would
+  contaminate the one slice everything else is measured against, and the
+  measurement would still look clean.
+- **Surfaces**: `origin add|list`, `feedback add --origin`, MCP
+  `feedback_origin_add` and `feedback_add(origin_id=)`. The registry validates,
+  so an unregistered origin is an error rather than a new silent category.
+
+### Warehouse
+
+Rebuilt on schema v9 from `data/synthetic/` again: 5 rules re-seeded before
+compiling, 2,164 events, and `owner` registered as the first human origin.
+
+### Note
+
+`tests/test_docs_inventory.py` caught this change's own documentation gap -- the
+new registry and three of its enum values were missing from
+`skill/reference/schema.md`. That guard was added two versions ago for exactly
+this, and this is the first time it fired on new work rather than on old drift.
+
 ## 0.36.0
 
 Schema version 8. Group 1 (provenance completeness) closed, and `a2ui/`

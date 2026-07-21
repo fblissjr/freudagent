@@ -36,7 +36,7 @@ def _columns(con, table: str) -> set[str]:
 
 DIMS = {"dim_skill", "dim_source", "dim_rule", "dim_sampling_config"}
 REGISTRIES = {
-    "dim_project", "dim_tenant", "dim_facet_type", "dim_finding_type",
+    "dim_project", "dim_tenant", "dim_facet_type", "dim_feedback_origin", "dim_finding_type",
     "dim_event_type",
 }
 FACTS = {

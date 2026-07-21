@@ -45,6 +45,7 @@ from freud_schema import ops
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     CorrectionType,
+    FeedbackOriginKind,
     FindingScope,
     RuleScope,
     RuleStatus,
@@ -239,11 +240,37 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
         )
 
     @server.tool(
+        name="feedback_origin_add",
+        description=(
+            "Register what produces feedback: a named person, a specific "
+            "model version, a usage signal, a downstream system. Idempotent, "
+            "keyed on origin_id. origin_id is open vocabulary (register new "
+            "producers as rows); origin_kind is a closed set -- human, model, "
+            "usage_signal, downstream_system, unspecified -- because filters "
+            "are written against it."
+        ),
+    )
+    def feedback_origin_add(
+        origin_id: str,
+        origin_kind: str,
+        description: str | None = None,
+    ) -> dict:
+        return ops.feedback_origin_add(
+            store, origin_id=origin_id,
+            origin_kind=FeedbackOriginKind(origin_kind),
+            description=description,
+        )
+
+    @server.tool(
         name="feedback_add",
         description=(
-            "Add feedback (a human correction) on an extraction, closing "
-            "the flywheel loop. extraction_key may be a full key or a "
-            "unique prefix."
+            "Add feedback (a correction) on an extraction, closing the "
+            "flywheel loop. extraction_key may be a full key or a unique "
+            "prefix. Pass origin_id naming what produced this judgment (it "
+            "must already be registered via feedback_origin_add). Omitting it "
+            "records origin_kind=unspecified rather than guessing human, so an "
+            "unattributed row never lands in the human-only slice that "
+            "model-generated feedback is measured against."
         ),
     )
     def feedback_add(
@@ -252,11 +279,13 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
         correction: dict,
         notes: str | None = None,
         created_by: str | None = None,
+        origin_id: str | None = None,
     ) -> dict:
         return ops.feedback_add(
             store, extraction_key=extraction_key,
             correction_type=CorrectionType(correction_type),
             correction=correction, notes=notes, created_by=created_by,
+            origin_id=origin_id,
         )
 
     @server.tool(

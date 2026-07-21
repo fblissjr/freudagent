@@ -1,5 +1,5 @@
 <!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
-<!-- source: dim_rule 88e53d4fd3b565360e53eed392c39842 effective_from 2026-07-21T16:48:35.661908 -->
+<!-- source: dim_rule 88e53d4fd3b565360e53eed392c39842 effective_from 2026-07-21T16:58:42.132804 -->
 
 
 # Hands off harness-managed files

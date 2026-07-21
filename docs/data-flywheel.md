@@ -407,9 +407,21 @@ stays answerable.
 
 Every piece of feedback carries what produced it. Human or model-derived is the
 floor and it is what everything below depends on. More granular origin — a named
-person, a specific model, a usage signal, a downstream system — is the direction
-to grow in, because filtering years later is easier the more specific the label
-was at the time.
+person, a specific model, a usage signal, a downstream system — is worth having,
+because filtering years later is easier the more specific the label was at the
+time.
+
+Two properties make the label work, and they pull in opposite directions. The
+identity must be open: which person, which model version, which upstream system
+is discovered by running the loop, so a new one has to be a row rather than a
+schema change. The kind must be closed, because it is what filters are written
+against — one writer recording "llm" where another recorded "model" produces an
+exclusion filter that misses rows and looks like it worked.
+
+The default matters as much. An unattributed record has to be labeled
+unattributed, not human. Defaulting to human puts rows nobody vouched for into
+the one slice everything else is measured against, and the measurement still
+looks clean.
 
 Feedback arrives at more than one level. Field-level corrections say a specific
 output was wrong, and each kind points at a different defect in the guidance:
@@ -749,7 +761,9 @@ It is a research repo, not a product.
 
 Also unbuilt: nearly everything in the signal section — right-hand constraints,
 the breakdown as governed data, conformance checking, deviation as signal,
-model-generated feedback with its controls, and the sampler. Plus ranked
+model-generated feedback itself, and the sampler. The origin label those
+controls depend on does exist: an open registry of producers, a closed set of
+kinds, denormalized onto each feedback row, defaulting to unattributed. Plus ranked
 retrieval, redaction on the way in, identity and permissions, unit-level
 feedback, and consolidation passes.
 
