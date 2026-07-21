@@ -1,4 +1,5 @@
 # freudagent
+README Last updated: 2026-07-21
 
 <p align="center">
   <a href="assets/theman-medium.png">
@@ -27,8 +28,6 @@ bottom of this page is the short answer.
 Record what happened, find what repeats, propose a change, have a person approve
 it, compile it into what the agent loads, and check it helped. Each of those is
 below.
-
-Last updated: 2026-07-21
 
 ## What sits between your data and the agent
 
