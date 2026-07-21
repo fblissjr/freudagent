@@ -22,8 +22,8 @@
     <text x="60" y="306" font-size="13.5" fill="#a8b8d4">already good at without being taught</text>
 
     <text x="60" y="338" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
-    <text x="60" y="360" font-size="13.5" fill="#c49a86">counting, aggregating, answering "did this get</text>
-    <text x="60" y="378" font-size="13.5" fill="#c49a86">better after version 3", concurrent writes</text>
+    <text x="60" y="360" font-size="13.5" fill="#98a7bd">counting, aggregating, answering "did this get</text>
+    <text x="60" y="378" font-size="13.5" fill="#98a7bd">better after version 3", concurrent writes</text>
 
     <!-- warehouse panel -->
     <rect x="500" y="100" width="424" height="292" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
@@ -39,14 +39,11 @@
     <text x="524" y="306" font-size="13.5" fill="#a8b8d4">"what did we believe on this date"</text>
 
     <text x="524" y="338" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
-    <text x="524" y="360" font-size="13.5" fill="#c49a86">being read as instructions — text search over rows</text>
-    <text x="524" y="378" font-size="13.5" fill="#c49a86">is the worst of both worlds</text>
+    <text x="524" y="360" font-size="13.5" fill="#98a7bd">being read as instructions — text search over rows</text>
+    <text x="524" y="378" font-size="13.5" fill="#98a7bd">is the worst of both worlds</text>
 
     <!-- one skill spans both -->
-    <line x1="466" y1="220" x2="494" y2="220" stroke="#4d6288" stroke-width="2"/>
 
-    <path d="M712 394 L712 414" fill="none" stroke="#4d6288" stroke-width="1.6"/>
-    <path d="M248 394 L248 414" fill="none" stroke="#4d6288" stroke-width="1.6"/>
 
     <rect x="36" y="418" width="888" height="68" rx="10" fill="#16233a" stroke="#3a5a8f" stroke-width="1.4"/>
     <text x="60" y="438" font-size="11.5" font-weight="600" fill="#89b4f7" letter-spacing="1">WHAT IS ACTUALLY FIXED</text>

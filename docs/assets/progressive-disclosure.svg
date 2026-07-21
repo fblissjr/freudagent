@@ -1,46 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
-  <title id="t">Loading only what applies</title>
-  <desc id="d">Drawn as three levels for clarity, though the real hierarchy is ragged and of arbitrary depth. A small surface is always loaded, guidance loads when it matches the task, and reference material is opened only when asked for.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 452" width="960" height="452" role="img" aria-labelledby="t d">
+  <title id="t">Loaded when it applies, not before</title>
+  <desc id="d">Three levels. Each bar is everything that exists at that level; the highlighted part is what actually gets loaded. Nearly all of the first level loads, a small share of the second, and a sliver of the third. Drawn as three levels for clarity, though the real hierarchy is ragged and of arbitrary depth.</desc>
 
-  <rect x="0" y="0" width="960" height="440" rx="16" fill="#0b1220"/>
+  <rect x="0" y="0" width="960" height="452" rx="16" fill="#0b1220"/>
 
   <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
-    <text x="40" y="46" font-size="21" font-weight="600" fill="#e6edf7">Skills are something you look up, not something you switch on</text>
-    <text x="40" y="72" font-size="13.5" fill="#8fa2c0">Drawn as three levels for clarity — the real hierarchy is ragged, arbitrary depth. Only the shaded part is loaded.</text>
+    <text x="40" y="46" font-size="21" font-weight="600" fill="#e6edf7">Loaded when it applies, not before</text>
+    <text x="40" y="72" font-size="13.5" fill="#8fa2c0">Each bar is everything at that level. Only the highlighted part is loaded. Three levels for clarity — the real hierarchy is ragged.</text>
 
-    <!-- L1 -->
-    <text x="40" y="128" font-size="15" font-weight="700" fill="#4f8ef7">L1</text>
-    <rect x="76" y="106" width="150" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
-    <text x="151" y="129" font-size="12.5" font-weight="600" fill="#cfe0ff" text-anchor="middle">always loaded</text>
-    <text x="76" y="164" font-size="13.5" fill="#c3d2ea">Project conventions and the rules that apply whatever you are doing.</text>
-    <text x="76" y="184" font-size="13.5" fill="#8fa2c0">Small on purpose. If this grows without limit, the whole idea fails.</text>
+    <!-- level 1: nearly all of a small body loads -->
+    <text x="40" y="128" font-size="15" font-weight="700" fill="#4f8ef7">1</text>
+    <rect x="76" y="106" width="620" height="34" rx="7" fill="#131c2e" stroke="#2c3e5e" stroke-width="1.2" stroke-dasharray="5 5"/>
+    <rect x="76" y="106" width="596" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
+    <text x="96" y="129" font-size="12.5" font-weight="600" fill="#cfe0ff">nearly all of it, every run</text>
+    <text x="76" y="164" font-size="13.5" fill="#c3d2ea">The conventions that apply whatever you are doing. Small on purpose —</text>
+    <text x="76" y="184" font-size="13.5" fill="#8fa2c0">if this grows without limit, the whole idea stops working.</text>
 
-    <!-- L2 -->
-    <text x="40" y="234" font-size="15" font-weight="700" fill="#4f8ef7">L2</text>
-    <rect x="76" y="212" width="330" height="34" rx="7" fill="#16233a" stroke="#3a5a8f" stroke-width="1.6"/>
-    <rect x="76" y="212" width="132" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
-    <text x="142" y="235" font-size="12.5" font-weight="600" fill="#cfe0ff" text-anchor="middle">this one matched</text>
+    <!-- level 2: one match out of many -->
+    <text x="40" y="234" font-size="15" font-weight="700" fill="#4f8ef7">2</text>
+    <rect x="76" y="212" width="620" height="34" rx="7" fill="#131c2e" stroke="#2c3e5e" stroke-width="1.2" stroke-dasharray="5 5"/>
+    <rect x="76" y="212" width="152" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
+    <text x="96" y="235" font-size="12.5" font-weight="600" fill="#cfe0ff">the one that matched</text>
+    <text x="246" y="235" font-size="12.5" fill="#6f83a3">the rest of your guidance, not loaded</text>
     <text x="76" y="270" font-size="13.5" fill="#c3d2ea">The instructions for the job in hand, picked by matching the task.</text>
     <text x="76" y="290" font-size="13.5" fill="#8fa2c0">You may have hundreds. One or two get loaded.</text>
 
-    <!-- L3 -->
-    <text x="40" y="340" font-size="15" font-weight="700" fill="#4f8ef7">L3</text>
-    <rect x="76" y="318" width="620" height="34" rx="7" fill="#131c2e" stroke="#2c3e5e" stroke-width="1.4" stroke-dasharray="5 5"/>
-    <rect x="76" y="318" width="86" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
-    <text x="119" y="341" font-size="12" font-weight="600" fill="#cfe0ff" text-anchor="middle">opened</text>
-    <text x="430" y="341" font-size="12.5" fill="#6f83a3" text-anchor="middle">available, not loaded</text>
-    <text x="76" y="376" font-size="13.5" fill="#c3d2ea">Reference material: schema details, source documents, past decisions.</text>
-    <text x="76" y="396" font-size="13.5" fill="#8fa2c0">Read on demand, by name, when the work actually needs it.</text>
+    <!-- level 3: a sliver of a large corpus -->
+    <text x="40" y="340" font-size="15" font-weight="700" fill="#4f8ef7">3</text>
+    <rect x="76" y="318" width="620" height="34" rx="7" fill="#131c2e" stroke="#2c3e5e" stroke-width="1.2" stroke-dasharray="5 5"/>
+    <rect x="76" y="318" width="58" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
+    <text x="150" y="341" font-size="12.5" fill="#6f83a3">reference material — opened by name, a page at a time</text>
+    <text x="76" y="376" font-size="13.5" fill="#c3d2ea">Schema details, source documents, past decisions. Far more of this</text>
+    <text x="76" y="396" font-size="13.5" fill="#8fa2c0">exists than of the two above, and far less of it is ever read.</text>
 
+    <!-- why -->
     <rect x="726" y="106" width="198" height="246" rx="12" fill="#111a2b" stroke="#22304a"/>
     <text x="825" y="150" font-size="13.5" font-weight="600" fill="#c3d2ea" text-anchor="middle">Why bother</text>
-    <text x="825" y="182" font-size="12.5" fill="#94a6c4" text-anchor="middle">A context window is</text>
-    <text x="825" y="200" font-size="12.5" fill="#94a6c4" text-anchor="middle">attention, not storage.</text>
-    <text x="825" y="230" font-size="12.5" fill="#94a6c4" text-anchor="middle">Filling it with material</text>
-    <text x="825" y="248" font-size="12.5" fill="#94a6c4" text-anchor="middle">that does not apply</text>
-    <text x="825" y="266" font-size="12.5" fill="#94a6c4" text-anchor="middle">makes answers worse,</text>
-    <text x="825" y="284" font-size="12.5" fill="#94a6c4" text-anchor="middle">not just pricier.</text>
-    <text x="825" y="318" font-size="12.5" fill="#7f92b0" text-anchor="middle">So routing is the product:</text>
-    <text x="825" y="336" font-size="12.5" fill="#7f92b0" text-anchor="middle">text search + ranking first.</text>
+    <text x="825" y="184" font-size="12.5" fill="#94a6c4" text-anchor="middle">A context window is</text>
+    <text x="825" y="202" font-size="12.5" fill="#94a6c4" text-anchor="middle">attention, not storage.</text>
+    <text x="825" y="234" font-size="12.5" fill="#94a6c4" text-anchor="middle">Filling it with material</text>
+    <text x="825" y="252" font-size="12.5" fill="#94a6c4" text-anchor="middle">that does not apply</text>
+    <text x="825" y="270" font-size="12.5" fill="#94a6c4" text-anchor="middle">makes answers worse,</text>
+    <text x="825" y="288" font-size="12.5" fill="#94a6c4" text-anchor="middle">not just pricier.</text>
+    <text x="825" y="322" font-size="12.5" fill="#7f92b0" text-anchor="middle">So what gets picked</text>
+    <text x="825" y="340" font-size="12.5" fill="#7f92b0" text-anchor="middle">is the hard part.</text>
+
+    <text x="386" y="430" font-size="12.5" fill="#6f83a3" text-anchor="middle">Bars are drawn the same width so the shrinking share is visible. The real amounts grow sharply going down.</text>
   </g>
 </svg>

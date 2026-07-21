@@ -43,21 +43,21 @@
     <path d="M99 175 L99 300 L192 300" fill="none" stroke="#5a3340" stroke-width="2"/>
     <polygon points="200,300 190,295 190,305" fill="#5a3340"/>
 
-    <rect x="202" y="268" width="238" height="64" rx="11" fill="#221520" stroke="#5a3340"/>
+    <rect x="202" y="268" width="238" height="64" rx="11" fill="#1a1016" stroke="#5a3340" stroke-dasharray="6 4"/>
     <text x="321" y="296" font-size="13.5" font-weight="600" fill="#d4a3b0" text-anchor="middle">agent switches a rule on</text>
     <text x="321" y="316" font-size="12" fill="#a3798a" text-anchor="middle">for its own next session</text>
 
-    <line x1="442" y1="300" x2="470" y2="300" stroke="#5a3340" stroke-width="2"/>
-    <circle cx="446" cy="300" r="4" fill="#e0607e">
-      <animate attributeName="cx" values="446;470;470" dur="2.6s" repeatCount="indefinite"/>
+    <line x1="168" y1="300" x2="196" y2="300" stroke="#5a3340" stroke-width="2"/>
+    <circle cx="150" cy="300" r="4" fill="#e0607e">
+      <animate attributeName="cx" values="150;172;172" dur="2.6s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values="1;1;0" dur="2.6s" repeatCount="indefinite"/>
     </circle>
 
     <g>
-      <circle cx="497" cy="300" r="23" fill="#2c1620" stroke="#e0607e" stroke-width="2.5"/>
+      <circle cx="185" cy="300" r="21" fill="#2c1620" stroke="#e0607e" stroke-width="2.5"/>
       <animate attributeName="opacity" values="0.65;1;0.65" dur="2.6s" repeatCount="indefinite"/>
-      <line x1="489" y1="292" x2="505" y2="308" stroke="#e0607e" stroke-width="2.8" stroke-linecap="round"/>
-      <line x1="505" y1="292" x2="489" y2="308" stroke="#e0607e" stroke-width="2.8" stroke-linecap="round"/>
+      <line x1="178" y1="293" x2="192" y2="307" stroke="#e0607e" stroke-width="2.8" stroke-linecap="round"/>
+      <line x1="192" y1="293" x2="178" y2="307" stroke="#e0607e" stroke-width="2.8" stroke-linecap="round"/>
     </g>
 
     <text x="536" y="286" font-size="13.5" fill="#c9a3ad">No agent-callable tool can do this. They only ever create</text>

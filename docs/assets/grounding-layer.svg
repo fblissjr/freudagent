@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 486" width="960" height="486" role="img" aria-labelledby="t d">
   <title id="t">The grounding layer</title>
-  <desc id="d">Raw material feeds a governed layer with constraints on both sides: left-hand constraints saying what the agent may and must do, grounding data in the middle, and right-hand constraints defining what good means. The agent reads from that layer and its results feed back in.</desc>
+  <desc id="d">Raw material feeds a governed layer with constraints at both ends: at one end what the agent may and must do, checked knowledge in between, and at the other end what good means. The agent reads from that layer and its results feed back in.</desc>
 
   <rect x="0" y="0" width="960" height="486" rx="16" fill="#0b1220"/>
 
@@ -30,19 +30,19 @@
 
     <!-- left-hand constraints -->
     <rect x="282" y="146" width="376" height="76" rx="10" fill="#16233a" stroke="#4f8ef7" stroke-width="1.6"/>
-    <text x="302" y="168" font-size="10.5" font-weight="600" fill="#6f83a3" letter-spacing="1">LEFT-HAND CONSTRAINTS</text>
+    <text x="302" y="168" font-size="10.5" font-weight="600" fill="#6f83a3" letter-spacing="1">CONSTRAINTS — ONE END</text>
     <text x="302" y="190" font-size="14" font-weight="600" fill="#89b4f7">what it may and must do</text>
     <text x="302" y="210" font-size="12.5" fill="#94a6c4">rules, policies, when each skill applies</text>
 
     <!-- grounding data -->
     <rect x="282" y="232" width="376" height="76" rx="10" fill="#16233a" stroke="#2c3e5e" stroke-width="1.2"/>
     <text x="302" y="254" font-size="10.5" font-weight="600" fill="#6f83a3" letter-spacing="1">IN BETWEEN</text>
-    <text x="302" y="276" font-size="14" font-weight="600" fill="#c3d2ea">grounding data</text>
-    <text x="302" y="296" font-size="12.5" fill="#94a6c4">checked knowledge, its evidence, its provenance</text>
+    <text x="302" y="276" font-size="14" font-weight="600" fill="#c3d2ea">checked knowledge</text>
+    <text x="302" y="296" font-size="12.5" fill="#94a6c4">the evidence behind it, and where it came from</text>
 
     <!-- right-hand constraints -->
     <rect x="282" y="318" width="376" height="76" rx="10" fill="#16233a" stroke="#4f8ef7" stroke-width="1.6"/>
-    <text x="302" y="340" font-size="10.5" font-weight="600" fill="#6f83a3" letter-spacing="1">RIGHT-HAND CONSTRAINTS</text>
+    <text x="302" y="340" font-size="10.5" font-weight="600" fill="#6f83a3" letter-spacing="1">CONSTRAINTS — THE OTHER END</text>
     <text x="302" y="362" font-size="14" font-weight="600" fill="#89b4f7">what good means</text>
     <text x="302" y="382" font-size="12.5" fill="#94a6c4">success criteria, eval gates, corrections, deviation</text>
 
@@ -56,6 +56,7 @@
 
     <path d="M832 268 L832 440 L470 440 L470 420" fill="none" stroke="#f5a524" stroke-width="1.8" stroke-dasharray="6 5" opacity="0.75"/>
     <polygon points="470,412 465,424 475,424" fill="#f5a524" opacity="0.75"/>
-    <text x="652" y="462" font-size="12.5" fill="#c99a3e" text-anchor="middle">what it did, what was judged wrong, where it departed from the guidance — all goes back in</text>
+    <text x="652" y="458" font-size="14" fill="#e0b45e" text-anchor="middle">what it did, what was judged wrong, where it departed</text>
+    <text x="652" y="476" font-size="14" fill="#e0b45e" text-anchor="middle">from the guidance — all of it goes back in</text>
   </g>
 </svg>

@@ -145,8 +145,10 @@ data rather than another application to maintain.
 An agent that can write its own instructions can write instructions that load
 into its own next session.
 
-<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%"> The fully automated version of this loop exists in
-the published research, and it's reported to fail the way you'd expect — systems
+<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%">
+
+The fully automated version of this loop exists in the published research, and
+it's reported to fail the way you'd expect — systems
 that learn to game their own scoring, and edits to shared pieces that break
 things far from where the edit happened. Worth knowing that those results come
 from papers we could only read as abstracts, so treat them as the authors'

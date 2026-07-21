@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.33.3
+
+Visual review of the rendered diagrams, acted on.
+
+### Fixed
+
+- **The animated loop's panel text could not be read.** Six stages over 18
+  seconds is 3 seconds each, against 40-55 word panels that need 8-12. The panel
+  was decorative in practice. Cycle is now 24 seconds and each panel is two short
+  lines; the six-clause caption under the image carries the detail.
+- **Two things pulsed at once.** The approve node had an always-on breathing halo
+  that ran in every frame, including frames where a different stage was
+  highlighted — and highlighting is also a ring. A glancing viewer could not tell
+  which stage was current. Approve keeps its amber treatment, now static.
+- **Verify turned green and nothing else in the set was green.** Blue meant
+  machine stage, amber meant the human step, then a third colour appeared once
+  with no meaning attached. Verify is blue.
+- **The pulse sat exactly on an arrowhead at every stage.** It orbited at the
+  same radius as the direction markers. Now outside them, and large enough to
+  read as motion rather than a speck.
+- **`progressive-disclosure.svg` had bars of different widths**, so the shrinking
+  loaded share — the entire point — could not be seen without reading labels. All
+  three bars now share a right edge with different filled fractions. Also
+  "shaded" said the opposite of what the picture showed: the loaded parts are the
+  highlighted ones.
+- **`grounding-layer.svg` labelled two vertically stacked boxes "LEFT-HAND" and
+  "RIGHT-HAND".** Nothing was left or right of anything, and the prose says one
+  end and the other. Relabelled to match. Its middle box also shared a name with
+  the whole card, so neither was distinguishable; it is now "checked knowledge".
+- **`human-gate.svg` put the blocking X on the outgoing edge** of the
+  self-modification box, reading as "the agent does this, then it is stopped".
+  The claim is stronger — no agent-callable tool can do it at all. The X now sits
+  before the box and the box is dashed, marking it as something that does not
+  happen.
+- The hero footer asserted "each turn leaves the knowledge base better" as fact,
+  three lines under a README paragraph saying the half that decides that is not
+  built. Now "is meant to leave".
+- `storage-split.svg` lost a hairline that read as a stray rule and two ticks
+  that looked like leftover guides; its BAD AT body copy moved off salmon, which
+  was competing with amber-means-human.
+- Three images had prose running on the same line after the tag, from an earlier
+  reordering pass. Split, and the paragraphs rewrapped.
+
 ## 0.33.2
 
 ### Changed

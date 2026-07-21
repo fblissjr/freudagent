@@ -79,9 +79,10 @@ entries merged by deterministic logic.
 Everything below builds one thing, so it is worth naming up front. Between your
 raw material and the agent sits a layer of governed data.
 
-<img src="assets/grounding-layer.svg" alt="Raw material feeds a governed layer with constraints on both sides: left-hand constraints saying what the agent may and must do, grounding data in the middle, and right-hand constraints defining what good means. The agent reads from that layer and its results feed back in." width="100%"> Not a
-prompt, not a config file, and not a knowledge base in the usual sense — a layer
-with three faces.
+<img src="assets/grounding-layer.svg" alt="Raw material feeds a governed layer with constraints on both sides: left-hand constraints saying what the agent may and must do, grounding data in the middle, and right-hand constraints defining what good means. The agent reads from that layer and its results feed back in." width="100%">
+
+Not a prompt, not a config file, and not a knowledge base in the usual sense —
+a layer with three faces.
 
 Constraints on one end, saying what the agent may and must do. Grounding data in
 the middle: checked knowledge, the evidence behind it, and where it came from.
@@ -542,9 +543,10 @@ the least glamorous part and the most reliably valuable.
 
 The agent gets what it needs when it needs it, and nothing else.
 
-<img src="assets/progressive-disclosure.svg" alt="Drawn as three levels for clarity, though the real hierarchy is ragged and of arbitrary depth. A small surface is always loaded, guidance loads when it matches the task, and reference material is opened only on demand." width="100%"> A small surface
-that is always present, holding the constraints that apply to everything.
-Guidance loaded when it matches the work in hand. Reference material opened by
+<img src="assets/progressive-disclosure.svg" alt="Three levels. Each bar is everything that exists at that level and the highlighted part is what gets loaded: nearly all of the first, a small share of the second, a sliver of the third." width="100%">
+
+A small surface that is always present, holding the constraints that apply to
+everything. Guidance loaded when it matches the work in hand. Reference material opened by
 name, on demand. The same applies down the chain, to subagents and to their
 subagents.
 
