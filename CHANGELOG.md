@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.34.3
+
+### Changed
+
+- **`CLAUDE.md` opening is conventions and a map, not an argument.** It carried a
+  thesis statement ("agents are trees, not workflows; the harness is the moat")
+  that predated and no longer matched the one `docs/data-flywheel.md` carries,
+  and it restated the grounding-layer definition that document owns. It now
+  defines the one term a reader needs before opening either doc, points at
+  `docs/data-flywheel.md` and `docs/how-it-works.md`, and says outright that the
+  rest of the file is conventions and a map. A file loaded into every session is
+  the wrong place to keep a second copy of an argument that has to stay in sync.
+- **Retired vocabulary cleared from `CLAUDE.md`.** "Fail-closed" in two places
+  became "refuses rather than degrades"; the bare `L2`/`L3` labels on `skill/`
+  became "routing document" and "deep references, opened on demand". Both terms
+  were retired repo-wide because they carry meaning only for a reader who already
+  knows the system.
+
+### Fixed
+
+- **`CLAUDE.md` docs map was missing `implementation-plan.md` and
+  `research-agent-data-representation.md`.** Both are linked from the README.
+
 ## 0.34.2
 
 ### Changed

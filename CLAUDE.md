@@ -1,17 +1,16 @@
 # FreudAgent
 
-Pure data layer for declarative agent orchestration. Lives INSIDE the harness
-(Claude Code, Agent SDK), not outside it. Schema, context assembly, archetypes,
-prompt composition. The harness orchestrates. FreudAgent provides data.
+A data layer for agent systems, living inside the harness rather than wrapping
+it. The harness orchestrates; this holds the schema, the context assembly, and
+the governed knowledge the agent loads. Behavior comes from data — skills,
+rules, findings — not from code.
 
-Mostly a joke repo. But the thesis is serious: agents are trees, not workflows.
-The harness is the moat. Behavior comes from data (skills, rules, archetypes), not code.
-
-The data FreudAgent provides is the **grounding layer**: constraints on one end
-(rules, activation conditions, policies), grounding data in the middle (validated
-knowledge, evidence, provenance), and verifiers and feedback on the other (eval
-gates, corrections, usage signals). The warehouse is its governed source of truth;
-compiled files are its agent-facing form.
+Mostly a joke repo. The thesis is serious and it is not restated here:
+`docs/data-flywheel.md` is the source of truth for the design, and
+`docs/how-it-works.md` is the five-minute version. The one term worth knowing
+before reading either is the **grounding layer** — the governed data between raw
+sources and the agent, with constraints at both ends and checked knowledge
+between them. This file is conventions and a map, nothing more.
 
 ## Project Structure
 
@@ -31,7 +30,8 @@ src/freud_schema/
                        the IngestAdapter protocol (TranscriptAdapter, JsonlEventAdapter)
                        for the generic fact_event grain
   couch.py           - Analyze: SQL finding detectors; thresholds live here, never in view DDL
-  materialize.py     - Materialize: rule compiler with provenance + fail-closed privacy gate
+  materialize.py     - Compile: rule compiler with provenance; the privacy gate refuses
+                       rather than degrades
   ops.py             - Shared write-op dispatch layer: CLI and mcp_server.py both call
                        these instead of ExperimentStore directly, so the two surfaces
                        cannot drift
@@ -80,8 +80,9 @@ tests/
                        (conflict schema + resolution-rule vocab), and
                        test_citation_graph.py
 skill/
-  skill.md           - L2: CLI reference, routing table to L3 references
-  reference/         - L3: schema, archetypes, hierarchy, flywheel, retrieval thesis, trace-capture, etc.
+  skill.md           - Routing document: CLI reference, and pointers into reference/
+  reference/         - Deep references, opened on demand: schema, archetypes, hierarchy,
+                       flywheel, retrieval thesis, trace-capture
 scripts/
   trace-hook.sh      - PostToolUse hook for automatic tool_call trace capture
   generate_synthetic_data.py - Deterministic generator for data/synthetic/
@@ -99,6 +100,9 @@ docs/
                                  implementation of it. Generalized past this repo
   flywheel-failure-modes.md    - How a data flywheel fails, with what this repo
                                  does and does not defend against
+  implementation-plan.md       - Milestones, schema deltas, definitions of done
+  research-agent-data-representation.md - The literature and production practice
+                                 this design was checked against
   assets/                      - Diagram SVGs for data-flywheel.md (SMIL-animated, no
                                  <style> blocks -- they must render via <img> on GitHub)
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
@@ -276,7 +280,7 @@ Schema docs: `.claude/skills/db-query.md`
 - `data/freudagent.duckdb` holds personal transcript content -- gitignored, and transcript
   text must never be quoted into committed files, commit messages, or finding summaries
 - Finding summaries and compiled artifacts are clean by construction (tool names, counts,
-  rates only); `compile`'s privacy gate is fail-closed, not advisory
+  rates only); `compile`'s privacy gate refuses rather than degrades — it is not advisory
 
 ### CLI
 - `--status`/`--scope`/`--type` args must use `choices=[e.value for e in EnumClass]`
