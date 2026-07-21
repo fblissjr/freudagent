@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.28.3
+
+### Fixed
+
+- **Proposal evidence keys are resolved instead of stored verbatim.**
+  `ops.proposal_add` now passes every `--evidence` entry through
+  `store.resolve_key("fact_finding", ...)` before building the `Proposal`, so a
+  full key or any unique prefix works and the resolved full key is what lands in
+  the row. A key matching nothing, or matching more than one finding, raises
+  before `insert_proposal` is called, so no partial proposal is left behind.
+  The MCP `proposal_add` tool inherits this, since it routes through the same
+  dispatch layer.
+
+  Why it mattered more than a usability papercut: `couch list` prints
+  `finding_key[:8]` and `materialize._render` prints `k[:8]` in the compiled
+  provenance footer, so pasting a listed key recorded a reference matching no
+  row -- and the footer truncated it back to 8 characters, making a broken
+  evidence link render identically to a valid one. Evidence links are what make
+  a proposal checkable rather than merely plausible, so a silent break there
+  defeats the mechanism.
+
+  `store.insert_proposal` is deliberately unchanged; it is the low-level write
+  path and still accepts whatever it is given. Prefix resolution belongs at the
+  ops layer, where every other key argument already resolves.
+- `cli.py`'s `proposal add` branch gained the
+  `except ValueError -> stderr -> sys.exit(1)` wrapper that `approve`/`reject`
+  already had. Without it the fix above would have replaced a silent wrong
+  answer with a raw traceback.
+
+### Tests
+
+- 433 (up from 426). Seven new: full-key round trip, prefix resolving to the
+  full key, non-existent key raising with nothing written, ambiguous prefix
+  raising with nothing written, `evidence=None` and `[]` unchanged, and a CLI
+  end-to-end asserting a clean exit(1) with no traceback. The ambiguity case is
+  deterministic by construction rather than by luck -- `finding_key` is a
+  sha256/32 hex digest, so its leading character has 16 possible values and
+  distinct salted findings are guaranteed to collide on a 1-character prefix.
+
+### Docs
+
+- `docs/tutorial-flywheel.md` section 11 rewritten. It previously documented the
+  SQL workaround for getting full keys and flagged the behaviour as a rough
+  edge; it now explains that prefixes resolve, and keeps the direct query as the
+  way to see more detail than `couch list` shows.
+
 ## 0.28.2
 
 Documentation only. No code, schema, or data changes.

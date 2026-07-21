@@ -8,7 +8,10 @@ no destructive undo.
 
 import pytest
 
+from freud_schema import ops
+from freud_schema.couch import seed_finding_types
 from freud_schema.tables import (
+    Finding,
     Proposal,
     ProposalStatus,
     Rule,
@@ -141,3 +144,85 @@ class TestRollback:
     def test_rollback_rejects_non_scd2_table(self, store):
         with pytest.raises(ValueError, match="SCD-2"):
             store.rollback_dimension("dim_project", "x")
+
+
+class TestProposalAddEvidenceResolution:
+    """ops.proposal_add must resolve --evidence finding keys/prefixes to
+    their full 32-char keys before writing the proposal (bug: couch list
+    and the compiled provenance footer both truncate to finding_key[:8],
+    so an unresolved 8-char prefix silently records a broken reference
+    that renders identically to a valid one)."""
+
+    def _rule_kwargs(self, **evidence_kwargs) -> dict:
+        return dict(
+            target=TargetDimension.DIM_RULE,
+            natural_key={"name": "no-retry-loops"},
+            content="Stop after two identical failing tool calls.",
+            **evidence_kwargs,
+        )
+
+    def test_full_key_round_trips_unchanged(self, store):
+        seed_finding_types(store)
+        finding = ops.finding_add(store, finding_type="retry_loop", summary="s")
+        full_key = finding["finding_key"]
+        assert len(full_key) == 32
+
+        added = ops.proposal_add(store, **self._rule_kwargs(evidence=[full_key]))
+        p = store.get_proposal(added["proposal_key"])
+        assert p.evidence_finding_keys == [full_key]
+
+    def test_prefix_resolves_to_stored_full_key(self, store):
+        seed_finding_types(store)
+        finding = ops.finding_add(store, finding_type="retry_loop", summary="s")
+        full_key = finding["finding_key"]
+        prefix = full_key[:8]
+        assert prefix != full_key
+
+        added = ops.proposal_add(store, **self._rule_kwargs(evidence=[prefix]))
+        p = store.get_proposal(added["proposal_key"])
+        assert p.evidence_finding_keys == [full_key]
+        assert len(p.evidence_finding_keys[0]) == 32
+
+    def test_nonexistent_evidence_key_raises_and_writes_nothing(self, store):
+        with pytest.raises(ValueError):
+            ops.proposal_add(store, **self._rule_kwargs(evidence=["0" * 32]))
+        assert store.list_proposals() == []
+
+    def test_ambiguous_prefix_raises_and_writes_nothing(self, store):
+        seed_finding_types(store)
+        # Insert findings with a fixed finding_type/summary and only the
+        # etl_run_id salt varying, until two resulting finding_keys share
+        # a 1-char prefix. finding_key = dimension_key(finding_type,
+        # scope, project_key, summary, etl_run_id) is a sha256/32 hex
+        # digest, so its leading character has only 16 possible values --
+        # by the pigeonhole principle, 17 distinct salts are guaranteed to
+        # produce a collision. This is a deterministic property of
+        # keys.dimension_key, not luck: the same 20 salts produce the
+        # same keys and the same collision on every run.
+        seen: dict[str, str] = {}
+        collision_prefix = None
+        for i in range(20):
+            key = store.insert_finding(Finding(
+                finding_type="retry_loop", summary="collision probe",
+                etl_run_id=f"collision-salt-{i}"))
+            prefix = key[0]
+            if prefix in seen:
+                collision_prefix = prefix
+                break
+            seen[prefix] = key
+        assert collision_prefix is not None, (
+            "no 1-char prefix collision in 20 tries -- pigeonhole guarantee violated")
+
+        with pytest.raises(ValueError, match="Ambiguous"):
+            ops.proposal_add(store, **self._rule_kwargs(evidence=[collision_prefix]))
+        assert store.list_proposals() == []
+
+    def test_evidence_none_unchanged(self, store):
+        added = ops.proposal_add(store, **self._rule_kwargs(evidence=None))
+        p = store.get_proposal(added["proposal_key"])
+        assert p.evidence_finding_keys is None
+
+    def test_evidence_empty_list_unchanged(self, store):
+        added = ops.proposal_add(store, **self._rule_kwargs(evidence=[]))
+        p = store.get_proposal(added["proposal_key"])
+        assert p.evidence_finding_keys == []

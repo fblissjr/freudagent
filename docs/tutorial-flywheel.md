@@ -276,14 +276,22 @@ uv run freud-schema couch list --type retry_loop
 Each finding carries the session keys that evidence it, so the claim is checkable
 rather than merely assertable.
 
-## 11. Get the full finding key
+## 11. Pick the evidence
 
-`couch list` prints keys truncated to 8 characters, but the next step stores whatever
-you give it verbatim -- there is no prefix resolution on evidence keys. Passing the
-truncated form records a broken reference that still looks plausible in the compiled
-footer. Get the full key first.
+The finding keys you just listed are what the next step cites. Copy the one you
+want straight from `couch list` -- the truncated 8-character form is fine.
+Evidence keys resolve like every other key argument in the CLI: a full key or any
+unique prefix works, and what gets stored is always the resolved full key.
 
-Via the store-ops MCP server's `query` tool, or any read-only SQL surface:
+A prefix matching nothing, or matching more than one finding, is an error and no
+proposal is written. That matters more here than elsewhere: a proposal's evidence
+is what makes it checkable rather than merely plausible, and both `couch list`
+and the compiled provenance footer print keys truncated to 8 characters, so an
+unresolved reference would look exactly like a valid one.
+
+To see full keys and more detail than `couch list` shows, query the table
+directly through the store-ops MCP server's `query` tool or any read-only SQL
+surface:
 
 ```sql
 SELECT finding_key, finding_type, occurrence_count, summary
@@ -297,8 +305,6 @@ LIMIT 5;
 ef2433c73b175c86c921dfe17da35274 | retry_loop | 4 | Read: 2 identical-input call loop(s)...
 ```
 
-This is a rough edge, not a design decision -- see `internal/BACKLOG.md`.
-
 ## 12. Draft a proposal
 
 A finding says something is happening. A proposal says what to do about it.
@@ -308,7 +314,7 @@ uv run freud-schema proposal add \
   --target dim_rule \
   --natural-key '{"name": "no-identical-retries"}' \
   --content 'After a tool call fails, never repeat the exact same call with the exact same input more than once. Two identical failures mean the approach is wrong.' \
-  --evidence ef2433c73b175c86c921dfe17da35274
+  --evidence ef2433c7
 ```
 
 ```
@@ -322,7 +328,8 @@ Notes on the arguments:
 - `--target` is one of `dim_rule`, `dim_skill`, `dim_sampling_config`
 - `--natural-key` is JSON identifying the entity to evolve. Rules need `name`, and
   accept `scope`, `domain` and `priority`. Skills need `domain` and `task_type`
-- `--evidence` takes a comma-separated list of full finding keys
+- `--evidence` takes a comma-separated list of finding keys or unique prefixes,
+  resolved to full keys before anything is written
 - the proposal is created `pending`. Nothing has changed yet
 
 ## 13. Review it

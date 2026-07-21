@@ -223,13 +223,25 @@ def proposal_add(
     version: int | None = None,
     evidence: list[str] | None = None,
 ) -> dict:
-    """Draft a proposal (pending). Mirrors `freud-schema proposal add`."""
+    """Draft a proposal (pending). Mirrors `freud-schema proposal add`.
+
+    evidence entries may be a full key or a unique prefix -- resolved to
+    full keys here, before the proposal is written, so a bad or ambiguous
+    key raises ValueError with no proposal row left behind. Both couch
+    list and the compiled provenance footer print finding_key[:8], so an
+    unresolved prefix would otherwise silently record a broken evidence
+    reference that renders identically to a valid one.
+    """
+    resolved_evidence = (
+        [store.resolve_key("fact_finding", k) for k in evidence]
+        if evidence else evidence
+    )
     pkey = store.insert_proposal(Proposal(
         target_dimension=target,
         target_natural_key=natural_key,
         proposed_content=content,
         proposed_version=version,
-        evidence_finding_keys=evidence,
+        evidence_finding_keys=resolved_evidence,
     ))
     return {"proposal_key": pkey, "status": "pending", "target_dimension": target.value}
 

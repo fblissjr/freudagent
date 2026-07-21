@@ -1035,3 +1035,28 @@ def test_cli_session_show_nonexistent(tmp_path):
     main(["--db", db, "db", "init"])
     with pytest.raises(SystemExit):
         main(["--db", db, "session", "show", "999"])
+
+
+def test_cli_proposal_add_bad_evidence_key_exits_cleanly(tmp_path):
+    """A bad --evidence key (no matching finding) must exit(1) with a
+    readable message on stderr, matching the approve/reject branches'
+    ValueError-wrapping convention -- not dump a raw traceback."""
+    from freud_schema.cli import main
+    import io
+    import sys
+    db = str(tmp_path / "test.duckdb")
+    main(["--db", db, "db", "init"])
+    buf = io.StringIO()
+    old_stderr = sys.stderr
+    sys.stderr = buf
+    try:
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--db", db, "proposal", "add", "--target", "dim_rule",
+                  "--natural-key", '{"name": "no-retry"}', "--content", "c",
+                  "--evidence", "0" * 32])
+    finally:
+        sys.stderr = old_stderr
+    assert exc_info.value.code == 1
+    output = buf.getvalue()
+    assert output.strip()
+    assert "Traceback" not in output

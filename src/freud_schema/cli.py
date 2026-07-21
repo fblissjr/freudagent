@@ -899,11 +899,15 @@ def _handle_proposal(args) -> None:
                 sys.exit(1)
             evidence = ([k.strip() for k in args.evidence.split(",") if k.strip()]
                         if args.evidence else None)
-            result = ops.proposal_add(
-                store, target=TargetDimension(args.target),
-                natural_key=natural_key, content=args.content,
-                version=args.version, evidence=evidence,
-            )
+            try:
+                result = ops.proposal_add(
+                    store, target=TargetDimension(args.target),
+                    natural_key=natural_key, content=args.content,
+                    version=args.version, evidence=evidence,
+                )
+            except ValueError as e:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
             print(f"Proposal created (pending): key={result['proposal_key']}")
         elif args.proposal_action == "list":
             status = ProposalStatus(args.status) if args.status else None
