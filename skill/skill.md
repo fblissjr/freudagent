@@ -131,7 +131,7 @@ freud-schema session list [--status completed]
 freud-schema session show <key-or-prefix>
 ```
 
-### Transcript Ingestion (sense)
+### Transcript Ingestion
 
 ```bash
 freud-schema ingest transcripts                        # everything under the Claude Code projects dir
@@ -146,7 +146,7 @@ sidecars. This is a CLI-time operation -- it needs the database lock, so run it
 when the DuckDB MCP server is not connected, or ingest to a separate file and
 `ATTACH` it from the MCP session.
 
-### Generic Event Ingestion (sense, M5)
+### Generic Event Ingestion (M5)
 
 ```bash
 freud-schema ingest events --root ./events                # everything under a JSONL events root

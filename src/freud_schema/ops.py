@@ -310,7 +310,7 @@ def extraction_reject(
 
 
 # ---------------------------------------------------------------------------
-# Compile (materialize) / couch (analyze) / ingest (sense)
+# Compile / couch (analyze) / ingest
 # ---------------------------------------------------------------------------
 
 
