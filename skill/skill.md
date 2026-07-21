@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.37.0
+version: 0.38.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -25,7 +25,6 @@ scope:
   includes:
     - Managing skills, rules, sources, and feedback in the experiment harness
     - Providing context assembly and provider abstractions for harness integration
-    - Querying Freud's theoretical corpus (17 core entries)
     - Generating agent system prompts from Freudian archetypes
     - Reviewing and validating extraction output
     - Closing the feedback loop with corrections
@@ -67,8 +66,8 @@ sources, sampling configs) and `compile` -- omitting it preserves single-tenant 
 
 > **If an MCP server is connected (Claude Code sessions):** DuckDB is single-process --
 > whichever server holds the connection, `freud-schema` CLI commands that touch the DB
-> will fail with a lock error. CLI commands that don't open a connection (corpus queries,
-> archetype/preset commands, `db ddl`) still work regardless.
+> will fail with a lock error. CLI commands that don't open a connection
+> (archetype/preset commands, `db ddl`) still work regardless.
 >
 > Prefer the **store-ops server** (`freud-schema mcp-serve`, configured in `.mcp.json`,
 > implementation plan M16): its `query` tool covers reads, and every write goes through
@@ -231,13 +230,3 @@ skills: `draft`) no matter what status is requested; the only path to
 activation is `proposal_add` -> `proposal_approve`, and `proposal_approve`
 must never be allowlisted -- every approval surfaces the permission
 prompt. No tool exposes `db reset`, `db ddl`, or raw writes.
-
-## Corpus
-
-17 entries from Freud's major works, searchable by topic, book, terminology, and full text:
-
-```bash
-freud-schema list-topics
-freud-schema search "dream"
-freud-schema term "condensation"
-```

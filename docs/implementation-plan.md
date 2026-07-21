@@ -874,8 +874,7 @@ These don't get milestone numbers; they get enforced at every milestone.
 - **Schema docs**: every table/column/enum change lands in
   `skill/reference/schema.md` (respecting its intentional omissions and
   logical column ordering). `tests/test_docs_inventory.py` enforces the
-  mechanical half -- views, tables, enum values, `record_source`. The a2ui
-  `prompt_addendum.md` sync is retired along with `a2ui/` itself.
+  mechanical half -- views, tables, enum values, `record_source`.
 - **Inventory tests**: the existing `ALL_TABLES`/`ALL_VIEWS` inventory test
   is the tripwire for forgotten registrations — every milestone adding
   tables must extend it (and add new tables to the `reset_schema()` drop

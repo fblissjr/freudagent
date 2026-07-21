@@ -1,6 +1,4 @@
-"""Tests for the Freud Schema package."""
-
-import pytest
+"""Tests for archetypes, harness composition and prompt presets."""
 
 from freud_schema.archetypes import (
     ARCHETYPES,
@@ -9,16 +7,6 @@ from freud_schema.archetypes import (
     list_archetype_names,
     search_archetypes,
 )
-from freud_schema.dataset import (
-    filter_by_book,
-    filter_by_topic,
-    list_books,
-    list_topics,
-    load_entries,
-    search_terminology,
-    search_text,
-    to_jsonl,
-)
 from freud_schema.harness import (
     PRESETS,
     compose_by_category,
@@ -26,94 +14,8 @@ from freud_schema.harness import (
     compose_preset,
     compose_system_prompt,
 )
-from freud_schema.models import ArchetypeCategory, FreudEntry
+from freud_schema.models import ArchetypeCategory
 
-
-@pytest.fixture(scope="module")
-def entries():
-    return load_entries()
-
-
-# ---------------------------------------------------------------------------
-# Dataset tests
-# ---------------------------------------------------------------------------
-
-
-def test_load_entries(entries):
-    assert len(entries) == 17
-    assert all(isinstance(e, FreudEntry) for e in entries)
-
-
-def test_all_entries_have_8_columns(entries):
-    for e in entries:
-        assert e.book_title
-        assert e.chapter_section
-        assert e.core_topic
-        assert e.major_finding
-        assert e.crucial_quote
-        assert isinstance(e.key_terminology, list)
-        assert len(e.key_terminology) >= 1
-        assert e.source_context
-        assert e.translation_notes
-
-
-def test_filter_by_topic(entries):
-    dream = filter_by_topic(entries, "Dream")
-    assert len(dream) >= 3
-    for e in dream:
-        assert "dream" in e.core_topic.lower()
-
-
-def test_filter_by_book(entries):
-    interp = filter_by_book(entries, "Interpretation of Dreams")
-    assert len(interp) == 4
-
-
-def test_search_terminology(entries):
-    results = search_terminology(entries, "Id")
-    assert any("Id" in e.key_terminology for e in results)
-
-
-def test_search_text(entries):
-    results = search_text(entries, "wish")
-    assert len(results) >= 1
-
-
-def test_list_topics(entries):
-    topics = list_topics(entries)
-    assert len(topics) >= 5
-    assert all(isinstance(t, str) for t in topics)
-
-
-def test_list_books(entries):
-    books = list_books(entries)
-    assert len(books) >= 5
-
-
-def test_to_jsonl_roundtrip(entries):
-    jsonl = to_jsonl(entries)
-    lines = [l for l in jsonl.strip().split("\n") if l]
-    assert len(lines) == len(entries)
-    for line in lines:
-        FreudEntry.model_validate_json(line)
-
-
-def test_entry_model_serialization():
-    entry = FreudEntry(
-        book_title="Test Book",
-        chapter_section="Ch. 1",
-        core_topic="Test Topic",
-        major_finding="A finding",
-        crucial_quote="A quote",
-        key_terminology=["Term1", "Term2"],
-        source_context="Some context",
-        translation_notes="Some notes",
-    )
-    data = entry.model_dump()
-    assert data["book_title"] == "Test Book"
-    assert len(data["key_terminology"]) == 2
-    restored = FreudEntry.model_validate(data)
-    assert restored == entry
 
 
 # ---------------------------------------------------------------------------
@@ -325,11 +227,3 @@ def test_related_archetypes_bidirectional():
                 f"{a.name!r} lists {related_name!r} as related, "
                 f"but {related_name!r} does not list {a.name!r} back"
             )
-
-
-def test_new_jsonl_entries(entries):
-    """The 3 new JSONL entries load correctly."""
-    topics = [e.core_topic for e in entries]
-    assert "Topographic Model and Psychic Apparatus" in topics
-    assert "Neural Architecture and Information Processing" in topics
-    assert "Memory Systems and Deferred Meaning" in topics

@@ -16,14 +16,13 @@ from freud_schema.harness import (
     compose_preset,
     compose_system_prompt,
 )
-from freud_schema.models import AgenticArchetype, FreudEntry
+from freud_schema.models import AgenticArchetype
 
 __all__ = [
     "ARCHETYPES",
     "PRESETS",
     "AgenticArchetype",
     "ArchetypeCategory",
-    "FreudEntry",
     "compose_by_category",
     "compose_full",
     "compose_preset",

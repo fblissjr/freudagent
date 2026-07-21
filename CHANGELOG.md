@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.38.0
+
+### Removed
+
+- **`a2ui/`** -- deleted rather than kept deprecated (owner call). 22 files.
+- **`data/freud_schema.jsonl`** and everything that read it: the Freud corpus,
+  `src/freud_schema/dataset.py`, the `FreudEntry` model, and the eight CLI
+  commands built on it (`list-topics`, `list-books`, `topic`, `book`, `term`,
+  `search`, `show`, `export`), plus 11 corpus tests.
+
+  The corpus was the literal Freud material -- quotes and findings from the
+  source works. The archetypes that borrow Freud's vocabulary are unaffected
+  and still ship; they live in `archetypes.py` and never read the JSONL. What
+  went is the reference dataset nothing in the flywheel consumed.
+
+  `models.py` keeps `AgenticArchetype` and `ArchetypeCategory`. The package's
+  public surface drops `FreudEntry` and gains nothing.
+
+### Note
+
+`tests/test_docs_inventory.py` fired again, this time on the deletion: it held
+`a2ui/` as a required entry in CLAUDE.md's repo map until the deletion was
+staged, because git still tracked the files. Correct behavior -- the map must
+name what the repo has, and the repo had it until the index said otherwise.
+
 ## 0.37.0
 
 Schema version 9. Group 3 (feedback provenance) closed -- the control that makes

@@ -45,11 +45,9 @@ src/freud_schema/
   orchestrator.py    - Context assembly, provider protocol, provider implementations
   harness.py         - Archetype composition into system prompts
   archetypes.py      - 9 archetypes in a 3x3 grid
-  models.py          - Pydantic models (FreudEntry, AgenticArchetype)
-  dataset.py         - JSONL data loading and querying
+  models.py          - Pydantic models (AgenticArchetype, ArchetypeCategory)
   rlm.py             - RLM provider: REPL engine, sandbox
 data/
-  freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Live warehouse incl. ingested personal transcripts (gitignored)
   synthetic/         - PUBLIC synthetic corpus (committed, all fictional; see its
                        README): SaaS exports, relational extracts, documents,
@@ -119,9 +117,6 @@ docs/
   tutorial-rlm-provider.md     - RLM provider tutorial
   tutorial-flywheel.md         - Feedback loop end-to-end
   tutorial-cold-start.md       - Cold-start playbook: empty DB to turning flywheel
-a2ui/                - DEPRECATED, unmaintained (see a2ui/README.md). Pre-v0.17
-                       schema, no test coverage. Kept as a reference for the
-                       rendering approach only; do not build on it
 internal/            - Analysis docs, backlog, session logs (gitignored)
 .claude/
   skills/            - Project-specific Claude Code skills (committed)
@@ -238,7 +233,7 @@ then `read_parquet` loads.
 
 Claude Code IS the harness. Orchestration happens natively (Agent tool, Read tool,
 MCP tools). The CLI exposes data operations (CRUD on skills/sources/rules/feedback/
-extractions/sessions, corpus queries, archetype commands) but not execution pipelines.
+extractions/sessions, archetype commands) but not execution pipelines.
 
 **Outside Claude Code (scripts, CI, terminal):** Use the `freud-schema` CLI for data management.
 
@@ -330,7 +325,6 @@ Schema docs: `.claude/skills/db-query.md`
 - schema.md column order is logical grouping, not DDL order -- don't "fix" it to match db.py
 - schema.md Common Queries use string literals (example SQL for MCP users) -- the "no hardcoded strings" convention applies to store.py, not doc examples
 - schema.md Enum Values table must list every column with a CHECK constraint
-- prompt_addendum.md (a2ui/) is frozen along with the rest of a2ui/ -- it is no longer kept in sync with schema.md
 
 ## Internal Docs
 
