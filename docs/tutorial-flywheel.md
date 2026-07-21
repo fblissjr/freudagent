@@ -1,6 +1,6 @@
 # Tutorial: The feedback flywheel end-to-end
 
-Last updated: 2026-07-07
+Last updated: 2026-07-21
 
 This walks through the full flywheel loop: extract, review, correct, refine skill,
 re-extract, compare. Every step uses real CLI commands against the database.
@@ -211,6 +211,226 @@ The database makes the full loop traceable: every extraction knows which skill v
 produced it, every feedback entry knows which extraction it corrects, and every session
 knows which skill and model were used. Closing the loop automatically (having an agent
 draft v2 from feedback patterns) is deferred -- see `internal/BACKLOG.md`.
+
+Steps 1-8 above changed a skill by hand: you read the feedback, you wrote v2, you
+ran `skill add`. That works, but nothing recorded *why* v2 says what it says.
+
+The rest of this tutorial walks the governed path instead -- the one where a change
+is evidence-linked, human-approved, and compiled with its provenance attached. It
+uses rules rather than skills, and its signal comes from the warehouse rather than
+from your corrections, but it ends at the same gate.
+
+---
+
+## 9. The second source of signal
+
+Steps 1-8 started from a correction you wrote. The other source is the warehouse
+itself: what actually happened across sessions. Detectors read it and emit findings.
+
+This half needs ingested history, so run this first if you have not already:
+
+```bash
+uv run freud-schema ingest transcripts
+```
+
+Ingest is idempotent -- keys are derived from content, so running it twice writes
+zero rows the second time.
+
+## 10. Run the detectors
+
+```bash
+uv run freud-schema couch run
+```
+
+```
+Couch run 14cb4c00: 2 finding(s) recorded.
+```
+
+The identifier is the load-run id, truncated to 8 characters. Every couch run gets
+one, and it joins to `meta_load_log`.
+
+These are SQL detectors. No model is called, so the run is cheap and repeatable.
+Five ship today:
+
+| Finding type | What it looks for | Threshold |
+|---|---|---|
+| `retry_loop` | same tool, identical input, repeatedly in one session | 3 attempts |
+| `tool_error_cluster` | a tool failing at an elevated rate in a project | 20 uses and 15% errors |
+| `interruption_hotspot` | repeated mid-turn user interruptions | 3 interruptions |
+| `permission_friction` | repeated permission denials for the same tool | 3 denials |
+| `stale_source` | a registered source file whose content changed | any hash mismatch |
+
+`stale_source` reads the filesystem as well as the warehouse, so it needs a baseline
+recorded by `source add --hash`. Skip it with `couch run --warehouse-only`.
+
+Now list what was found:
+
+```bash
+uv run freud-schema couch list --type retry_loop
+```
+
+```
+  [ef2433c7] retry_loop n=4: Read: 2 identical-input call loop(s) across 1 session(s), worst 3 attempts
+```
+
+Each finding carries the session keys that evidence it, so the claim is checkable
+rather than merely assertable.
+
+## 11. Get the full finding key
+
+`couch list` prints keys truncated to 8 characters, but the next step stores whatever
+you give it verbatim -- there is no prefix resolution on evidence keys. Passing the
+truncated form records a broken reference that still looks plausible in the compiled
+footer. Get the full key first.
+
+Via the store-ops MCP server's `query` tool, or any read-only SQL surface:
+
+```sql
+SELECT finding_key, finding_type, occurrence_count, summary
+FROM fact_finding
+WHERE finding_type = 'retry_loop'
+ORDER BY created_at DESC
+LIMIT 5;
+```
+
+```
+ef2433c73b175c86c921dfe17da35274 | retry_loop | 4 | Read: 2 identical-input call loop(s)...
+```
+
+This is a rough edge, not a design decision -- see `internal/BACKLOG.md`.
+
+## 12. Draft a proposal
+
+A finding says something is happening. A proposal says what to do about it.
+
+```bash
+uv run freud-schema proposal add \
+  --target dim_rule \
+  --natural-key '{"name": "no-identical-retries"}' \
+  --content 'After a tool call fails, never repeat the exact same call with the exact same input more than once. Two identical failures mean the approach is wrong.' \
+  --evidence ef2433c73b175c86c921dfe17da35274
+```
+
+```
+Proposal created (pending): key=c7c0caf768571ffd1ecb07675f384fde
+```
+
+The key prints in full here precisely so you can paste it into the next command.
+
+Notes on the arguments:
+
+- `--target` is one of `dim_rule`, `dim_skill`, `dim_sampling_config`
+- `--natural-key` is JSON identifying the entity to evolve. Rules need `name`, and
+  accept `scope`, `domain` and `priority`. Skills need `domain` and `task_type`
+- `--evidence` takes a comma-separated list of full finding keys
+- the proposal is created `pending`. Nothing has changed yet
+
+## 13. Review it
+
+This is the step the whole design exists to protect. Read the proposal and check
+its evidence against the rows it cites, rather than trusting its summary.
+
+```bash
+uv run freud-schema proposal show c7c0caf7
+```
+
+```
+  Proposal: c7c0caf768571ffd1ecb07675f384fde
+  Status: pending
+  Target: dim_rule
+  Natural key: {"name":"no-identical-retries"}
+  Evidence findings: ef2433c7
+  Proposed content:
+    After a tool call fails, never repeat the exact same call with the exact same input more than once. Two identical failures mean the approach is wrong.
+```
+
+Commands that take a key accept a unique prefix, git-short-hash style.
+
+If it does not hold up:
+
+```bash
+uv run freud-schema proposal reject c7c0caf7 --by "reviewer"
+```
+
+Rejection touches no dimension table. It records the status, the reviewer and the
+time, and stops there. A rejection rate near zero is a sign the gate is not being
+used rather than a sign that everything proposed was good.
+
+## 14. Approve
+
+```bash
+uv run freud-schema proposal approve c7c0caf7 --by "reviewer"
+```
+
+```
+Proposal c7c0caf7 approved. Dimension key: 41e373fd2c53f65f3369289a60dab0e8
+Run `freud-schema compile --out <dir>` to materialize.
+```
+
+Approving does the write. For a rule it calls the same SCD-2 insert path as
+`rule add`: if a rule with that natural key already exists and the content differs,
+the current row is closed and a new version opens, active. Nothing is overwritten,
+so the previous version stays queryable.
+
+The proposal row is updated too, with `resulting_dimension_key` pointing at the
+version it created. That is the link that makes the next step's footer possible.
+
+## 15. Compile
+
+Approval changed a row. It did not change anything the agent loads. Compiling does:
+
+```bash
+uv run freud-schema compile --out .claude/rules
+```
+
+```
+  wrote   no-identical-retries.md
+Compile: 1 written, 0 removed, 0 blocked.
+```
+
+The file:
+
+```markdown
+<!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
+<!-- source: dim_rule 41e373fd2c53f65f3369289a60dab0e8 effective_from 2026-07-21T10:27:36 -->
+
+After a tool call fails, never repeat the exact same call with the exact same input more than once. Two identical failures mean the approach is wrong.
+
+<!-- provenance: proposal c7c0caf7; findings ef2433c7 -->
+```
+
+Read the footer backwards and you have the whole chain: this file came from that
+proposal, which cited that finding, which aggregated those sessions. That is what
+the governed path buys you over editing a file by hand.
+
+Three behaviours worth knowing:
+
+- only current, active rules for the tenant compile. Deprecated and historical
+  versions are skipped
+- files in the output directory that start with the compiled marker but no longer
+  match a rule are deleted. Hand-written files are never touched
+- a privacy gate runs before each write. If rendered output contains a home
+  directory path or the current username, that file is blocked and the previous
+  good version is left in place. Blocked files make the command exit non-zero
+
+A rule added directly with `rule add` compiles fine, but has no provenance footer.
+There is no proposal behind it to cite.
+
+## 16. What an agent can and cannot do here
+
+Everything above is the human path, run from a terminal. An agent working in a
+session reaches the same operations through the store-ops MCP server, with one
+deliberate difference: it cannot switch anything on for itself.
+
+- `rule_add` and `skill_add` as MCP tools force the non-compiling status
+  (`inactive` for rules, `draft` for skills) whatever status the caller asks for.
+  A draft never compiles, so it never loads
+- the only route to active is `proposal_add` then `proposal_approve`
+- `proposal_approve` must never be allowlisted in permissions config. The harness
+  permission prompt it raises is the approval
+
+The CLI has no such restriction, because a human is typing it. The gate is aimed
+at agent-invoked tools specifically.
 
 ---
 

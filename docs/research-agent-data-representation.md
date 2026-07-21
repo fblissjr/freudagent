@@ -4,7 +4,7 @@ Last updated: 2026-07-08
 
 Before starting execution of [the implementation plan](implementation-plan.md),
 we ran a research pass to answer two questions: (1) does the architecture —
-files as the agent-facing knowledge substrate, a database as
+files as the agent-facing form of knowledge, a database as
 catalog/lineage/governance, a human-gated improvement flywheel, skills with
 progressive disclosure — hold up against the 2026 literature and production
 practice? (2) What is the best representation for each kind of data an
@@ -119,7 +119,7 @@ implementation uses a Claude Code skill directory — the same pattern as this
 repo.
 
 **Honest gap**: neither MCE nor Meta-Harness benchmarks filesystem *against*
-a database or vector store; both assume filesystem substrate and argue
+a database or vector store; both assume a filesystem and argue
 against context-stuffing. The filesystem-vs-DB question is settled by
 production practice (below), not by these papers.
 
@@ -176,7 +176,7 @@ before compiling.
 
 ---
 
-## Part 2: What production practice says about the substrate
+## Part 2: What production practice says about where data belongs
 
 ### The files-vs-database question is resolved by role, not by winner
 
@@ -205,7 +205,7 @@ the resulting layer is the **grounding layer**: constraints on one end,
 grounding data in the middle, verifiers and feedback on the other — the
 warehouse its governed truth, compiled files its agent-facing form):
 
-| Data character | Substrate | Agent access path |
+| Data character | Where it lives | Agent access path |
 |---|---|---|
 | Versioned knowledge artifacts (code, docs, skills, rules) | Markdown/code files in git | Agentic navigation: glob/grep/read, frontmatter routing, progressive disclosure |
 | Episodic, relational, high-volume events (telemetry, feedback, provenance, metrics) | Structured store (columnar/relational) | Aggregation views, detectors, purpose-built query methods — never raw scans |
@@ -218,7 +218,7 @@ on **agent navigation** — models are pretrained on files and shell idioms,
 and `LIKE` scans over free-text columns are the worst of both worlds. The
 `LIKE`-on-every-column problem is a symptom of putting artifact-shaped data
 in rows; the grep-can't-count problem is a symptom of putting event-shaped
-data in files. Neither substrate should hold the other's data.
+data in files. Neither one should hold the other's data.
 
 Key sources: Anthropic "Effective Context Engineering for AI Agents";
 Anthropic "Equipping Agents with Agent Skills"; agents.md; vadim.blog on
@@ -237,7 +237,7 @@ token budget, per Aider) and LSP-backed symbol tools (Serena) reduce
 navigation cost. Grep-only vs. indexed is genuinely contested — Anthropic
 ships grep-only; indexed tools claim large tool-call reductions in
 vendor-run benchmarks. Data created *from* human/agent/code interaction
-splits by the substrate rule: durable distilled guidance → markdown in the
+splits by the same rule: durable distilled guidance → markdown in the
 repo (compiled, provenance-stamped); episodic traces/feedback/findings → the
 warehouse. Insight should never live only in transcripts.
 
@@ -265,7 +265,7 @@ raw rows. Reference data snapshots as Parquet files for zero-infra agent
 access; live MCP queries where freshness/governance dominate.
 
 **Documents.** Full convergence on **markdown-normalized documents as the
-shared substrate** (MarkItDown, Docling, Unstructured — all converting
+shared format** (MarkItDown, Docling, Unstructured — all converting
 everything to markdown at ingest), with YAML frontmatter conventions
 emerging as a vendor-neutral spec (Google's Open Knowledge Format;
 Anthropic's SKILL.md frontmatter). Retrieval strategy splits by corpus size:
@@ -316,7 +316,7 @@ the Research-Review Amendments section; recorded here with their rationale.
    serving milestones land); embeddings remain optional and last — matching
    both the papers (structured-metadata selection) and production practice
    (agentic search first, embeddings for large fuzzy corpora only).
-6. **Substrate rule made explicit** (M5/M14): event-shaped ingest gains
+6. **Storage split made explicit** (M5/M14): event-shaped ingest gains
    template-mining normalization (Drain-style signatures) as an adapter
    capability; compiled knowledge artifacts adopt YAML frontmatter for
    routing metadata; agent-authored diagrams compile as diagrams-as-code.

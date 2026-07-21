@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
+  <title id="t">Three levels of loading</title>
+  <desc id="d">Level one is small and always loaded. Level two is loaded when it matches the task. Level three is large and only opened when the agent asks for it.</desc>
+
+  <rect x="0" y="0" width="960" height="440" rx="16" fill="#0b1220"/>
+
+  <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+    <text x="40" y="46" font-size="21" font-weight="600" fill="#e6edf7">Skills are something you look up, not something you switch on</text>
+    <text x="40" y="72" font-size="13.5" fill="#8fa2c0">The bar width is how much material exists at each level. Only the shaded part is in front of the model.</text>
+
+    <!-- L1 -->
+    <text x="40" y="128" font-size="15" font-weight="700" fill="#4f8ef7">L1</text>
+    <rect x="76" y="106" width="150" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
+    <text x="151" y="129" font-size="12.5" font-weight="600" fill="#cfe0ff" text-anchor="middle">always loaded</text>
+    <text x="76" y="164" font-size="13.5" fill="#c3d2ea">Project conventions and the rules that apply whatever you are doing.</text>
+    <text x="76" y="184" font-size="13.5" fill="#8fa2c0">Small on purpose. If this grows without limit, the whole idea fails.</text>
+
+    <!-- L2 -->
+    <text x="40" y="234" font-size="15" font-weight="700" fill="#4f8ef7">L2</text>
+    <rect x="76" y="212" width="330" height="34" rx="7" fill="#16233a" stroke="#3a5a8f" stroke-width="1.6"/>
+    <rect x="76" y="212" width="132" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
+    <text x="142" y="235" font-size="12.5" font-weight="600" fill="#cfe0ff" text-anchor="middle">this one matched</text>
+    <text x="76" y="270" font-size="13.5" fill="#c3d2ea">The instructions for the job in hand, picked by matching the task.</text>
+    <text x="76" y="290" font-size="13.5" fill="#8fa2c0">You may have hundreds. One or two get loaded.</text>
+
+    <!-- L3 -->
+    <text x="40" y="340" font-size="15" font-weight="700" fill="#4f8ef7">L3</text>
+    <rect x="76" y="318" width="620" height="34" rx="7" fill="#131c2e" stroke="#2c3e5e" stroke-width="1.4" stroke-dasharray="5 5"/>
+    <rect x="76" y="318" width="86" height="34" rx="7" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.8"/>
+    <text x="119" y="341" font-size="12" font-weight="600" fill="#cfe0ff" text-anchor="middle">opened</text>
+    <text x="430" y="341" font-size="12.5" fill="#6f83a3" text-anchor="middle">available, not loaded</text>
+    <text x="76" y="376" font-size="13.5" fill="#c3d2ea">Reference material: schema details, source documents, past decisions.</text>
+    <text x="76" y="396" font-size="13.5" fill="#8fa2c0">Read on demand, by name, when the work actually needs it.</text>
+
+    <rect x="726" y="106" width="198" height="246" rx="12" fill="#111a2b" stroke="#22304a"/>
+    <text x="825" y="150" font-size="13.5" font-weight="600" fill="#c3d2ea" text-anchor="middle">Why bother</text>
+    <text x="825" y="182" font-size="12.5" fill="#94a6c4" text-anchor="middle">A context window is</text>
+    <text x="825" y="200" font-size="12.5" fill="#94a6c4" text-anchor="middle">attention, not storage.</text>
+    <text x="825" y="230" font-size="12.5" fill="#94a6c4" text-anchor="middle">Filling it with material</text>
+    <text x="825" y="248" font-size="12.5" fill="#94a6c4" text-anchor="middle">that does not apply</text>
+    <text x="825" y="266" font-size="12.5" fill="#94a6c4" text-anchor="middle">makes answers worse,</text>
+    <text x="825" y="284" font-size="12.5" fill="#94a6c4" text-anchor="middle">not just pricier.</text>
+    <text x="825" y="318" font-size="12.5" fill="#7f92b0" text-anchor="middle">So the routing decision</text>
+    <text x="825" y="336" font-size="12.5" fill="#7f92b0" text-anchor="middle">is the hard part.</text>
+  </g>
+</svg>

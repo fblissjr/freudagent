@@ -184,7 +184,7 @@ not naive latest-wins. The ground truth for that lives here:
   settles *decisions* (the CEO's deferral beats an IC's active-active proposal),
   but **system-of-record settles facts** (the CEO's deck does *not* beat the
   general ledger on revenue). **`eval/citation_edges.csv`** is the cross-reference
-  graph -- every corpus ID mention as a `(from_path, to_id)` edge, the substrate
+  graph -- every corpus ID mention as a `(from_path, to_id)` edge, the source data
   for PageRank-style source-centrality scoring -- built by
   `scripts/build_citation_graph.py`.
 

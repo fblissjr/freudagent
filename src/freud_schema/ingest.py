@@ -242,7 +242,7 @@ def mask_signature(text: str) -> str:
     substrings (UUIDs, quoted strings, hex strings >= 8 chars, bare
     numbers) to stable placeholders, so high-volume variable text
     collapses to a shared signature (docs/implementation-plan.md
-    amendment 6, "substrate rule made explicit"). Order matters -- UUIDs
+    amendment 6, "storage split made explicit"). Order matters -- UUIDs
     and quoted strings are masked whole before the looser hex/number
     passes run, so a UUID's hyphen-separated segments don't get partially
     masked and a number inside a quoted string doesn't leak out as a

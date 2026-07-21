@@ -14,7 +14,15 @@ prompt composition. The harness handles orchestration. FreudAgent handles data.
 
 Mostly a joke repo. But the thesis is serious.
 
-Last updated: 2026-07-07
+Last updated: 2026-07-21
+
+## Start here
+
+[The data flywheel](docs/data-flywheel.md) explains the whole design end to end,
+in plain English with animated diagrams: how agent output becomes evidence, how
+evidence becomes proposals, how a person approves them, and how approved changes
+become the files the agent loads next time. It covers the generalized pattern,
+not just this repo, and marks which parts are built and which are planned.
 
 ## Setup
 
@@ -28,6 +36,9 @@ uv sync --extra dev
 
 ## Tutorials
 
+These are the hands-on path. For why any of it is shaped this way, read
+Start here first.
+
 New here? Start with the [end-to-end tutorial](docs/tutorial-arxiv-extraction.md) --
 extracts structured data from an arxiv paper using the full pipeline. Covers the
 why behind every step, not just the commands.
@@ -35,8 +46,10 @@ why behind every step, not just the commands.
 Then try the [RLM provider tutorial](docs/tutorial-rlm-provider.md) -- wraps any
 model with a Python REPL loop for iterative, code-driven extraction of large inputs.
 
-Then walk through the [flywheel tutorial](docs/tutorial-flywheel.md) -- demonstrates
-the full feedback loop: extract, review, correct, refine skill, re-extract, compare.
+Then walk through the [flywheel tutorial](docs/tutorial-flywheel.md) -- the full
+feedback loop (extract, review, correct, refine skill, re-extract, compare), then
+the governed path in sections 9-16: run the detectors, draft a proposal from a
+finding, approve it, and compile it with its provenance attached.
 
 Starting a fresh deployment? The [cold-start tutorial](docs/tutorial-cold-start.md)
 is the day-one playbook: seed corpus with staleness baselines, thin human-authored
@@ -75,8 +88,9 @@ uv run freud-schema prompt structural-triad free-association fixation \
 ### CLI -- Experiment Harness
 
 Entity references (skill, source, rule, extraction, feedback, session, trace)
-are MD5 hash keys, not integers. Every command that takes one accepts a full
-key or a unique prefix, git-short-hash style.
+are sha256/32 hash keys (SHA-256, truncated to 32 hex chars), not integers.
+Every command that takes one accepts a full key or a unique prefix,
+git-short-hash style.
 
 ```bash
 # 1. Initialize
@@ -183,9 +197,9 @@ and lifecycle between agents.
 
 ## Experiment Harness
 
-A Kimball-style dimensional model in DuckDB: 7 dimension tables (4 SCD Type 2 +
-3 append-only registries), 10 fact tables, 6 analytical views. Behavior comes
-from data (skills, rules, sources), not code. Keys are MD5 hash surrogates
+A Kimball-style dimensional model in DuckDB: 9 dimension tables (4 SCD Type 2 +
+5 append-only registries), 11 fact tables, 10 analytical views. Behavior comes
+from data (skills, rules, sources), not code. Keys are sha256/32 hash surrogates
 (`keys.dimension_key()`), not sequences -- deterministic, so transcript
 re-ingestion is idempotent. Fact tables carry denormalized dimension attributes
 at insert time, eliminating joins, plus a lineage envelope (`record_source`,
@@ -205,8 +219,10 @@ Context assembly implements progressive disclosure:
 | `dim_sampling_config` | Prior run sampling settings for pattern detection |
 | **Registry Dimensions** | |
 | `dim_project` | Conformed project dimension for cross-project queries |
+| `dim_tenant` | Tenant registry -- natural keys on the four SCD-2 dims are tenant-scoped |
 | `dim_facet_type` | Behavioral facet registry (tier, method, output type) |
 | `dim_finding_type` | Open finding-type vocabulary (registry-validated, not an enum) |
+| `dim_event_type` | Open event-type registry for the generic `fact_event` grain |
 | **Facts** | |
 | `fact_session` | Logged agent executions -- native runs or ingested transcripts (denormalized skill attrs, token tracking) |
 | `fact_trace` | Reasoning trace tree nodes within a session |
@@ -218,6 +234,7 @@ Context assembly implements progressive disclosure:
 | `fact_session_facets` | Behavioral facet values (EAV) |
 | `fact_finding` | Detected patterns with evidence (couch output) |
 | `fact_proposal` | Proposed dimension changes pending human review (evolve output) |
+| `fact_event` | Generic ingested event grain -- any JSONL stream via `IngestAdapter`, not just transcripts |
 | **Views** | |
 | `v_feedback_by_skill` | Correction counts by skill + correction_type |
 | `v_feedback_fields` | Field names mentioned in corrections by skill |
@@ -225,9 +242,14 @@ Context assembly implements progressive disclosure:
 | `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
 | `v_skill_feedback_patterns` | Skills with feedback above threshold |
 | `v_session_feedback_count` | Feedback count per session (for sampling) |
+| `v_retry_loops` | Repeated identical tool calls within a session (couch detector) |
+| `v_tool_error_clusters` | Tool error rates by project + tool (couch detector) |
+| `v_interruption_hotspots` | Sessions with user-interrupted turns by project (couch detector) |
+| `v_permission_friction` | Permission-denial clusters by project + tool (couch detector) |
 | **Operational** | |
 | `meta_schema_version` | Tracks schema version |
 | `meta_load_log` | One row per ingest/compile run (row counts, status, errors) |
+| `meta_key_algorithm` | Records the active key-hashing scheme so a database self-describes it |
 
 Full column-level reference: `skill/reference/schema.md`.
 
@@ -239,30 +261,67 @@ src/freud_schema/
   archetypes.py      - Registry of 9 agentic archetypes (3x3 grid)
   harness.py         - Meta-harness for composing system prompts
   dataset.py         - JSONL data loading and querying
-  cli.py             - CLI interface
-  keys.py            - Deterministic MD5 surrogate keys: dimension_key(), hash_diff()
-  db.py              - DuckDB schema: 4 SCD-2 dims + 3 registries + 10 facts, 6 views,
-                       meta_load_log, CHECK constraints, indexes. No sequences.
+  cli.py             - CLI interface (freud-schema)
+  keys.py            - Deterministic sha256/32 surrogate keys: dimension_key(), hash_diff()
+  db.py              - DuckDB schema: 4 SCD-2 dims + 5 registries + 11 facts, 10 views,
+                       meta_load_log, meta_key_algorithm, CHECK constraints, indexes.
+                       No sequences.
   tables.py          - Pydantic models + 20 enum classes (single source of truth for valid values)
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
+  discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
+                       comes from the path, never the internal sessionId)
+  ingest.py          - Sense: transcript ingestion (idempotent by key construction) +
+                       the IngestAdapter protocol (transcript and JSONL event adapters)
+  couch.py           - Analyze: SQL finding detectors over the warehouse (no model calls)
+  materialize.py     - Materialize: rule compiler with provenance + fail-closed privacy gate
+  ops.py             - Shared write-op dispatch layer: CLI and mcp_server.py both call
+                       these instead of ExperimentStore directly, so the two surfaces
+                       cannot drift
+  mcp_server.py      - Store-ops MCP server: read-only `query` tool + gated write tools;
+                       self-modification gate lives here
+  vendor/ccutils_parsers/ - Vendored transcript parsers, pinned upstream commit
   orchestrator.py    - Context assembly, provider protocol, provider implementations
   rlm.py             - RLM provider: REPL engine, sandbox, source content loading
 data/
   freud_schema.jsonl - 17 core entries from Freud's works
   freudagent.duckdb  - Experiment database (gitignored)
+  papers/            - Local paper/source corpora registered as dim_source rows (gitignored)
+  synthetic/         - PUBLIC synthetic corpus (committed, all fictional): SaaS exports,
+                       relational extracts, documents, feedback, unstructured streams,
+                       JSONL event streams, plus messy/time/governance/external/eval
+                       subsets for structuring, staleness, and conflict-resolution evals
 tests/
-  conftest.py          - Shared fixtures (in-memory DuckDB store)
-  test_schema.py       - Freud corpus, archetypes, harness composition
-  test_experiment.py   - DuckDB schema, store, context assembly, providers
-  test_keys.py         - dimension_key()/hash_diff() determinism and NULL-safety
-  test_schema_v017.py  - v0.17 DDL: SCD-2 columns, lineage envelope, new tables
-  test_store_v017.py   - v0.17 store: SCD-2 evolution, registries, resolve_key
-  test_rlm.py          - RLM provider, REPL loop, sandbox, source loading
+  conftest.py               - Shared fixtures (in-memory DuckDB store)
+  test_schema.py            - Freud corpus, archetypes, harness composition
+  test_experiment.py        - DuckDB schema, store, context assembly, providers
+  test_keys.py              - dimension_key()/hash_diff() determinism and NULL-safety
+  test_schema_v017.py       - v0.17 DDL: SCD-2 columns, lineage envelope, new tables
+  test_store_v017.py        - v0.17 store: SCD-2 evolution, registries, resolve_key
+  test_rlm.py               - RLM provider, REPL loop, sandbox, source loading
+  test_ingest.py            - Transcript ingestion idempotency
+  test_ingest_events.py     - Generic JSONL event-stream ingestion (fact_event)
+  test_events.py            - fact_event grain and dim_event_type registry
+  test_couch.py             - SQL finding detectors
+  test_evolve.py            - Proposal drafting and approval (SCD-2 versioning)
+  test_materialize.py       - Rule compiler, provenance footers, privacy gate
+  test_mcp_server.py        - Store-ops MCP server, self-modification gate
+  test_tenancy.py           - Tenant-scoped natural keys and --tenant CLI scope
+  test_citation_graph.py    - Corpus-wide citation edge derivation
+  test_synthetic_data.py    - Synthetic-corpus guards: generator determinism, manifest
+                              parity, cross-source references, event-stream ingest
+  test_synthetic_internal.py    - HRIS/ITSM/finance + GL reconciliations
+  test_synthetic_granularity.py - Cross-grain rollups
+  test_synthetic_temporal.py    - Snapshots/staleness
+  test_synthetic_conflicts.py   - Conflict schema + resolution-rule vocab
 docs/
   tutorial-arxiv-extraction.md - End-to-end arxiv extraction pipeline
   tutorial-rlm-provider.md     - RLM provider: REPL loop, sub-calls, presets
   tutorial-flywheel.md         - Flywheel tutorial: feedback loop end-to-end
   tutorial-cold-start.md       - Cold-start playbook: empty DB to turning flywheel
+  data-flywheel.md             - The data flywheel end to end, in plain English
+  implementation-plan.md       - Milestones, schema deltas, definitions of done
+  research-agent-data-representation.md - Research review validating the roadmap
+  assets/                       - Diagrams referenced by data-flywheel.md (SVG)
 skill/
   skill.md              - L2: routing document (CLI reference, workflow)
   reference/
@@ -276,11 +335,16 @@ skill/
     retrieval-thesis.md   - L3: Progressive disclosure rationale
     trace-capture.md      - L3: Self-reporting reasoning traces
 scripts/
-  trace-hook.sh       - PostToolUse hook for automatic trace capture
+  trace-hook.sh                - PostToolUse hook for automatic trace capture
+  generate_synthetic_data.py   - Deterministic generator for data/synthetic/
+  build_citation_graph.py      - Derives data/synthetic/eval/citation_edges.csv
 a2ui/                 - MCP server + Lit client for A2UI visual surfaces
 internal/             - Analysis docs, backlog, session logs (gitignored)
 .claude/
-  skills/db-query.md  - Claude Code skill: DuckDB schema reference and common queries
+  skills/            - Project-specific Claude Code skills (db-query.md, couch.md)
+  rules/             - Compiled rule output from dim_rule (committed; do not edit by hand)
+  settings.local.json - Personal permissions (gitignored)
+.mcp.json             - MCP server config: freud-schema mcp-serve (committed)
 ```
 
 ## Development
@@ -292,10 +356,11 @@ uv run pytest tests/ -v
 
 Core dependencies: pydantic >= 2.0, duckdb >= 0.9, orjson >= 3.9.
 
-Optional dependencies (for provider integrations):
+Optional dependencies:
 ```bash
 uv sync --extra anthropic   # Claude API
 uv sync --extra local       # OpenAI-compatible endpoints (httpx)
+uv sync --extra mcp         # Store-ops MCP server (freud-schema mcp-serve)
 ```
 
 ## License

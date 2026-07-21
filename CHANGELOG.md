@@ -1,5 +1,98 @@
 # Changelog
 
+## 0.28.1
+
+Documentation only. No code, schema, or data changes.
+
+### Added
+
+- **`docs/data-flywheel.md`** -- the architecture and data flow end to end, in
+  plain English, generalized past this repo: what a data flywheel actually is,
+  the six stages (sense, analyse, propose, approve, publish, verify), where
+  human feedback enters at two grains, and the three design choices underneath
+  (progressive disclosure, the files/warehouse split, behavior as data). Every
+  stage carries an explicit built/partial/planned marker against the milestone
+  map, so the doc cannot quietly overstate current state. Written as the entry
+  point for a first-time reader; links out to the tutorials, ROADMAP,
+  implementation plan, and research review for depth.
+- **`docs/assets/*.svg`** -- five diagrams. `flywheel-tldr.svg` is an 18-second
+  SMIL-animated walkthrough that narrates each stage in turn with its status;
+  the other four are static (grounding layer, the files-vs-warehouse storage
+  split, the human approval gate, progressive disclosure). Constraint worth
+  remembering: GitHub strips inline `<svg>` from markdown, so these are
+  standalone files referenced with `<img>`, and they use SMIL rather than
+  `<style>` blocks so they animate when loaded as images. Each carries a dark
+  self-contained background so it reads in both light and dark themes.
+- README gains a "Start here" pointer; CLAUDE.md's repo map gains the doc and
+  the assets directory with the SVG constraint noted.
+- **`docs/tutorial-flywheel.md` sections 9-16** -- the governed path, which no
+  tutorial covered before: `ingest transcripts` -> `couch run` -> `couch list`
+  -> `proposal add --evidence` -> `proposal show` -> `proposal approve` ->
+  `compile`. Includes the detector/threshold table, the anatomy of a compiled
+  file with its provenance footer, rejection as a first-class outcome, and why
+  the agent-invoked MCP tools cannot activate a rule. Steps 1-8 (hand-authoring
+  a v2 skill from feedback) now hand off to it explicitly. Every command and
+  expected-output block was executed against a scratch database before being
+  written down.
+
+### Changed
+
+- **Retired "substrate" as a term.** It was covering three unrelated ideas,
+  which is why it read as vague: the storage foundations (ROADMAP Phase 1,
+  implementation-plan Track A), the question of which store a given kind of
+  data belongs in (the research review's Part 2), and plain "raw material"
+  (synthetic-corpus README). One word for three concepts hid a distinction
+  that matters, so each sense got its own plain wording rather than a single
+  replacement:
+  - storage foundations -> "storage" ("Phase 1 — Storage Hardening",
+    "Track A — Storage", "the storage track")
+  - which store data belongs in -> "the storage split", or the two named
+    directly; the research review's table column header is now "Where it
+    lives", and research amendment 6 is "storage split made explicit"
+    (kept in sync with the `mask_signature` docstring in `ingest.py`, which
+    cites it by name)
+  - raw material -> "source data"
+  "Store" was rejected for the second sense: it collides with
+  `ExperimentStore` and the "all access goes through the store layer" rule,
+  which is the established meaning here. Released CHANGELOG entries keep the
+  old wording — that history is not rewritten.
+- `docs/assets/substrate.svg` renamed to `storage-split.svg`, matching its own
+  title ("Two stores, two jobs").
+- **README brought back in line with the code.** It had drifted badly: keys were
+  still described as MD5 (sha256/32 since 0.23), the dimensional model was
+  listed as 7 dims / 10 facts / 6 views (actually 9 / 11 / 10, counted from
+  `ALL_TABLES` and `ALL_VIEWS`), the table inventory omitted `dim_tenant`,
+  `dim_event_type`, `fact_event`, `meta_key_algorithm` and the four couch
+  detector views, and the Project Structure block predated `db.py`, `store.py`,
+  `ops.py`, `ingest.py`, `couch.py`, `materialize.py` and `mcp_server.py`
+  existing. Also added the missing `uv sync --extra mcp` to optional
+  dependencies -- it is required for `mcp-serve`, which `.mcp.json` depends on.
+- ROADMAP Phase 1 drops the "load-bearing wall" metaphor for direct language.
+
+### Dependencies
+
+- `uv lock --upgrade` -- 14 packages moved, floors in `pyproject.toml`
+  deliberately unchanged (this is a library; raising floors without a reason
+  narrows what consumers can install). Notable: anthropic 0.94.1 -> 0.117.0,
+  duckdb 1.5.2 -> 1.5.4, pydantic 2.13.0 -> 2.13.4, pytest 9.0.3 -> 9.1.1.
+  Full suite green afterward.
+
+### Fixed
+
+- Tightened the self-modification claim in the new doc and its diagrams. It read
+  "the write tools only ever create drafts", which is true of the agent-invoked
+  MCP tools and false of the CLI, where `rule add` defaults to active. Now
+  scoped to agent-callable tools, with the reason stated: a human runs the CLI.
+
+### Known rough edge
+
+`proposal add --evidence` stores finding keys verbatim -- nothing resolves
+prefixes -- while `couch list` only prints 8-char prefixes. Pasting from one
+into the other records a reference that matches no row, and the compiled
+provenance footer truncates to 8 chars too, so a broken reference renders
+identically to a good one. Workaround (query `fact_finding` for the full key) is
+documented in the tutorial; fix options are in the internal backlog.
+
 ## 0.28.0
 
 Realism and conflict layer for the synthetic corpus: messy real-world

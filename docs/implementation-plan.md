@@ -119,7 +119,7 @@ see CHANGELOG.md for the reproducible benchmark shape.
 
 Sizes are relative (S ≈ days, M ≈ a week, L ≈ multiple weeks of focused
 work). The order within tracks matters. Track C (M8–M10) can start once the
-substrate track lands; Track D additionally needs M5 and M7 from Track B
+storage track lands; Track D additionally needs M5 and M7 from Track B
 (see the dependency column). The two tracks then proceed in parallel.
 
 Rationale for the orderings: M1 precedes everything because it fixes the
@@ -132,7 +132,7 @@ grows with time.
 
 ---
 
-## Track A — Substrate
+## Track A — Storage
 
 ### M1. Reset-based schema lifecycle (no migrations — by policy)
 
@@ -161,7 +161,7 @@ cannot exist by construction.
 **Done when**: CLAUDE.md carries the policy, the change recipe is
 documented, and no milestone below references a data migration. (A
 production descendant reintroduces forward migrations as its first
-substrate task — that requirement lives in ROADMAP Phase 1, not here.)
+storage task — that requirement lives in ROADMAP Phase 1, not here.)
 
 ### M0. Cold-start playbook + staleness detector
 
@@ -955,7 +955,7 @@ see the research doc's sourcing note.
    fusion order. Rationale: both the meta-context literature and production
    harnesses select via structured metadata and agentic lexical search
    first; embeddings earn their place only for large fuzzy corpora.
-6. **M5/M14 — substrate rule made explicit.** M5's adapter protocol gains
+6. **M5/M14 — storage split made explicit.** M5's adapter protocol gains
    an optional template-mining normalization step (Drain-style signatures
    for log-shaped streams) so high-volume variable text collapses to stable
    signatures before storage. M14's compiled knowledge artifacts carry YAML

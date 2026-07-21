@@ -91,6 +91,11 @@ scripts/
                        of generate(); run it after the generator, then rerun
                        the generator so MANIFEST re-inventories the CSV
 docs/
+  data-flywheel.md             - Architecture + flywheel end to end, in plain English
+                                 with animated SVG diagrams. The entry point for anyone
+                                 new to the design; generalized past this repo
+  assets/                      - Diagram SVGs for data-flywheel.md (SMIL-animated, no
+                                 <style> blocks -- they must render via <img> on GitHub)
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
   tutorial-rlm-provider.md     - RLM provider tutorial
   tutorial-flywheel.md         - Feedback loop end-to-end

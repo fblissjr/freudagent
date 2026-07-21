@@ -1,6 +1,6 @@
 # Roadmap: From Single-Operator Experiment to Enterprise Flywheel
 
-Last updated: 2026-07-09
+Last updated: 2026-07-21
 
 This document is the result of a structural critique of the meta-harness as it
 exists today, generalized to a question bigger than this repo: **what would it
@@ -11,7 +11,7 @@ governing every change; skills updating dynamically and loading through
 progressive disclosure?**
 
 The short answer the critique produced: **the conceptual model scales; the
-substrate doesn't.** The parts most systems get wrong — provenance, versioned
+storage underneath it doesn't.** The parts most systems get wrong — provenance, versioned
 knowledge, human approval as a first-class pipeline stage, behavior-as-data —
 are already right here. The parts that break are the predictable ones
 (single-process storage, no migrations, no identity) plus two less obvious
@@ -21,7 +21,7 @@ addition the schema was shaped to receive.
 
 This roadmap records what to preserve, what to rebuild, and in what order —
 so that any enterprise-scale descendant of this design inherits the right
-invariants and replaces the right substrate.
+invariants and replaces the right storage.
 
 The concrete build plan — milestones, schema deltas, store/CLI surface, and
 definitions of done for every phase below — is in
@@ -159,18 +159,19 @@ corrects it."
   (Shipped here in v0.24: `source add --hash` baselines + the `stale_source`
   hybrid detector, plus the cold-start tutorial.)
 
-### Phase 1 — Substrate Hardening (storage, keys, migrations, tenancy)
+### Phase 1 — Storage Hardening (engine, keys, migrations, tenancy)
 
-**Why**: the single-file, single-process database is the load-bearing wall.
-The workaround choreography around the file lock is tolerable for one
-operator on one machine and disqualifying for concurrent agents, pipelines,
-and reviewers. And "no migration path; breaking changes reset the schema" is
-honest for an experiment but definitionally incompatible with a long-term
-store: transcript-derived facts are re-ingestable, but **human feedback,
-proposals, and approval history are not re-derivable from anything** — they
-are the most expensive data in the system. (Felt twice in this repo already:
-rule provenance footers do not survive a reset — the approving proposals are
-gone, and only compiled files in git history preserve the evidence chain.)
+**Why**: the single-file, single-process database is the hard limit that
+blocks everything else. The workaround choreography around the file lock is
+tolerable for one operator on one machine and disqualifying for concurrent
+agents, pipelines, and reviewers. And "no migration path; breaking changes
+reset the schema" is honest for an experiment but definitionally incompatible
+with a long-term store: transcript-derived facts are re-ingestable, but
+**human feedback, proposals, and approval history are not re-derivable from
+anything** — they are the most expensive data in the system. (Felt twice in
+this repo already: rule provenance footers do not survive a reset — the
+approving proposals are gone, and only compiled files in git history
+preserve the evidence chain.)
 
 **What exists as the seed**: all access already goes through the store layer
 (never raw connections), which makes the backend swappable. Schema versioning
@@ -372,7 +373,7 @@ visual surfaces over the store.
   liability. Redaction retrofits require reprocessing everything ingested
   before it.
 - **Phase 3 after Phase 1; Phase 4 after Phases 1–2**: retrieval serves
-  consumers and needs only the substrate; lifecycle serves maintainers and
+  consumers and needs only the storage work; lifecycle serves maintainers and
   additionally needs Phase 2's ingest and identity work. They proceed
   independently — the one touchpoint is that retrieval's corpus adds
   Phase 4's cases after that table exists.

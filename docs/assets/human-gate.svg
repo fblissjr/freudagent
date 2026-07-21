@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
+  <title id="t">The approval gate</title>
+  <desc id="d">An agent can draft a proposal, which a person approves before it becomes a new version. An agent cannot switch on a rule for itself: the write tools only create drafts, and drafts do not compile.</desc>
+
+  <rect x="0" y="0" width="960" height="440" rx="16" fill="#0b1220"/>
+
+  <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+    <text x="36" y="46" font-size="21" font-weight="600" fill="#e6edf7">The one step that stays human</text>
+
+    <!-- allowed path -->
+    <g>
+      <rect x="36" y="105" width="126" height="66" rx="11" fill="#141d2f" stroke="#3a5a8f" stroke-width="1.5"/>
+      <text x="99" y="144" font-size="14" font-weight="600" fill="#e6edf7" text-anchor="middle">the agent</text>
+
+      <line x1="164" y1="138" x2="192" y2="138" stroke="#3b4c6b" stroke-width="2"/>
+      <polygon points="200,138 190,133 190,143" fill="#3b4c6b"/>
+
+      <rect x="202" y="105" width="164" height="66" rx="11" fill="#16233a" stroke="#2c3e5e"/>
+      <text x="284" y="134" font-size="13.5" font-weight="600" fill="#c3d2ea" text-anchor="middle">drafts a proposal</text>
+      <text x="284" y="154" font-size="12" fill="#8fa2c0" text-anchor="middle">with its evidence attached</text>
+
+      <line x1="368" y1="138" x2="396" y2="138" stroke="#3b4c6b" stroke-width="2"/>
+      <polygon points="404,138 394,133 394,143" fill="#3b4c6b"/>
+
+      <rect x="406" y="96" width="170" height="84" rx="11" fill="#2a2113" stroke="#f5a524" stroke-width="2"/>
+      <text x="491" y="127" font-size="14" font-weight="600" fill="#ffd68a" text-anchor="middle">a person approves</text>
+      <text x="491" y="149" font-size="12" fill="#c79a45" text-anchor="middle">reads the evidence,</text>
+      <text x="491" y="166" font-size="12" fill="#c79a45" text-anchor="middle">says yes or no</text>
+      <rect x="406" y="96" width="170" height="84" rx="11" fill="none" stroke="#f5a524" stroke-width="2" opacity="0.5">
+        <animate attributeName="opacity" values="0.55;0.05;0.55" dur="3s" repeatCount="indefinite"/>
+      </rect>
+
+      <line x1="578" y1="138" x2="606" y2="138" stroke="#3b4c6b" stroke-width="2"/>
+      <polygon points="614,138 604,133 604,143" fill="#3b4c6b"/>
+
+      <rect x="616" y="99" width="308" height="78" rx="11" fill="#16233a" stroke="#2c3e5e"/>
+      <text x="770" y="126" font-size="13.5" font-weight="600" fill="#c3d2ea" text-anchor="middle">becomes a new version</text>
+      <text x="770" y="147" font-size="12" fill="#8fa2c0" text-anchor="middle">compiled into a file the agent loads next run,</text>
+      <text x="770" y="164" font-size="12" fill="#8fa2c0" text-anchor="middle">with the evidence and approval recorded in it</text>
+    </g>
+
+    <!-- blocked path -->
+    <path d="M99 175 L99 300 L192 300" fill="none" stroke="#5a3340" stroke-width="2"/>
+    <polygon points="200,300 190,295 190,305" fill="#5a3340"/>
+
+    <rect x="202" y="268" width="238" height="64" rx="11" fill="#221520" stroke="#5a3340"/>
+    <text x="321" y="296" font-size="13.5" font-weight="600" fill="#d4a3b0" text-anchor="middle">agent switches a rule on</text>
+    <text x="321" y="316" font-size="12" fill="#a3798a" text-anchor="middle">for its own next session</text>
+
+    <line x1="442" y1="300" x2="470" y2="300" stroke="#5a3340" stroke-width="2"/>
+    <circle cx="446" cy="300" r="4" fill="#e0607e">
+      <animate attributeName="cx" values="446;470;470" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;1;0" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+
+    <g>
+      <circle cx="497" cy="300" r="23" fill="#2c1620" stroke="#e0607e" stroke-width="2.5"/>
+      <animate attributeName="opacity" values="0.65;1;0.65" dur="2.6s" repeatCount="indefinite"/>
+      <line x1="489" y1="292" x2="505" y2="308" stroke="#e0607e" stroke-width="2.8" stroke-linecap="round"/>
+      <line x1="505" y1="292" x2="489" y2="308" stroke="#e0607e" stroke-width="2.8" stroke-linecap="round"/>
+    </g>
+
+    <text x="536" y="286" font-size="13.5" fill="#c9a3ad">No agent-callable tool can do this. They only ever create</text>
+    <text x="536" y="306" font-size="13.5" fill="#c9a3ad">drafts, drafts never compile, and the approval tool always</text>
+    <text x="536" y="326" font-size="13.5" fill="#c9a3ad">asks the person running the session first.</text>
+
+    <rect x="36" y="374" width="888" height="44" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="480" y="402" font-size="14" fill="#c3d2ea" text-anchor="middle">Automation makes the review cheap and quick. It never makes the review optional.</text>
+  </g>
+</svg>

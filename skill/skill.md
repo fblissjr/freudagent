@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.28.0
+version: 0.28.1
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud

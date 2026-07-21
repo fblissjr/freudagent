@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" width="960" height="470" role="img" aria-labelledby="t d">
+  <title id="t">Files and the warehouse do different jobs</title>
+  <desc id="d">Two panels. Files in git hold the knowledge the agent reads. A SQL warehouse holds the events, evidence and history. Each is bad at the other's job.</desc>
+
+  <rect x="0" y="0" width="960" height="470" rx="16" fill="#0b1220"/>
+
+  <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+    <text x="40" y="48" font-size="21" font-weight="600" fill="#e6edf7">Two stores, two jobs</text>
+    <text x="40" y="74" font-size="13.5" fill="#8fa2c0">The split is not a preference. Each store is genuinely bad at the other one's work.</text>
+
+    <!-- files panel -->
+    <rect x="36" y="100" width="424" height="270" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
+    <text x="60" y="134" font-size="16" font-weight="600" fill="#89b4f7">Files in git</text>
+    <text x="60" y="155" font-size="12.5" fill="#7f92b0">the form the agent reads</text>
+
+    <text x="60" y="188" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">HOLDS</text>
+    <text x="60" y="210" font-size="13.5" fill="#a8b8d4">skills, rules, documentation, compiled artifacts</text>
+
+    <text x="60" y="242" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">READ WITH</text>
+    <text x="60" y="264" font-size="13.5" fill="#a8b8d4">glob, grep, open the file — the things models are</text>
+    <text x="60" y="284" font-size="13.5" fill="#a8b8d4">already good at without being taught</text>
+
+    <text x="60" y="316" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
+    <text x="60" y="338" font-size="13.5" fill="#c49a86">counting, aggregating, answering "has this got</text>
+    <text x="60" y="356" font-size="13.5" fill="#c49a86">better since March", concurrent writes</text>
+
+    <!-- warehouse panel -->
+    <rect x="500" y="100" width="424" height="270" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
+    <text x="524" y="134" font-size="16" font-weight="600" fill="#89b4f7">A SQL warehouse</text>
+    <text x="524" y="155" font-size="12.5" fill="#7f92b0">the governed source of truth</text>
+
+    <text x="524" y="188" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">HOLDS</text>
+    <text x="524" y="210" font-size="13.5" fill="#a8b8d4">sessions, events, findings, corrections, every version</text>
+
+    <text x="524" y="242" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">READ WITH</text>
+    <text x="524" y="264" font-size="13.5" fill="#a8b8d4">queries and prepared views — counts, trends, and</text>
+    <text x="524" y="284" font-size="13.5" fill="#a8b8d4">"what did we believe on this date"</text>
+
+    <text x="524" y="316" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
+    <text x="524" y="338" font-size="13.5" fill="#c49a86">being read as instructions — text search over rows</text>
+    <text x="524" y="356" font-size="13.5" fill="#c49a86">is the worst of both worlds</text>
+
+    <!-- bridge -->
+    <line x1="466" y1="235" x2="494" y2="235" stroke="#3b4c6b" stroke-width="2" stroke-dasharray="4 4"/>
+
+    <rect x="36" y="396" width="888" height="46" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="480" y="425" font-size="14.5" fill="#c3d2ea" text-anchor="middle">The rule: the warehouse is the source of truth, and the files are built from it. Neither one stores the other's data.</text>
+  </g>
+</svg>
