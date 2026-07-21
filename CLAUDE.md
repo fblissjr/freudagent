@@ -91,9 +91,13 @@ scripts/
                        of generate(); run it after the generator, then rerun
                        the generator so MANIFEST re-inventories the CSV
 docs/
-  data-flywheel.md             - Architecture + flywheel end to end, in plain English
-                                 with animated SVG diagrams. The entry point for anyone
-                                 new to the design; generalized past this repo
+  how-it-works.md              - The short explainer (~5 min). Entry point from README;
+                                 derived from data-flywheel.md, no jargon, animated SVGs
+  data-flywheel.md             - The detailed source of truth for the design. Vision, not
+                                 a description of the code -- the code is one reference
+                                 implementation of it. Generalized past this repo
+  flywheel-failure-modes.md    - Twenty ways a data flywheel fails, with what this repo
+                                 does and does not defend against
   assets/                      - Diagram SVGs for data-flywheel.md (SMIL-animated, no
                                  <style> blocks -- they must render via <img> on GitHub)
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline

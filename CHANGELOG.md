@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.32.0
+
+### Added
+
+- **`docs/how-it-works.md`** -- the short explainer derived from
+  `data-flywheel.md`. About 1,400 words, five minutes, no jargon at all. Leads
+  with the so-what: agent instructions go stale the way every data catalog does,
+  and this is a design for making the system keep them current with a person
+  approving each change. Carries the animated loop and the approval-gate diagram.
+
+  Written to stand alone for someone arriving from the README who has never seen
+  this repo. It does not reference what any doc used to say, because a first-time
+  reader has no stake in our history.
+
+  README's "Start here" now leads with it and points at `data-flywheel.md` as the
+  detailed source of truth behind it.
+
 ## 0.31.0
 
 Documentation only. `docs/data-flywheel.md` restructured and rewritten, not

@@ -18,11 +18,15 @@ Last updated: 2026-07-21
 
 ## Start here
 
-[The data flywheel](docs/data-flywheel.md) explains the whole design end to end,
-in plain English with animated diagrams: how agent output becomes evidence, how
-evidence becomes proposals, how a person approves them, and how approved changes
-become the files the agent loads next time. It covers the generalized pattern,
-not just this repo, and marks which parts are built and which are planned.
+[How this works](docs/how-it-works.md) — the short version, about five minutes.
+Agent instructions go stale the same way every data catalog does. This is a
+design for making the system keep them current from evidence, with a person
+approving every change. Animated diagrams, no jargon.
+
+[The data flywheel](docs/data-flywheel.md) — the full design, in detail. The
+source of truth for everything above: what the loop runs on, where signal comes
+from and why that decides whether it works, the six stages, and an honest
+account of which parts this repo has actually built.
 
 ## Setup
 
