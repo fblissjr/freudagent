@@ -23,6 +23,10 @@ names are a joke. The design underneath is not.
 Six stages: record what happened, find what repeats, propose a change, have a
 person approve it, compile it into what the agent loads, and check it helped.
 
+Those six are the easy half. What decides whether any of it compounds is the
+quality of the signal going in, which is why that section is the longest one
+here and why most of this design is about it rather than about the loop.
+
 ## What a data flywheel actually means
 
 The output of using the system becomes the input that improves the system, and
@@ -157,11 +161,159 @@ That is the most expensive turn and it never repeats. The failure to avoid is
 treating cold-start output as truth because it came out of the system. It is the
 one point where the system has no grounds for anything it says.
 
+## The loop
+
+### 1. Ingest
+
+Agent runs, business events, documents, exports. All of it lands in the
+warehouse at the lowest granularity available.
+
+Row identifiers are computed from stable natural keys rather than handed out by
+a counter, so any worker can compute a row's key without coordinating with
+anything, and re-ingesting unchanged material writes nothing rather than writing
+duplicates it later has to clean up. That makes ingest safe to schedule and
+forget.
+
+Two honest caveats. Deterministic keys buy coordination-free key computation,
+which is what makes the pattern port to distributed pipelines — they do not by
+themselves buy safety when several writers run at once, which is a property of
+the store you choose. And the guarantee should be measured rather than asserted,
+which is what the load log is for.
+
+### 2. Analyze
+
+Deterministic detectors scan for patterns worth acting on. A field corrected the
+same way twelve times. A source whose hash no longer matches. A step failing at
+an elevated rate for one segment. A path the agent keeps taking that the
+guidance does not describe.
+
+Deterministic first, inference last. Detectors written as queries are cheap,
+repeatable and give the same answer twice, so they run continuously with no
+model in the hot path. A model is asked only for judgements a query cannot make.
+
+The most important of those is mechanism rather than symptom. Two failures with
+identical surface outcomes can have entirely different causes, so a finding
+should record the terminal cause, the behaviour implicated, and the mechanism
+the evidence exposes. Findings that are diagnoses make proposals bounded.
+Findings that are counters do not.
+
+Findings also need a lifecycle. The same problem detected on ten consecutive
+runs is one open case with a recurrence count, not ten identical records, or the
+review queue fills with re-detections and people stop opening it.
+
+### 3. Propose
+
+A finding with enough evidence becomes a written proposal. What counts as enough
+is a threshold stored as data per finding type, tunable per domain without a
+code change.
+
+The proposal links to the findings and records that justify it, and those links
+carry a claim type — because a justification is several different kinds of claim
+at once. A numerical one, that the detector counted this. A reference one, that
+the cited record exists and says what is claimed. A methodological one, that
+this is what the wording change does. And a conclusion, that the pattern should
+therefore shrink. Each is checkable differently, and a reviewer handed one
+undifferentiated blob checks none of them.
+
+That matters because of a documented failure: in a study of automated research
+systems, every approach not enforcing claim-by-claim grounding produced
+surface-plausible output hiding broken evidence chains. Prose summaries of
+evidence are exactly the thing not to trust, including summaries written by the
+proposing model.
+
+### 4. Approve
+
+Nothing reaches the agent's context without someone saying yes.
+
+<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%">
+
+The argument is specific rather than general. The fully automated version of
+this loop exists in the literature and its documented weakness is precisely the
+missing gate: a noisy automated curator silently pollutes the knowledge base and
+nothing catches it. Reported failures in self-editing systems include reward
+hacking, where the system learns to game its own scoring, and non-local damage,
+where an edit to a shared component breaks things far from where it was made.
+The human approval step is the direct fix for a named failure.
+
+The gate belongs in the tools rather than in a policy document. Tools an agent
+can call should only ever create drafts, drafts should never compile, and
+approval should always surface a prompt to the person running the session.
+
+Being honest about the limit: a gate in one tool surface is only as strong as
+the other surfaces beside it. A command line, a database client, or a permission
+list that quietly grows can each route around it. Anything with write access is
+in the gate's threat model.
+
+Automation here reduces how much a person must look at, never how carefully they
+look. Those are different goals and only one is safe. Merging recurring findings
+into one case, batching related proposals and routing by risk all reduce volume.
+Speeding up the review itself mostly makes it shallower.
+
+### 5. Compile
+
+An approved change creates a new version. Old versions are not overwritten; they
+are closed with a date, so what we believed in March stays a plain query and
+undoing a change means selecting an earlier row.
+
+Current, active knowledge compiles into the artifacts the agent loads. Those
+artifacts are build output: a do-not-edit header, a line naming the row they
+came from, and a footer naming the proposal and evidence behind them. For
+anything compiled this way, the warehouse is the source of truth and the files
+are a cache of it.
+
+That is not in tension with a skill's artifact living in git, described below.
+Two different things are going on. Rules and other short knowledge units are
+rendered out of rows, so the file is derived. A skill's content is authored and
+reviewed as a file, and the warehouse holds its metadata and history rather than
+its text. What both share is the invariant: versioned, never edited in place,
+always traceable to the run and the evidence behind it.
+
+Because they are a cache, something has to check they still match. A drift check
+comparing compiled output against current rows belongs in continuous
+integration, not in trust — otherwise the first person to hand-edit a compiled
+file has silently forked the system, and the next compile reverts their work
+without warning.
+
+A privacy check runs before anything is written, and it refuses rather than
+degrades: if rendered output would leak a home directory path or the machine's
+username, that file is not written and the previous version stays in place.
+Those two are what the check actually detects today — it is not a secret
+scanner, and treating it as one is how a credential ends up in a compiled
+artifact. The stronger version is to redact on the way in rather than on the way
+out, because blocking leaks at compile while accepting a dirty warehouse means
+the warehouse itself becomes the exposure, and retention, deletion requests and
+audit all land on it.
+
+### 6. Verify
+
+Before a new version ships, run it against work already reviewed and marked
+correct, kept aside for exactly this purpose.
+
+<img src="assets/verify-gate.svg" alt="A candidate version faces two checks: did it fix what it targeted, tested against what its own evidence points at, and did it break anything else, tested against other work already judged correct. Both must pass or the last good version keeps serving." width="100%">
+
+The test is two-sided. The new version has to fix what it was written to fix,
+and break nothing else. Passing one and failing the other is a fail. When it
+fails, the last good version keeps serving.
+
+What makes this data-driven rather than a test suite: the set used to check the
+fix is derived from the proposal's own evidence chain — the findings it cited,
+the runs those findings referenced, the judged-correct outputs from those runs.
+An empty set fails rather than passing by default. The provenance chain is not
+decoration. It is what makes verification computable.
+
+One cost to be honest about. Verification is model inference per candidate
+against each item held aside, so it grows with proposal volume and with the size
+of the reference set. Whether that matters depends entirely on cadence. A
+pipeline that runs once a day can afford to be thorough. An event-triggered path
+that must answer in seconds cannot, and has to verify out of band, on a sample,
+or against a smaller reference set. How rigorous the gate is should be a
+deployment decision, not a fixed property of the design.
+
 ## Where the signal comes from
 
-This section is long because it is the part that decides whether any of it
-works. The mechanics in the next section are the visible engineering problem.
-Signal quality is what determines whether the loop compounds or just turns.
+You have now seen the machinery. This section is longer than all of it, because
+the machinery is the visible engineering problem and this is the part that
+decides whether the loop compounds or merely turns.
 
 ### Constraints on both sides
 
@@ -350,7 +502,8 @@ promotes deviations on observed outcomes will systematically strip out exactly
 the safeguards whose value is invisible in the sample. The defence is that rules
 carry why they exist, not only what to do.
 
-## The loop
+Putting both halves together — the machinery above, and the signal that
+decides whether it compounds:
 
 ```mermaid
 flowchart LR
@@ -373,152 +526,6 @@ flowchart LR
   V --> J["compiled artifact<br/>with provenance"]
   J --> A
 ```
-
-### 1. Ingest
-
-Agent runs, business events, documents, exports. All of it lands in the
-warehouse at the lowest granularity available.
-
-Row identifiers are computed from stable natural keys rather than handed out by
-a counter, so any worker can compute a row's key without coordinating with
-anything, and re-ingesting unchanged material writes nothing rather than writing
-duplicates it later has to clean up. That makes ingest safe to schedule and
-forget.
-
-Two honest caveats. Deterministic keys buy coordination-free key computation,
-which is what makes the pattern port to distributed pipelines — they do not by
-themselves buy safety when several writers run at once, which is a property of
-the store you choose. And the guarantee should be measured rather than asserted,
-which is what the load log is for.
-
-### 2. Analyze
-
-Deterministic detectors scan for patterns worth acting on. A field corrected the
-same way twelve times. A source whose hash no longer matches. A step failing at
-an elevated rate for one segment. A path the agent keeps taking that the
-guidance does not describe.
-
-Deterministic first, inference last. Detectors written as queries are cheap,
-repeatable and give the same answer twice, so they run continuously with no
-model in the hot path. A model is asked only for judgements a query cannot make.
-
-The most important of those is mechanism rather than symptom. Two failures with
-identical surface outcomes can have entirely different causes, so a finding
-should record the terminal cause, the behaviour implicated, and the mechanism
-the evidence exposes. Findings that are diagnoses make proposals bounded.
-Findings that are counters do not.
-
-Findings also need a lifecycle. The same problem detected on ten consecutive
-runs is one open case with a recurrence count, not ten identical records, or the
-review queue fills with re-detections and people stop opening it.
-
-### 3. Propose
-
-A finding with enough evidence becomes a written proposal. What counts as enough
-is a threshold stored as data per finding type, tunable per domain without a
-code change.
-
-The proposal links to the findings and records that justify it, and those links
-carry a claim type — because a justification is several different kinds of claim
-at once. A numerical one, that the detector counted this. A reference one, that
-the cited record exists and says what is claimed. A methodological one, that
-this is what the wording change does. And a conclusion, that the pattern should
-therefore shrink. Each is checkable differently, and a reviewer handed one
-undifferentiated blob checks none of them.
-
-That matters because of a documented failure: in a study of automated research
-systems, every approach not enforcing claim-by-claim grounding produced
-surface-plausible output hiding broken evidence chains. Prose summaries of
-evidence are exactly the thing not to trust, including summaries written by the
-proposing model.
-
-### 4. Approve
-
-Nothing reaches the agent's context without someone saying yes.
-
-<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%">
-
-The argument is specific rather than general. The fully automated version of
-this loop exists in the literature and its documented weakness is precisely the
-missing gate: a noisy automated curator silently pollutes the knowledge base and
-nothing catches it. Reported failures in self-editing systems include reward
-hacking, where the system learns to game its own scoring, and non-local damage,
-where an edit to a shared component breaks things far from where it was made.
-The human approval step is the direct fix for a named failure.
-
-The gate belongs in the tools rather than in a policy document. Tools an agent
-can call should only ever create drafts, drafts should never compile, and
-approval should always surface a prompt to the person running the session.
-
-Being honest about the limit: a gate in one tool surface is only as strong as
-the other surfaces beside it. A command line, a database client, or a permission
-list that quietly grows can each route around it. Anything with write access is
-in the gate's threat model.
-
-Automation here reduces how much a person must look at, never how carefully they
-look. Those are different goals and only one is safe. Merging recurring findings
-into one case, batching related proposals and routing by risk all reduce volume.
-Speeding up the review itself mostly makes it shallower.
-
-### 5. Compile
-
-An approved change creates a new version. Old versions are not overwritten; they
-are closed with a date, so what we believed in March stays a plain query and
-undoing a change means selecting an earlier row.
-
-Current, active knowledge compiles into the artifacts the agent loads. Those
-artifacts are build output: a do-not-edit header, a line naming the row they
-came from, and a footer naming the proposal and evidence behind them. For
-anything compiled this way, the warehouse is the source of truth and the files
-are a cache of it.
-
-That is not in tension with a skill's artifact living in git, described below.
-Two different things are going on. Rules and other short knowledge units are
-rendered out of rows, so the file is derived. A skill's content is authored and
-reviewed as a file, and the warehouse holds its metadata and history rather than
-its text. What both share is the invariant: versioned, never edited in place,
-always traceable to the run and the evidence behind it.
-
-Because they are a cache, something has to check they still match. A drift check
-comparing compiled output against current rows belongs in continuous
-integration, not in trust — otherwise the first person to hand-edit a compiled
-file has silently forked the system, and the next compile reverts their work
-without warning.
-
-A privacy check runs before anything is written, and it refuses rather than
-degrades: if rendered output would leak a home directory path or the machine's
-username, that file is not written and the previous version stays in place.
-Those two are what the check actually detects today — it is not a secret
-scanner, and treating it as one is how a credential ends up in a compiled
-artifact. The stronger version is to redact on the way in rather than on the way
-out, because blocking leaks at compile while accepting a dirty warehouse means
-the warehouse itself becomes the exposure, and retention, deletion requests and
-audit all land on it.
-
-### 6. Verify
-
-Before a new version ships, run it against work already reviewed and marked
-correct, kept aside for exactly this purpose.
-
-<img src="assets/verify-gate.svg" alt="A candidate version faces two checks: did it fix what it targeted, tested against what its own evidence points at, and did it break anything else, tested against other work already judged correct. Both must pass or the last good version keeps serving." width="100%">
-
-The test is two-sided. The new version has to fix what it was written to fix,
-and break nothing else. Passing one and failing the other is a fail. When it
-fails, the last good version keeps serving.
-
-What makes this data-driven rather than a test suite: the set used to check the
-fix is derived from the proposal's own evidence chain — the findings it cited,
-the runs those findings referenced, the judged-correct outputs from those runs.
-An empty set fails rather than passing by default. The provenance chain is not
-decoration. It is what makes verification computable.
-
-One cost to be honest about. Verification is model inference per candidate
-against each item held aside, so it grows with proposal volume and with the size
-of the reference set. Whether that matters depends entirely on cadence. A
-pipeline that runs once a day can afford to be thorough. An event-triggered path
-that must answer in seconds cannot, and has to verify out of band, on a sample,
-or against a smaller reference set. How rigorous the gate is should be a
-deployment decision, not a fixed property of the design.
 
 ## Skills are a ragged hierarchy
 
@@ -670,7 +677,7 @@ up.
 ## How this goes wrong
 
 These loops fail from lack of signal far more often than from broken mechanics,
-which is why this document put signal first.
+which is why the signal section above is longer than every stage combined.
 
 | Failure | What you see | First thing to check |
 |---|---|---|

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.34.2
+
+### Changed
+
+- **`docs/data-flywheel.md`: the loop now comes before the signal section.** An
+  earlier pass moved signal first, on the argument that a document claiming
+  signal matters more than mechanics should not put mechanics first. That
+  confused emphasis with sequence. Two pieces of evidence inside the artifact
+  settled it: the signal section opened with a forward reference to the section
+  after it -- a bridge written to make the ordering survive -- and all three
+  documents derived from this one (`how-it-works.md`, `skill/reference/flywheel.md`,
+  and the internal plain read) independently put the loop first. Compressing the
+  argument reverted to the teaching order every time. The parent was the outlier.
+
+  Emphasis now sits where it belongs rather than in the running order: the
+  framing states that the six stages are the easy half and that signal decides
+  whether anything compounds, and the signal section remains longer than every
+  stage combined.
+- The end-to-end flow diagram moved from the head of the loop section to the end
+  of the signal section. It shows sampling, labelled judgement and
+  model-generated feedback, so at the head of the loop it previewed terms the
+  reader had not met; at the end of signal it is a synthesis of both halves.
+- A claim that the document "put signal first" was left over from the old
+  structure.
+- Retired vocabulary cleared from the internal plain read.
+
+No derived document needed reordering. All three were already right.
+
 ## 0.34.1
 
 Acting on a review of the preceding fifteen commits.
