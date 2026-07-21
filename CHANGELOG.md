@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.33.2
+
+### Changed
+
+- **`skill/reference/flywheel.md` rewritten.** It described the loop as
+  "extract -> review -> correct -> aggregate -> refine skill -> verify", which
+  omits propose, approve and compile -- the three stages that are the actual
+  design. Now the six stages, with what backs each in this repo and what is not
+  built, taken from `docs/data-flywheel.md`'s status table rather than invented.
+  Adds constraints on both sides, feedback granularity, the breakdown during the
+  run, deviation as two-way signal, model-generated feedback and its diversity
+  precondition, and skills as a ragged hierarchy -- all previously absent.
+- **The twelve "atoms" are now the twelve steps.** "Atom" was a coinage for
+  something with an ordinary name, and "Atom IDs" was the worst form of it. They
+  are kept as a clearly-labelled finer breakdown rather than deleted, because
+  four committed files cite them and they answer a question the six stages do
+  not: which steps are deterministic, which need a model, and which only a person
+  can do. Every step now maps to a stage in a table, so a reader is not left with
+  two unreconciled models.
+- The step table is now the definition of record. It previously pointed readers
+  at `internal/flywheel_decomposition.json`, which is gitignored -- a committed
+  reference sending people to a file they cannot open, for numbers cited from
+  committed code.
+- `skill/skill.md` routing row for that file said "flywheel atoms"; it now
+  describes what the file actually contains.
+
+- **`docs/flywheel-failure-modes.md`** gains two failure modes the design implies
+  and the doc had missed: asking people to judge at a level they cannot evaluate,
+  and the breakdown being authored instead of observed, which rots the way a data
+  catalog does and takes the deviation signal with it. Twenty-two entries now.
+  Terminology aligned with the main docs -- "synthetic feedback" is
+  model-generated feedback, and held-out, stratified and always-loaded are gone.
+
+- **Visual placement.** In five of seven cases a diagram sat directly under its
+  heading, so a reader met the picture before the claim it illustrates. Every
+  diagram now follows a one-sentence statement of what it shows. The animated
+  loop in the README and the explainer had no gloss, so six stage names arrived
+  unexplained; both now carry the same one-line summary the detailed doc has.
+  The explainer gains the grounding-layer diagram in the section about it.
+
+### Fixed
+
+- README described `docs/data-flywheel.md` as saying "exactly what runs today",
+  which frames the design doc as a status report. It is the vision; one section
+  in it reports status. Reworded.
+
 ## 0.33.1
 
 Alignment pass on the explainer and README after a review against the stated

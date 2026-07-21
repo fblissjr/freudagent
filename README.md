@@ -14,15 +14,20 @@ what actually happened, with a person approving every change. It runs inside
 your agent harness — Claude Code, the Agent SDK — rather than wrapping it: the
 harness orchestrates, this handles the data.
 
-It is a design, not a finished product. The mechanical half of the loop is
-built; the half that decides whether it actually improves mostly is not. The
-[flywheel doc](docs/data-flywheel.md) says exactly what runs today.
+This describes how we think these systems should work, which is ahead of what
+this repo has built — the mechanical half of the loop exists, the half that
+decides whether it actually improves mostly does not. [The data
+flywheel](docs/data-flywheel.md) is the design in full, and one section in it
+says plainly which parts run today.
+
+<img src="docs/assets/flywheel-tldr.svg" alt="An animated loop of six stages: ingest, analyze, propose, approve, compile, verify. A pulse travels the loop and each stage is explained in turn. Approve is marked as done by a person." width="100%">
+
+Record what happened, find what repeats, propose a change, have a person approve
+it, compile it into what the agent loads, and check it helped.
 
 Mostly a joke repo. But the thesis is serious.
 
 Last updated: 2026-07-21
-
-<img src="docs/assets/flywheel-tldr.svg" alt="An animated loop of six stages: ingest, analyze, propose, approve, compile, verify. A pulse travels the loop and each stage is explained in turn. Approve is marked as done by a person." width="100%">
 
 ## Start here
 
@@ -30,8 +35,8 @@ Last updated: 2026-07-21
   minutes, no jargon
 - [The data flywheel](docs/data-flywheel.md) — the full design, in detail. The
   source of truth for everything else here
-- [How data flywheels fail](docs/flywheel-failure-modes.md) — twenty ways this
-  goes wrong and how to catch each one
+- [How data flywheels fail](docs/flywheel-failure-modes.md) — the ways this goes
+  wrong and how to catch each one
 
 ## Setup
 

@@ -14,10 +14,16 @@ built — read it before assuming any of this runs.
 
 <img src="assets/flywheel-tldr.svg" alt="An animated loop of six stages: ingest, analyze, propose, approve, compile, verify. A pulse travels the loop and each stage is explained in turn. Approve is marked as done by a person." width="100%">
 
+Record what happened, find what repeats, propose a change, have a person approve
+it, compile it into what the agent loads, and check it helped. Each of those is
+below.
+
 ## What sits between your data and the agent
 
 A layer of governed data. Not a prompt and not a config file — this design calls
 it the grounding layer, because nothing else named it, and it has three faces.
+
+<img src="assets/grounding-layer.svg" alt="Raw material feeds a governed layer with constraints on both sides: left-hand constraints saying what the agent may and must do, grounding data in the middle, and right-hand constraints defining what good means. The agent reads from that layer and its results feed back in." width="100%">
 
 Constraints on one side, saying what the agent may and must do. Checked
 knowledge in the middle, with the evidence behind it and where it came from.
@@ -136,10 +142,10 @@ data rather than another application to maintain.
 
 ## Why a person approves
 
-<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%">
-
 An agent that can write its own instructions can write instructions that load
-into its own next session. The fully automated version of this loop exists in
+into its own next session.
+
+<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%"> The fully automated version of this loop exists in
 the published research, and it's reported to fail the way you'd expect — systems
 that learn to game their own scoring, and edits to shared pieces that break
 things far from where the edit happened. Worth knowing that those results come
@@ -229,7 +235,7 @@ they don't, you're writing down things the model would have done anyway.
 
 - [The data flywheel](data-flywheel.md) — the full design, in detail. This page
   is the short version of that one.
-- [How data flywheels fail](flywheel-failure-modes.md) — twenty ways this goes
-  wrong, what each looks like, and how to catch it
+- [How data flywheels fail](flywheel-failure-modes.md) — the ways this goes wrong,
+  what each looks like, and how to catch it
 - [Cold-start tutorial](tutorial-cold-start.md) — day one, as actual commands
 - [Feedback tutorial](tutorial-flywheel.md) — the loop as actual commands

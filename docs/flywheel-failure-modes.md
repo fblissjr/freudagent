@@ -94,6 +94,33 @@ What to do: keep a standing sample of output under review regardless of
 complaint volume, and lean harder on staleness detection as correction volume
 falls. Maintenance signal has to replace error signal over time.
 
+### You ask people to judge at the wrong level
+
+What it looks like: reviewers are responding, but nothing actionable comes out.
+Judgements are mostly "looks fine" with no detail, or people quietly stop
+answering for certain kinds of item.
+
+Why it happens: the level you ask at is set by what a person can actually
+evaluate, and that is easy to get wrong in both directions. Ask about a whole
+outcome and you get a verdict with nowhere to go — it was bad, but not where or
+why. Ask about mechanics nobody has a view on and people guess, skip, or wave it
+through, which is worse than silence because it looks like signal.
+
+Why it matters: this is the difference between feedback that improves a system
+and feedback that only measures satisfaction. A loop can collect steadily for
+months at the wrong level and never learn anything.
+
+How to catch it: look at how much of your feedback is a bare verdict with no
+specifics, and at response rates broken down by kind of item. If corrections
+rarely point at a particular step or field, you are asking too high. If people
+skip certain categories consistently, you are asking below where they have an
+opinion.
+
+What to do: treat the level of asking as a parameter separate from how much you
+record. Recording goes all the way down regardless, because you cannot aggregate
+detail you did not keep. Then move where you ask and watch whether the feedback
+gets more specific. The right level is discovered, not designed.
+
 ## Biased signal
 
 Sampling bias is more dangerous than low volume, because volume problems are
@@ -106,8 +133,8 @@ What it looks like: most corrections come from one domain, one team, one
 customer, or one kind of task. Improvements are real for that slice and quietly
 regress everything else.
 
-Why it matters more than it seems: the held-out set used to verify improvements
-is usually drawn from the same pool as the feedback. If both are skewed the same
+Why it matters more than it seems: the set kept back to verify improvements is
+usually drawn from the same pool as the feedback. If both are skewed the same
 way, verification confirms the bias instead of catching it. The gate reports
 success precisely when it should be failing.
 
@@ -154,13 +181,13 @@ What to do: order the queue by value rather than by arrival, and track queue
 age. An item that has waited a long time is usually one people are avoiding, and
 that is a signal in itself.
 
-### Synthetic feedback amplifies a biased seed
+### Model-generated feedback amplifies a biased seed
 
 This is the most dangerous entry on the page, because it looks like the
 solution to every problem above.
 
 What it looks like: human feedback is scarce, so you bootstrap. A model
-generates feedback, or judges output, or synthesizes training examples, using a
+generates feedback, or judges output, or writes training examples, using a
 sample of human-reviewed cases as its seed. Volume increases enormously.
 Coverage appears to be solved.
 
@@ -182,15 +209,14 @@ it hard to detect. Noise averages out. Systematic error compounds.
 
 Two further traps sit inside this one. A model judging output produced by a
 model of the same family tends to agree with it, so the judge is not independent
-of the thing it judges. And once synthetic feedback outnumbers human feedback,
-the human signal is statistically drowned even though it is still being
-collected, so the check you think you have is not doing any work.
+of the thing it judges. And once model-generated feedback outnumbers human
+feedback, the human signal is drowned even though it is still being collected,
+so the check you think you have is not doing any work.
 
 How to catch it: audit the seed before trusting anything downstream. What
-sampled it, and against what distribution? Then hold out a genuinely human-only
-slice that no synthetic process touched, and measure against that separately.
-If synthetic and human evaluation ever disagree, believe the human set and go
-find out why.
+sampled it, and against what distribution? Then keep back a slice judged only by people, which
+no model process has touched, and measure against that separately. If the two
+ever disagree, believe the people and go find out why.
 
 What to do: treat model-generated feedback as amplification, never as substitute,
 and make the controls structural rather than advisory.
@@ -210,9 +236,9 @@ The upstream fix is sampling. If seed diversity is the precondition, collecting 
 diverse seed is a design problem rather than a matter of diligence — something has
 to actively choose what a person is asked to review, spread across domains,
 customers and difficulty, weighted toward thin coverage. That is a sampler with a
-user interface, and the harness itself can be that interface: pull a stratified
-sample, show each item beside its source, capture the judgement, write it back
-labelled.
+user interface, and the harness itself can be that interface: pull a sample
+spread deliberately across domains, customers and difficulty, show each item
+beside its source, capture the judgement, write it back labelled.
 
 ## Self-reference
 
@@ -272,7 +298,7 @@ compare against and will not be caught.
 ### The knowledge base only ever grows
 
 What it looks like: every finding adds a rule. Nothing ever removes one. After a
-year there are hundreds, the always-loaded context is enormous, and the
+year there are hundreds, what the agent loads on every run is enormous, and the
 instructions have become a document nobody reads — which is the exact failure
 the whole design was meant to avoid.
 
@@ -280,8 +306,8 @@ Why it happens: adding a rule has a clear justification and an obvious author.
 Removing one requires arguing that something is no longer needed, which is
 harder and thankless.
 
-How to catch it: count active rules over time and measure the size of the
-always-loaded context. Both should be roughly flat, not monotonically rising.
+How to catch it: count active rules over time and measure the size of what gets
+loaded on every run. Both should be roughly flat, not monotonically rising.
 
 What to do: give knowledge units an expiry or a review date, and make retirement
 a first-class proposal type rather than an afterthought. Scope-limited loading
@@ -304,6 +330,31 @@ near certain.
 What to do: check new proposals against the current active set at approval time,
 not just against their own evidence. Consolidation passes that reconcile the
 whole corpus catch what per-change review structurally cannot.
+
+### The breakdown gets authored instead of observed
+
+What it looks like: someone writes down how work of a given type decomposes,
+that becomes the model everything is measured against, and it slowly stops
+describing what actually happens.
+
+Why it happens: authoring it once is easy and feels like design. Deriving it
+from observed runs is ongoing work with no obvious owner — which is the same
+reason data catalogs rot, and it produces the same outcome.
+
+Why it matters more here: an authored breakdown does not just go stale, it takes
+the deviation signal with it. Comparing prescribed process against actual
+process only means something if the prescribed side reflects a real intent.
+Compare against a stale model and every run looks like a deviation, so the
+signal becomes noise and people stop looking at it.
+
+How to catch it: compare the breakdown you have written down against what runs
+actually did, over a recent window. Divergence nobody noticed means it is
+already stale.
+
+What to do: derive it from observed runs rather than authoring it, and treat a
+hand-written one as a cold-start artifact that is untrusted until the loop has
+corrected it. Where a step really is prescribed rather than observed, say so
+explicitly, so the two are distinguishable later.
 
 ### The evidence is pruned and the rule survives
 
@@ -456,6 +507,7 @@ Honest accounting, matching the status markers in
 | Nobody corrects anything | none automated; the cold-start playbook requires validating everything early |
 | Only hearing about failures | partial: validation is recorded separately from rejection |
 | Success starves the loop | none; correction volume per hundred sessions is queryable but nothing watches it |
+| Asking at the wrong level | none; the level of asking is not recorded, so it cannot be tuned |
 | Signal from one corner | none; corrections can be grouped by domain manually |
 | One reviewer becomes policy | none; single-operator by design so far |
 | Easy cases reviewed, hard skipped | none; queue ordering by risk is planned (M12) |
@@ -465,6 +517,7 @@ Honest accounting, matching the status markers in
 | Knowledge goes stale | partial: `stale_source` covers registered sources with a baseline hash |
 | Knowledge only grows | partial: scoped compilation planned (M10); nothing prunes |
 | Rules contradict each other | none; consolidation passes planned (M15) |
+| Breakdown authored rather than observed | none; the breakdown is not captured as data yet, so there is nothing to compare |
 | Evidence pruned, rule survives | none; already observed after a schema reset |
 | Approval becomes a rubber stamp | partial: rejection rate is queryable; nothing alerts |
 | Gate too slow, people route around | planned: `compile --check` drift detection (M10) |

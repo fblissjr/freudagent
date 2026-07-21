@@ -55,9 +55,9 @@ file operations) handle decomposition and routing. FreudAgent provides:
 
 ## How Agent SDK Would Consume FreudAgent
 
-The 12 flywheel atoms (see `reference/flywheel.md`) map to Agent SDK primitives:
+The twelve flywheel steps (see `reference/flywheel.md`) map to Agent SDK primitives:
 
-| SDK Primitive | Flywheel Atom | Example |
+| SDK Primitive | Flywheel Step | Example |
 |---------------|---------------|---------|
 | Agent | Pattern Detector, Skill Updater, Holdout Tester | Autonomous reasoning tasks |
 | Tool | Context Assembly, Feedback Collection, Version Activation | Deterministic operations |

@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.33.1
+version: 0.33.2
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -52,7 +52,7 @@ FreudAgent handles data.
 | Archetypes, presets, prompt composition | `reference/archetypes.md` |
 | Understanding the tree architecture | `reference/hierarchy.md` |
 | Context assembly, progressive disclosure | `reference/context-assembly.md` |
-| Feedback loop, flywheel atoms | `reference/flywheel.md` |
+| Feedback loop, the six stages, signal quality | `reference/flywheel.md` |
 | Archetype usage patterns and examples | `reference/archetype_patterns.md` |
 | German-English translation nuances | `reference/translation_matrix.md` |
 | Retrieval thesis, progressive disclosure rationale | `reference/retrieval-thesis.md` |
@@ -192,7 +192,7 @@ freud-schema proposal reject <key-or-prefix> [--by NAME]
 freud-schema compile --out .claude/rules [--scope global]
 ```
 
-Approval is the one human atom -- nothing auto-applies. `compile` renders
+Approval is the one step only a person can do -- nothing auto-applies. `compile` renders
 current active rules to `<name>.md` with a do-not-edit header, a source
 line, and a provenance footer naming the approving proposal and its
 findings. The privacy gate is fail-closed: files containing home paths or

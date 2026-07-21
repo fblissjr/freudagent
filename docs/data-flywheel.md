@@ -76,11 +76,10 @@ entries merged by deterministic logic.
 
 ## The grounding layer
 
-<img src="assets/grounding-layer.svg" alt="Raw material feeds a governed layer with constraints on both sides: left-hand constraints saying what the agent may and must do, grounding data in the middle, and right-hand constraints defining what good means. The agent reads from that layer and its results feed back in." width="100%">
+Everything below builds one thing, so it is worth naming up front. Between your
+raw material and the agent sits a layer of governed data.
 
-Everything below builds one thing, so it is worth naming up front.
-
-Between your raw material and the agent sits a layer of governed data. Not a
+<img src="assets/grounding-layer.svg" alt="Raw material feeds a governed layer with constraints on both sides: left-hand constraints saying what the agent may and must do, grounding data in the middle, and right-hand constraints defining what good means. The agent reads from that layer and its results feed back in." width="100%"> Not a
 prompt, not a config file, and not a knowledge base in the usual sense — a layer
 with three faces.
 
@@ -434,9 +433,9 @@ proposing model.
 
 ### 4. Approve
 
-<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%">
-
 Nothing reaches the agent's context without someone saying yes.
+
+<img src="assets/human-gate.svg" alt="An agent drafts a proposal, a person approves it, and it becomes a new version compiled into a file. A second path where the agent switches on a rule for itself is blocked." width="100%">
 
 The argument is specific rather than general. The fully automated version of
 this loop exists in the literature and its documented weakness is precisely the
@@ -541,9 +540,9 @@ the least glamorous part and the most reliably valuable.
 
 ### Loading only what applies
 
-<img src="assets/progressive-disclosure.svg" alt="Drawn as three levels for clarity, though the real hierarchy is ragged and of arbitrary depth. A small surface is always loaded, guidance loads when it matches the task, and reference material is opened only on demand." width="100%">
+The agent gets what it needs when it needs it, and nothing else.
 
-The agent gets what it needs when it needs it, and nothing else. A small surface
+<img src="assets/progressive-disclosure.svg" alt="Drawn as three levels for clarity, though the real hierarchy is ragged and of arbitrary depth. A small surface is always loaded, guidance loads when it matches the task, and reference material is opened only on demand." width="100%"> A small surface
 that is always present, holding the constraints that apply to everything.
 Guidance loaded when it matches the work in hand. Reference material opened by
 name, on demand. The same applies down the chain, to subagents and to their
@@ -568,6 +567,8 @@ Otherwise the knowledge is data-driven and the routing is hardcoded, which is
 where the interesting decisions actually live.
 
 ### One skill, two stores
+
+A skill lives in both places at once, and which half goes where is deliberate.
 
 <img src="assets/storage-split.svg" alt="Two panels with a bridge between them. Files in git hold skill artifacts, rules and compiled files. A warehouse holds runs, events, findings, versions and each skill's metadata. Each is bad at the other's job." width="100%">
 
