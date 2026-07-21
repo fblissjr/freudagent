@@ -344,7 +344,7 @@ problem") or passive usage signals (was it retrieved? did it help?).
 
 **What exists as the seed**: the compiler model generalizes to any output
 target with identical provenance; the query surface already exposes
-everything a read API needs; a UI experiment (`a2ui/`) already sketches
+everything a read API needs; a retired UI experiment (`a2ui/`, deprecated) sketched
 visual surfaces over the store.
 
 **What to build**:

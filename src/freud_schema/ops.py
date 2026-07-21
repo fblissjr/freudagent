@@ -110,13 +110,19 @@ def source_add(
     path: str,
     media_type: str,
     tenant_id: str = "default",
-    hash_baseline: bool = False,
+    hash_baseline: bool = True,
 ) -> dict:
-    """Register a source. Mirrors `freud-schema source add [--hash]`.
+    """Register a source. Mirrors `freud-schema source add [--no-hash]`.
 
-    hash_baseline=True records the file's sha256 as the staleness baseline
-    couch's stale_source detector compares against -- raises OSError if the
-    file cannot be read (caller decides how to surface that).
+    Hashing is on by default. The baseline is what couch's stale_source
+    detector compares against, and the detector SKIPS sources that have none --
+    so an unhashed source is not merely unmonitored, it is invisible, and the
+    detector reports clean on it forever. Registering a file that cannot be
+    read raises OSError (the caller decides how to surface that), which is the
+    right moment to find out.
+
+    hash_baseline=False is the escape hatch for registering a source whose
+    content is not readable yet.
     """
     source_hash = None
     if hash_baseline:
@@ -284,11 +290,20 @@ def proposal_reject(
     *,
     key: str,
     reviewed_by: str | None = None,
+    review_notes: str | None = None,
 ) -> dict:
-    """Reject a pending proposal. No dimension change."""
+    """Reject a pending proposal. No dimension change.
+
+    review_notes is optional but worth supplying: rejection rate is one of the
+    health measures, and the rate without the reason cannot tell a gate catching
+    real problems from one objecting to wording.
+    """
     pkey = store.resolve_key("fact_proposal", key)
-    store.reject_proposal(pkey, reviewed_by=reviewed_by)
-    return {"proposal_key": pkey, "status": "rejected", "reviewed_by": reviewed_by}
+    store.reject_proposal(pkey, reviewed_by=reviewed_by, review_notes=review_notes)
+    return {
+        "proposal_key": pkey, "status": "rejected",
+        "reviewed_by": reviewed_by, "review_notes": review_notes,
+    }
 
 
 # ---------------------------------------------------------------------------

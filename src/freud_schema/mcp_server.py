@@ -319,10 +319,19 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
 
     @server.tool(
         name="proposal_reject",
-        description="Reject a pending proposal. No dimension change is applied.",
+        description=(
+            "Reject a pending proposal. No dimension change is applied. "
+            "Pass review_notes: the rejection rate is a health measure, and "
+            "without the reason it cannot be acted on."
+        ),
     )
-    def proposal_reject(key: str, reviewed_by: str | None = None) -> dict:
-        return ops.proposal_reject(store, key=key, reviewed_by=reviewed_by)
+    def proposal_reject(
+        key: str,
+        reviewed_by: str | None = None,
+        review_notes: str | None = None,
+    ) -> dict:
+        return ops.proposal_reject(
+            store, key=key, reviewed_by=reviewed_by, review_notes=review_notes)
 
     # -- The one step only a person can do ----------------------------------
     # Gate design (b): this sentence is load-bearing. Whatever configures

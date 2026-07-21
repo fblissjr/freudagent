@@ -411,6 +411,7 @@ def _build_tables_ddl() -> list[str]:
     resulting_dimension_key VARCHAR,
     reviewed_by VARCHAR,
     reviewed_at TIMESTAMP,
+    review_notes VARCHAR,
 {_lineage_cols()},
     {_check_in('target_dimension', TargetDimension)},
     {_check_in('status', ProposalStatus)}
@@ -603,6 +604,7 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
         "natural keys, meta_key_algorithm"),
     (7, "v0.26 M5: generic event grain -- fact_event, dim_event_type "
         "registry, event_ingest record_source"),
+    (8, "v0.36: fact_proposal.review_notes -- rejections record why, not only who"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it

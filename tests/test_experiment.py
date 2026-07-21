@@ -979,7 +979,7 @@ def test_cli_source_add_list(tmp_path):
     import io
     import sys
     db = str(tmp_path / "test.duckdb")
-    main(["--db", db, "source", "add", "--path", "/test.pdf", "--media-type", "application/pdf"])
+    main(["--db", db, "source", "add", "--path", "/test.pdf", "--media-type", "application/pdf", "--no-hash"])
     buf = io.StringIO()
     old_stdout = sys.stdout
     sys.stdout = buf
@@ -1010,7 +1010,7 @@ def test_cli_feedback_add(tmp_path):
     from freud_schema.cli import main
     db = str(tmp_path / "test.duckdb")
     main(["--db", db, "skill", "add", "--domain", "d", "--task-type", "t", "--content", "c"])
-    main(["--db", db, "source", "add", "--path", "/f", "--media-type", "text/plain"])
+    main(["--db", db, "source", "add", "--path", "/f", "--media-type", "text/plain", "--no-hash"])
     # Insert a session and extraction via store (CLI doesn't expose session/extraction add)
     from freud_schema.db import connect
     from freud_schema.store import ExperimentStore

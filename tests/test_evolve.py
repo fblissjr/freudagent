@@ -114,6 +114,29 @@ class TestReject:
         assert p.resulting_dimension_key is None
         assert store.list_rules() == []
 
+    def test_reject_records_why_not_only_who(self, store):
+        """Rejection rate is a headline health measure; the reason is the part
+        that makes it actionable.
+
+        Without notes you can see that 3 of 20 proposals were rejected and have
+        no way to tell whether the gate caught a real problem or someone
+        objected to the wording. A rate with no content cannot distinguish a
+        working gate from a picky one.
+        """
+        pkey = store.insert_proposal(_rule_proposal())
+        store.reject_proposal(
+            pkey, reviewed_by="reviewer",
+            review_notes="evidence is three sessions from one project",
+        )
+        p = store.get_proposal(pkey)
+        assert p.status == ProposalStatus.REJECTED
+        assert p.review_notes == "evidence is three sessions from one project"
+
+    def test_reject_notes_are_optional(self, store):
+        pkey = store.insert_proposal(_rule_proposal())
+        store.reject_proposal(pkey, reviewed_by="reviewer")
+        assert store.get_proposal(pkey).review_notes is None
+
     def test_reject_requires_pending(self, store):
         pkey = store.insert_proposal(_rule_proposal())
         store.reject_proposal(pkey)

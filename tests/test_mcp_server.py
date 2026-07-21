@@ -55,7 +55,11 @@ class TestOpsRoundTrip:
         assert skill.status == SkillStatus.DRAFT
 
     def test_source_add(self, store):
-        result = ops.source_add(store, path="/f.pdf", media_type="application/pdf")
+        # hash_baseline=False because this covers metadata round-trip, not
+        # staleness -- the path is a fixture and does not exist on disk.
+        result = ops.source_add(
+            store, path="/f.pdf", media_type="application/pdf",
+            hash_baseline=False)
         source = store.get_source(result["source_key"])
         assert source.content_path == "/f.pdf"
         assert result["source_hash"] is None
@@ -151,6 +155,33 @@ class TestOpsRoundTrip:
         assert run is not None
         assert run.operation == "proposal_add"
         assert run.rows_written == 1
+
+    def test_source_add_hashes_by_default(self, store, tmp_path):
+        """A source registered without a baseline is invisible to the staleness
+        detector, silently.
+
+        couch._detect_stale_sources skips sources with no source_hash, so
+        opt-in hashing meant the detector covered only the sources somebody
+        remembered to flag -- and reported clean on the rest. Registering
+        something you cannot read is registering something you cannot use, so
+        the failure belongs at registration.
+        """
+        f = tmp_path / "doc.txt"
+        f.write_text("content")
+        result = ops.source_add(store, path=str(f), media_type="text/plain")
+        assert result["source_hash"], "no baseline recorded by default"
+
+    def test_source_add_can_opt_out_of_hashing(self, store, tmp_path):
+        f = tmp_path / "doc2.txt"
+        f.write_text("content")
+        result = ops.source_add(
+            store, path=str(f), media_type="text/plain", hash_baseline=False)
+        assert result["source_hash"] is None
+
+    def test_source_add_unreadable_file_raises_by_default(self, store, tmp_path):
+        with pytest.raises(OSError):
+            ops.source_add(
+                store, path=str(tmp_path / "missing.txt"), media_type="text/plain")
 
     def test_finding_add_unregistered_type_fails_closed(self, store):
         with pytest.raises(ValueError, match="not registered"):

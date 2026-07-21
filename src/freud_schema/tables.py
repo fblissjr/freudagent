@@ -581,6 +581,12 @@ class Proposal(BaseModel):
     status: ProposalStatus = ProposalStatus.PENDING
     evidence_finding_keys: list[str] | None = None
     resulting_dimension_key: str | None = None
+    review_notes: str | None = Field(
+        default=None,
+        description="Why the reviewer decided as they did. Rejection rate is a "
+                    "health measure; without the reason it cannot distinguish a "
+                    "gate catching real problems from one objecting to wording",
+    )
     reviewed_by: str | None = None
     reviewed_at: datetime | None = None
     # Lineage

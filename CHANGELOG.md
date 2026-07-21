@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.36.0
+
+Schema version 8. Group 1 (provenance completeness) closed, and `a2ui/`
+retired.
+
+### Changed
+
+- **Source hashing is now on by default** (`source add`, `ops.source_add`).
+  `couch._detect_stale_sources` SKIPS sources with no baseline, so opt-in
+  hashing meant the detector covered only the sources somebody remembered to
+  flag and reported clean on the rest -- an unhashed source was not merely
+  unmonitored, it was invisible. Registering a file that cannot be read now
+  fails at registration, which is the right moment to find out. `--no-hash` is
+  the escape hatch for a source whose content is not readable yet; the flag uses
+  `BooleanOptionalAction`, so existing `--hash` callers are unaffected.
+
+  Three tests registered fixture paths that do not exist on disk. They now opt
+  out explicitly rather than relying on the old default, which is what the
+  change is meant to surface.
+- **`a2ui/` is deprecated and unmaintained** (`a2ui/README.md`). It was written
+  against the pre-v0.17 schema, never migrated, and nothing tested it, so the
+  drift was never going to be caught. Retired rather than migrated: it would
+  have bought a second surface to keep in sync with `schema.md` for no clear
+  consumer, and the direction it explored has a better answer already in the
+  backlog -- the review surface should be the harness, not a separate
+  application. Code stays in the tree as the one worked example of rendering
+  warehouse rows visually. The `prompt_addendum.md` sync convention is retired
+  with it.
+
+### Added
+
+- **`fact_proposal.review_notes`** -- rejections record why, not only who.
+  `store.reject_proposal`, `ops.proposal_reject`, `proposal reject --notes` and
+  the MCP tool all carry it. Rejection rate is one of the five health measures,
+  and a rate with no content cannot distinguish a gate catching real problems
+  from one objecting to wording.
+
+### Warehouse
+
+Rebuilt on schema v8 per the reset-not-migrate policy. Loaded from
+`data/synthetic/` rather than personal transcripts, so the warehouse is now
+reproducible from committed data and holds no transcript content: 2,164 events
+across 4 streams, 20 event types auto-registered.
+
+The five active rules were exported before the reset and re-seeded before
+anything compiled, per the sharp edge in CLAUDE.md. Their keys came back
+byte-identical -- deterministic from `tenant|name` -- so only `effective_from`
+moved in the compiled artifacts. Re-ingest verified idempotent (0 written, 2,164
+skipped).
+
+Transcript history is re-derivable at any time with `ingest transcripts`; the
+SQL detectors need it, so `couch run` finds nothing until it is loaded.
+
 ## 0.35.2
 
 ### Fixed

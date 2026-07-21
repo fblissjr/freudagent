@@ -157,9 +157,10 @@ def main(argv: list[str] | None = None) -> None:
     p_source_add.add_argument("--path", required=True, help="File path")
     p_source_add.add_argument("--media-type", required=True, help="MIME type")
     p_source_add.add_argument(
-        "--hash", action="store_true",
-        help="Record the file's sha256 as the staleness baseline "
-             "(couch's stale_source detector compares against it)")
+        "--hash", action=argparse.BooleanOptionalAction, default=True,
+        help="Record the file's sha256 as the staleness baseline (default: on; "
+             "couch's stale_source detector SKIPS sources without one, so "
+             "--no-hash makes the source invisible to it)")
     p_source_sub.add_parser("list", help="List all sources")
 
     p_rule = sub.add_parser("rule", help="Manage rules")
@@ -304,6 +305,10 @@ def main(argv: list[str] | None = None) -> None:
     p_prop_reject = p_prop_sub.add_parser("reject", help="Reject: no changes applied")
     p_prop_reject.add_argument("key", help="Proposal key or unique prefix")
     p_prop_reject.add_argument("--by", default=None, help="Reviewer name")
+    p_prop_reject.add_argument(
+        "--notes", default=None,
+        help="Why it was rejected (recorded on the row; rejection rate without "
+             "reasons cannot be acted on)")
 
     # --- Compile (materialize) ---
     p_compile = sub.add_parser(
@@ -944,7 +949,9 @@ def _handle_proposal(args) -> None:
                           f"Dimension key: {result['resulting_dimension_key']}")
                     print("Run `freud-schema compile --out <dir>` to materialize.")
                 else:
-                    result = ops.proposal_reject(store, key=args.key, reviewed_by=args.by)
+                    result = ops.proposal_reject(
+                        store, key=args.key, reviewed_by=args.by,
+                        review_notes=args.notes)
                     print(f"Proposal {result['proposal_key'][:8]} rejected.")
             except ValueError as e:
                 print(str(e), file=sys.stderr)

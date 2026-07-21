@@ -1681,12 +1681,13 @@ class ExperimentStore:
         self.con.execute(
             """INSERT INTO fact_proposal (proposal_key, target_dimension, target_key,
                target_natural_key, proposed_content, proposed_version, status,
-               evidence_finding_keys, tenant_key, record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               evidence_finding_keys, review_notes, tenant_key, record_source,
+               etl_run_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             [key, proposal.target_dimension, proposal.target_key,
              _json(proposal.target_natural_key), proposal.proposed_content,
              proposal.proposed_version, proposal.status,
-             _json(proposal.evidence_finding_keys),
+             _json(proposal.evidence_finding_keys), proposal.review_notes,
              proposal.tenant_key or self._default_tenant_key,
              proposal.record_source, proposal.etl_run_id],
         )
@@ -1787,8 +1788,19 @@ class ExperimentStore:
         )
         return result_key
 
-    def reject_proposal(self, proposal_key: str, *, reviewed_by: str | None = None) -> None:
-        """Reject a pending proposal. No dimension change, no compile."""
+    def reject_proposal(
+        self,
+        proposal_key: str,
+        *,
+        reviewed_by: str | None = None,
+        review_notes: str | None = None,
+    ) -> None:
+        """Reject a pending proposal. No dimension change, no compile.
+
+        review_notes is what makes the rejection rate readable later: the rate
+        alone cannot tell a gate catching real problems from one objecting to
+        wording.
+        """
         p = self.get_proposal(proposal_key)
         if p is None:
             raise ValueError(f"Proposal {proposal_key} not found")
@@ -1796,8 +1808,9 @@ class ExperimentStore:
             raise ValueError(f"Proposal {proposal_key} is not pending ({p.status.value})")
         self.con.execute(
             """UPDATE fact_proposal SET status = ?, reviewed_by = ?,
-               reviewed_at = current_timestamp WHERE proposal_key = ?""",
-            [ProposalStatus.REJECTED, reviewed_by, proposal_key],
+               review_notes = ?, reviewed_at = current_timestamp
+               WHERE proposal_key = ?""",
+            [ProposalStatus.REJECTED, reviewed_by, review_notes, proposal_key],
         )
 
     # -------------------------------------------------------------------

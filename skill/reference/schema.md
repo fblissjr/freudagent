@@ -483,6 +483,7 @@ or rejects. Approval creates the new SCD-2 row and records it in
 | evidence_finding_keys | JSON | Findings that justify this proposal |
 | resulting_dimension_key | VARCHAR | Set on approval |
 | reviewed_by | VARCHAR | |
+| review_notes | VARCHAR | Why the reviewer decided as they did. Rejection rate is a health measure; the rate without the reason cannot tell a gate catching real problems from one objecting to wording |
 | reviewed_at | TIMESTAMP | |
 | *lineage columns* | | See above -- defaults to `record_source = derived` |
 
