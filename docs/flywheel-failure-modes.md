@@ -163,13 +163,21 @@ generates feedback, or judges output, or synthesizes training examples, using a
 sample of human-reviewed cases as its seed. Volume increases enormously.
 Coverage appears to be solved.
 
-What actually happens: whatever bias was in the seed is now applied at scale and
-with consistency no human would achieve. If the seed over-represented one
-domain, the synthetic feedback confidently covers everything in that domain's
-idiom. If the human reviewers shared a blind spot, the judge inherits it and
-never disagrees with itself. The bias stops being noisy and becomes systematic,
-which makes it much harder to detect — noise averages out, systematic error
-compounds.
+What actually happens depends on a precondition almost nobody checks: whether the
+seed is diverse, not whether it is large. A model given human judgements that
+span a wide range of inputs can extend them sensibly. A model given judgements
+concentrated in one slice has two ways to fail on everything outside it, and both
+produce output that looks like success:
+
+- it falls back on its own prior knowledge. That is not your organisation's
+  judgement, it was not reviewed by anyone, and there is nothing to audit it
+  against — the label is confident and ungrounded.
+- it applies feedback from an unrelated slice. The judgements it does have are
+  the only ones available, so they get stretched onto material they were never
+  about, producing labels that are consistent, plausible and wrong.
+
+Either way the bias stops being noisy and becomes systematic, which is what makes
+it hard to detect. Noise averages out. Systematic error compounds.
 
 Two further traps sit inside this one. A model judging output produced by a
 model of the same family tends to agree with it, so the judge is not independent
@@ -183,11 +191,27 @@ slice that no synthetic process touched, and measure against that separately.
 If synthetic and human evaluation ever disagree, believe the human set and go
 find out why.
 
-What to do: treat synthetic feedback as amplification, not as substitute. Keep
-it clearly labelled in storage so it can be excluded from any measurement that
-matters, and keep a fixed ratio of genuinely human judgements rather than
-letting synthetic volume float free. Diversity in the seed matters more than
-size of the seed.
+What to do: treat model-generated feedback as amplification, never as substitute,
+and make the controls structural rather than advisory.
+
+Records stay immutable and feedback is a separate labelled row pointing at them,
+carrying who or what produced it — a named person, a model, a usage signal. Not
+merely human or machine, but specific enough to filter on years later. That label
+is what lets model-derived feedback be excluded from any measurement that matters,
+and it is the difference between being able to answer this question and not.
+
+Then: hold a genuinely human-only slice no model process has touched and measure
+against it separately, keep a floor on the ratio of human judgements rather than
+letting model volume float free, and when the two disagree believe the humans and
+find out why.
+
+The upstream fix is sampling. If seed diversity is the precondition, collecting a
+diverse seed is a design problem rather than a matter of diligence — something has
+to actively choose what a person is asked to review, spread across domains,
+customers and difficulty, weighted toward thin coverage. That is a sampler with a
+user interface, and the harness itself can be that interface: pull a stratified
+sample, show each item beside its source, capture the judgement, write it back
+labelled.
 
 ## Self-reference
 

@@ -253,10 +253,14 @@ waiting for semantics. Rule `scope`/`domain` columns exist for scoped
 loading.
 
 **What to build**:
-- **Hybrid retrieval over knowledge units**: full-text plus vector search
-  plus structured filters over skills, rules, findings, and validated
-  extractions, with ranking. This is what makes L2 "loaded on match" real
-  when matches are semantic rather than exact.
+- **Hybrid retrieval over knowledge units**: lexical search plus ranking on
+  structured metadata (current/active status, validation state, later eval
+  score and usage signal) over skills, rules, findings, and validated
+  extractions. That pair is the required core; embeddings are optional and
+  come last, for large fuzzy corpora only — per research amendment 5, which
+  this bullet previously contradicted by listing vector search as a co-equal
+  component. This is what makes L2 "loaded on match" real when matches are
+  semantic rather than exact.
 - **Activation conditions with teeth**: skills declare when they apply;
   the assembly layer evaluates conditions against the task, retrieves
   candidates, and loads winners — L2 selection becomes ranked retrieval.

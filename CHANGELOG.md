@@ -1,5 +1,79 @@
 # Changelog
 
+## 0.29.0
+
+Documentation only. No code or schema changes. `docs/data-flywheel.md` was
+rewritten after a six-lens review; the version bump reflects that it is a
+different document rather than an edit of the old one.
+
+### Changed
+
+- **`docs/data-flywheel.md` reframed against the vision, not the code.** The
+  previous version was structured around what this repo does today, with a
+  status marker on every stage. Owner correction: the ground truth is the design
+  recorded in ROADMAP, the research review and the implementation plan -- the
+  code is one reference implementation of it. The doc now describes how these
+  systems should work, and confines current state to one section near the end.
+- Examples generalized from agent telemetry to enterprise material (documents,
+  policies, records), with agent transcripts presented as one signal source
+  among many rather than the privileged case.
+- **New section: what the loop runs on.** The doc previously had no unit of
+  work. It listed correction types without ever introducing the thing being
+  corrected, and referred to sources twice without saying they were registered
+  rows. Sources, outputs, validations, corrections, findings and proposals are
+  now named with their grain, and cold start is described.
+- **New section: where the signal comes from.** Feedback is a labelled overlay
+  on immutable records, carrying who or what produced it. Model-generated
+  feedback is positioned as amplification requiring a diverse human seed, with
+  the two failure mechanisms when diversity is missing (the model falls back on
+  its own priors, or stretches feedback from an unrelated slice). Sampling is
+  framed as a product surface the harness itself can provide.
+- **New section: provenance is a chain, not a footer.** The old text described
+  the compiled footer, which is the rendering rather than the architecture. Now
+  states it as relationships between rows and shows one worked lineage question.
+- **New section: what would show this is wrong.** Names three falsifying
+  conditions, including the competing explanation neither document had
+  entertained -- that base model improvement outpaces the value of an
+  accumulated rule corpus, making the grounding layer neutral at best.
+- Restored specificity that had been generalized away: ACE's measured
+  rewrite-failure mechanism (brevity bias and context collapse) in place of
+  "instructions files grow until nobody trusts them"; the argument that the
+  human gate fixes a documented failure of automated curation rather than being
+  general caution; the reason root-cause typing matters; selection operators as
+  versioned data; open vocabularies as registry rows, and the deliberate
+  contrast with the vocabularies that stay closed.
+- Added a sources section carrying the research review's own caveats. Several
+  cited results were reachable only as abstracts and are author-claimed; the doc
+  previously restated them as settled fact while arguing that claims must be
+  checkable.
+- The July 2026 run is now reported against the doc's own metric: three
+  proposals and three approvals is a zero rejection rate, which is
+  indistinguishable from a rubber stamp at n=3. Listed as evidence the machinery
+  connects, not that the governance works.
+- Failure-mode summary gains "one reviewer becomes the policy" and "the
+  knowledge base only ever grows", both previously omitted from the main doc.
+- `docs/flywheel-failure-modes.md`: the model-generated-feedback entry gains the
+  two concrete failure mechanisms and the labelling/sampling controls.
+- `docs/assets/storage-split.svg`: adds the bridge. The diagram encoded the
+  two-panel version of the storage split, dropping the third row of the research
+  review's table -- the warehouse as catalog and governance over the files --
+  which is the row most easily lost in summary and the one that makes the split
+  a hierarchy rather than two peers.
+- `ROADMAP.md` Phase 3 listed vector search as a co-equal retrieval component,
+  contradicting adopted research amendment 5 (lexical plus structured-metadata
+  ranking required; embeddings optional and last). Corrected.
+
+### Removed
+
+- Claims that were not true of the design or the code: that the privacy gate
+  scans for secrets (it matches home paths and usernames; ingest-time redaction
+  is unbuilt), that skills compile to files with provenance footers (only rules
+  do), that the footer names the approver (it names the proposal and evidence),
+  and that the approval prompt cannot be made silent (it depends on permission
+  hygiene and on no other write surface being reachable).
+- An unkept promise in the third paragraph to put repo vocabulary in brackets
+  throughout. It never did this once.
+
 ## 0.28.3
 
 ### Fixed
