@@ -89,6 +89,16 @@ Across many runs a pattern appears on top of those per-run facts, and once
 established that pattern becomes guidance for future runs — which makes it a
 high-level skill rather than a separate catalog anyone has to maintain.
 
+Note what does not follow: a good run does not become a skill. Promoting one run
+encodes harness mechanics or a single edge case as the general shape of the
+work. What decides a skill change reads three inputs — the runs in aggregate,
+the feedback on them, and the source data itself, which moves independently of
+anything the agent did. A core table gaining a field that carries most of an
+outcome's meaning makes every skill touching it wrong, with no failing run and
+nothing in the record to detect. The output is add, modify or retire, and the
+most common correct answer is none of them. See `docs/data-flywheel.md`, "What
+actually changes a skill".
+
 ### Deviation is signal in both directions
 
 If the prescribed process and the observed process are both recorded, the gap

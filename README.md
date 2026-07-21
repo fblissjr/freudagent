@@ -5,6 +5,9 @@
     <img src="assets/theman-medium.png" alt="freud agent logo" width="320">
   </a>
 </p>
+Mostly a joke repo. The design underneath is not.
+
+Last updated: 2026-07-21
 
 Most sets of agent instructions go stale. Someone writes a really good
 CLAUDE.md, it's accurate for a quarter, then the business changes and nobody
@@ -26,9 +29,7 @@ Record what happened, find what repeats, propose a change, have a person approve
 it, compile it into what the agent loads, and check it helped. Each of those is
 below.
 
-Mostly a joke repo. The design underneath is not.
 
-Last updated: 2026-07-21
 
 ## What sits between your data and the agent
 

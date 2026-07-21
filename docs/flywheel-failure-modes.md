@@ -516,7 +516,7 @@ Honest accounting, matching the status markers in
 | Evaluation set becomes synthetic | none; the verification gate itself is not built (M13) |
 | Rubber-stamped validation | none |
 | Knowledge goes stale | partial: `stale_source` covers registered sources with a baseline hash |
-| Knowledge only grows | partial: scoped compilation planned (M10); nothing prunes |
+| Knowledge only grows | partial: `compile --scope` filters which rules render; the scoped output tree and bounded index are planned (M10); nothing prunes |
 | Rules contradict each other | none; consolidation passes planned (M15) |
 | Breakdown authored rather than observed | none; the breakdown is not captured as data yet, so there is nothing to compare |
 | Evidence pruned, rule survives | none; already observed after a schema reset |

@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.35.1
+
+### Changed
+
+- **The one mermaid diagram is now an SVG, like every other diagram in the doc.**
+  It was `flowchart LR` with 17 nodes, so it rendered at natural width, shrank to
+  illegibility in a column, and drew pan/zoom controls over itself. The seven
+  sibling diagrams are hand-authored SVGs on a 960 viewBox that scale to the
+  column; this one is now the eighth, in the same palette, with amber reserved
+  for the human step. `docs/assets/full-loop.svg`.
+
+### Fixed
+
+- **`flywheel-failure-modes.md` said scoped compilation was planned (M10).**
+  `compile --scope` ships and filters which rules render. What M10 covers is the
+  scoped output tree and bounded index, which genuinely is unbuilt. The row made
+  a reader conclude the capability did not exist at all. The "nothing prunes"
+  half was correct and stands.
+- **`skill/reference/flywheel.md` still read as though a cross-run pattern
+  promotes itself into a skill.** It is derived from `docs/data-flywheel.md`,
+  which gained the correction in 0.35.0, so it now carries the short version:
+  three inputs rather than one, the source-data trigger that fires with no
+  failing run, and add/modify/retire with none-of-them as the common answer.
+
 ## 0.35.0
 
 ### Added

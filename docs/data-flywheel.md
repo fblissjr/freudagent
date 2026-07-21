@@ -516,27 +516,7 @@ carry why they exist, not only what to do.
 Putting both halves together — the machinery above, and the signal that
 decides whether it compounds:
 
-```mermaid
-flowchart LR
-  S["source registered"] --> A["agent run<br/>breaks work down as it goes"]
-  A --> B["run recorded:<br/>steps, decisions, paths"]
-  A --> H["sampled for review<br/>at a judgeable level"]
-  H --> C["judgment, labeled<br/>by who judged"]
-  C --> M["model-generated feedback<br/>seeded from human"]
-  B --> P["prescribed vs actual<br/>compared"]
-  B --> D["detectors"]
-  C --> D
-  M --> D
-  P --> D
-  D --> E["finding<br/>with typed evidence"]
-  E --> F["proposal"]
-  F --> G{"a person<br/>approves"}
-  G -->|"no"| X["rejected,<br/>reviewer recorded"]
-  G -->|"yes"| I["new version"]
-  I --> V["checked against<br/>work already judged correct"]
-  V --> J["compiled artifact<br/>with provenance"]
-  J --> A
-```
+<img src="assets/full-loop.svg" alt="The whole loop with the signal side included. A registered source feeds an agent run that breaks work down as it goes. The run emits a record of what happened and a sample pulled for review at a level a person can judge. The record yields a prescribed-versus-actual comparison; the sample yields a human judgment labeled by who made it, which seeds model-generated feedback. All four feed the detectors, which produce a finding with typed evidence, then a proposal, which a person approves or rejects. An approved proposal becomes a new version, is checked against work already judged correct, and compiles into the artifact the next run loads." width="100%">
 
 ## Skills are a ragged hierarchy
 
