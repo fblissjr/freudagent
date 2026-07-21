@@ -2,47 +2,43 @@
 
 Last updated: 2026-07-21
 
-This explains how an agent system gets better at its job over time, on purpose,
-with people in control of every change.
+This is the source of truth for how we think agent systems should work. It is
+detailed on purpose. A shorter, plainer explainer is derived from it.
 
-It describes a design, not a finished product. Everything below is how we think
-these systems should work; a section near the end says how much of it this
-repository has actually built. Read that before assuming any of it is running.
+It describes a design, not a finished product. A section near the end says how
+much of it this repository has actually built. Read that before assuming any of
+it is running.
 
-It is written for someone who already uses an agent harness like Claude Code and
-wants to know whether the pattern is worth copying. You do not need to know
-anything about this codebase.
+Most of what follows is data engineering. Ingestion is ingestion, pipelines are
+pipelines, and transforming data according to business rules is what the field
+has always done. What is different is that the rules are dynamic — they are
+derived from what happened, updated continuously, and consumed by agents rather
+than by dashboards. We use ordinary names for the ordinary parts and coin a term
+only where something genuinely has no name.
 
-One note before you start. This project's names are a joke — archetypes borrowed
-from Freud, an analysis step called the couch, maintenance passes called
-dream-work. The names are tongue in cheek. The design underneath is not. This
-document uses plain names throughout.
+One note on this project's own naming. Archetypes borrowed from Freud, an
+analysis step called the couch, maintenance passes called dream-work. Those names
+are a joke. The design underneath is not.
 
-<img src="assets/flywheel-tldr.svg" alt="An animated loop of six stages: sense, analyze, propose, approve, publish, verify. A pulse travels the loop and each stage is explained in turn. Approve is marked as done by a person." width="100%">
+<img src="assets/flywheel-tldr.svg" alt="An animated loop of six stages: ingest, analyze, propose, approve, compile, verify. A pulse travels the loop and each stage is explained in turn. Approve is marked as done by a person." width="100%">
 
-The six stages in the loop above: record what happened, find what repeats,
-propose a change, have a person approve it, publish it as versioned knowledge,
-and verify it actually helped. Each is explained below.
+Six stages: record what happened, find what repeats, propose a change, have a
+person approve it, compile it into what the agent loads, and verify it helped.
 
 ## What a data flywheel actually means
 
-The phrase gets used loosely, so here is the whole of it: the output of using the
-system becomes the input that improves the system, and each turn starts from a
-better position than the last one.
+The output of using the system becomes the input that improves the system, and
+each turn starts from a better position than the last one.
 
-That is it. No more than that.
+That is the whole of it. The word matters because of what it rules out. Someone
+occasionally noticing a problem and editing a prompt is not a flywheel — the
+improvement does not accumulate and nobody can say later why the prompt says what
+it says. A flywheel needs the system to record what it did automatically,
+something to find the patterns in that record, changes proposed from evidence
+rather than memory, and changes versioned so you can see what improved and roll
+back what did not.
 
-The word matters because of what it rules out. A system where someone
-occasionally notices a problem and edits a prompt is not a flywheel — the
-improvement does not accumulate, and nobody can say later why the prompt says
-what it says. A flywheel needs four things:
-
-- the system records what it did, automatically
-- something finds the patterns in that record
-- changes are proposed from evidence, not from memory
-- changes are versioned, so you can see what improved and roll back what did not
-
-Add people approving each change and you have the loop in the diagram above.
+Add people governing each change and you have the loop above.
 
 ## The problem this solves
 
@@ -50,115 +46,307 @@ Agents do not get better on their own. A harness gives you tool use, memory
 inside a session, and subagents. It does not give you a way for a lesson learned
 on Tuesday to still be in effect in March.
 
-The usual answers decay in known ways. Fine-tuning is slow, expensive and opaque
-about what changed. Prompt tweaks accumulate with no record of why.
+The deeper problem is maintenance, and it is worth being blunt about it because
+it is the actual reason this design exists.
 
-The instructions-file answer fails in a more specific way than "it gets messy",
-and the specifics are the reason for this design. Anthropic's own research on
-agentic context engineering measured what happens when a model repeatedly
-rewrites one evolving instructions document: rewrites preferentially drop
-domain-specific detail, and repeated re-summarization compounds until knowledge
-disappears in a jump. Their names for these are brevity bias and context
-collapse. The fix they land on is to stop rewriting documents and start emitting
-small, identified, individually-versioned entries merged by deterministic logic.
+Every organisation that has bought a data catalog knows the failure. The catalog
+is accurate at onboarding. Within a quarter the pipelines have changed, the
+definitions have drifted, and a rule somebody agreed in a meeting has quietly
+replaced the one that is written down. Nobody updates it, because updating it is
+unglamorous work with no owner and no deadline. Eventually it describes a company
+that no longer exists, people stop trusting it, and then stop opening it.
 
-That is the bet here too. Rules, skills and validated knowledge live as versioned
-rows, and compile into the files the agent reads. Changing behaviour means
-changing a row, which means every change has an author, a date, an approval, and
-the evidence behind it.
+Agent skills will rot the same way and for the same reason. Businesses change,
+rules evolve, and new data changes what the rules should be. Human maintenance of
+knowledge does not fail because people are careless — it fails structurally, in
+every organisation that has tried it, which is a strong enough pattern to design
+around rather than hope past.
+
+So the question is not how to write good instructions. It is who keeps them
+current. This design answers: the system does, from evidence, with people
+governing what changes rather than authoring it by hand.
+
+The instructions-file version of this fails in a specific, measured way, and the
+specifics are why knowledge lives in rows here. Research on agentic context
+engineering measured what happens when a model repeatedly rewrites one evolving
+instructions document: rewrites preferentially drop domain-specific detail, and
+repeated re-summarization compounds until knowledge disappears in a jump. Their
+names for these are brevity bias and context collapse. The fix is to stop
+rewriting documents and start emitting small, identified, individually-versioned
+entries merged by deterministic logic.
+
+## Constraints on both sides
+
+An agent needs constraints in two directions, and most systems only build one.
+
+Left-hand constraints say what the agent may and must do. Rules, policies,
+activation conditions, the guidance for a particular kind of work. This is the
+side everybody builds, because it is the side that feels like prompting.
+
+Right-hand constraints define what good means. Success criteria for a task, a
+step, an outcome. Without them an agent can be given excellent instructions and
+still have no way to be told whether it succeeded — and neither do you. This is
+the side that gets deferred, and deferring it is why so many of these systems
+never demonstrably improve.
+
+Grounding data sits between the two: the validated knowledge, its evidence, its
+provenance. Both sets of constraints are versioned data and both evolve through
+the same loop as everything else.
+
+### Feedback only works at a granularity people can judge
+
+Here is the part that decides whether any of it works.
+
+People can only give useful feedback on things they can actually evaluate. Asking
+whether a business outcome was good produces a verdict with nowhere to go — you
+learn it was bad, not where it went wrong or why. Evaluating outcomes alone is
+close to useless for improvement, however satisfying it is to report.
+
+So the work has to be decomposed until you reach a level where a person can look
+at one thing and answer confidently, capture judgement there, and aggregate back
+up to whatever altitude the business cares about. Interpretability comes from the
+decomposition, not from the evaluation.
+
+The depth at which that happens is set by what a business user can meaningfully
+judge, which is a real constraint rather than a design preference. Too coarse and
+the judgement is unactionable. Too fine and you are asking someone to review
+mechanics they have no opinion about.
+
+Once enough human judgements exist at that level, they become the reference that
+lets a model perform the same decomposed evaluation. That is the only version of
+automated evaluation that is grounded in anything — and it inherits every
+diversity requirement described later in this document.
+
+### Decomposition happens during the run
+
+The decomposition is not an artifact somebody authors in advance. It is the shape
+of the work itself, and it emerges as the agent goes.
+
+A trivial request has no decomposition, because there is nothing to decompose.
+Forcing a tree onto it would be invention. A business outcome decomposes into
+tasks, which may spawn subagents, which decompose again. Depth varies by nature —
+some branches go four levels and their siblings go none.
+
+The agent decomposes as it works, leaning on skills, context and data to navigate,
+the same way a person does. Recording that as it happens is what produces
+interpretability: not just what the agent did, but why it chose this path, what it
+considered and discarded, and where it changed approach. You cannot reconstruct
+that afterwards from an outcome.
+
+One distinction worth keeping sharp. The execution tree of a single run is a
+fact — raw, noisy, and partly shaped by harness mechanics rather than by the task.
+The decomposition is what you learn from many such trees: work of this shape
+reliably breaks down these ways, in roughly this order, failing at these points.
+That is a dimension derived from many facts, not the facts themselves.
+
+Once learned, it becomes guidance for future runs — which makes it an
+orchestrator-level skill. There is no separate decomposition catalog to maintain,
+which matters, because an authored one would rot exactly like the data catalog
+above.
+
+Cold start is the honest exception. On day one there are no runs to learn from, so
+you hand-author a first guess the way you hand-author the first skills, and treat
+it as untrusted until the loop has corrected it.
+
+### Deviation is signal in both directions
+
+If the prescribed process is recorded and the actual process is recorded, the gap
+between them is information. Comparing them is conformance checking, and the
+discipline around it — reconstructing the real process from the event log and
+diffing it against the model — is process mining, which predates all of this.
+
+Deviation runs two ways, and most systems only look for one.
+
+An agent departs from the guidance and the result is worse. The rule was right and
+either the agent went wrong or the guidance was not explicit enough to follow.
+
+An agent departs from the guidance and gets there faster with the same or better
+result. That is not a defect. It is a process improvement the system discovered,
+and the proposal it should generate is to update the rule to match what actually
+works.
+
+The second case inverts what the loop is for. It is not only humans writing rules
+and the system catching the agent failing to follow them. It is also the system
+catching the rules being wrong, with the agent as the thing that found out.
+
+Two conditions make this safe, and without them it is dangerous.
+
+It requires measurable outcomes at the level the deviation happened. Otherwise you
+cannot distinguish a genuine shortcut from a corner cut, and you will promote the
+second, because in the short run they look identical.
+
+And it requires enough declared structure in the guidance to depart from. Prose
+saying "handle the escalation appropriately" cannot be deviated from measurably.
+Something declaring expected steps, order or checkpoints can. That argues for
+structure at the orchestrator level, where sequence is being prescribed, and plain
+prose further down, where nothing is being sequenced.
+
+There is a failure mode inside this that is worth naming here rather than only in
+the companion document, because it is not obvious. Some steps exist to prevent
+something rare. Skipping them looks strictly better every time until the rare
+thing happens. A system that promotes deviations on observed outcomes will
+systematically strip out exactly the safeguards whose value is invisible in the
+sample. The defence is that rules carry why they exist, not only what to do.
 
 ## What the loop runs on
 
-Before the stages, the objects. Everything below is one of these.
+The data model, in ordinary dimensional terms. Dimensions describe things and
+change slowly. Facts record what happened and are append-only.
 
 A source is a registered piece of raw material — a contract, a policy page, a
-support ticket, a table export. One row per source, carrying its location, its
-type, and a hash of its content at the time it was registered. That hash is what
-later tells you the source changed underneath you.
+ticket, a table export — with its location, type, and a hash of its content when
+registered. That hash is what later tells you it changed underneath you.
 
-An output is one thing an agent produced from a source using a skill. One row per
-output. It records which source, which skill version, and which session made it,
-so any output can be traced to the exact instructions in force when it was
-produced.
+A skill is guidance for the agent, described in the next section.
 
-A validation or correction is one person's judgement about one output. One row
-each. A validation says this was right; a correction says this specific field was
-wrong and here is what it should have been. Both matter, and most systems only
-collect the second.
+A run is one execution, recorded at the finest granularity available: the messages,
+the tool calls, and the reasoning trail — decision points, paths taken, paths
+discarded, dead ends, conclusions. Recorded by default rather than switched on when
+someone suspects a problem, because you never suspect in time.
 
-A finding is one detected pattern, carrying the rows that evidence it. A proposal
-is one suggested change to one knowledge unit, carrying the findings that justify
-it. An approval turns a proposal into a new version.
+An output is one thing an agent produced, recording which source, which skill
+version, and which run made it.
 
-Cold start is the case where none of this exists yet. You register your sources,
-hand-author a first set of rules and skills, run the agent over the corpus, and
-route every single output through human validation — because on day one nothing
-derived is trustworthy. The flywheel needs a first turn, and that first turn is
-almost entirely human.
+A validation or correction is one person's judgement about one output, at whatever
+granularity the decomposition made judgeable.
+
+A finding is one detected pattern with the records that evidence it. A proposal is
+one suggested change with the findings that justify it. An approval turns a
+proposal into a new version.
+
+Every fact carries the identifier of the job that produced it, and every job is a
+row in a load log recording what it read, wrote and skipped, when, and whether it
+succeeded. That is what makes lineage total rather than aspirational: any record
+ties to the run that created it, and those ties aggregate.
+
+## Skills are a ragged hierarchy
+
+A skill is not an atomic instruction. It is a composition — rules, code,
+references, other skills — of variable depth. Ragged rather than balanced: one
+branch goes four levels, its sibling goes one, and forcing them to match would
+misrepresent the work.
+
+They span the full range of altitude.
+
+At the top, orchestrator-level guidance: how work of this kind decomposes, in what
+order, with what checkpoints. This is where learned decompositions live.
+
+At the bottom, semantic definitions: what this field means in this business, which
+of three date columns anybody actually means by "closed", what this team counts as
+an active customer. The job here is navigating vagueness, which is where these
+systems fail in real organisations — not on reasoning, on not knowing which column
+was meant.
+
+That bottom rung has the strongest evidence behind it of anything in this design.
+Governed metric and entity definitions beat raw text-to-SQL decisively, with schema
+cards carrying column descriptions and sample values as data. It is the least
+glamorous part and the most reliably valuable.
+
+### Progressive disclosure is lazy traversal
+
+<img src="assets/progressive-disclosure.svg" alt="Three levels. Level one is small and always loaded. Level two is loaded when it matches the task. Level three is large and opened only on demand." width="100%">
+
+The agent gets what it needs when it needs it, and nothing else. A small
+always-loaded surface, guidance loaded when it matches the work, references opened
+by name on demand — and the same applies down the chain, to subagents and their
+subagents.
+
+This is usually taught as three levels, L1, L2 and L3, and that is a useful
+simplification. The real structure is arbitrary depth, and progressive disclosure
+is traversing it lazily rather than loading it whole.
+
+Which makes the routing decision the product. At small scale a harness picks among
+a handful of skills by exact match. At real scale, consumers describe needs in
+fuzzy language and the system ranks thousands of units. The evidence points at
+lexical search plus ranking on structured metadata — status, validation state, eval
+score, usage signal — as the required core, with embeddings optional and last, for
+large fuzzy corpora rather than as the first reach.
+
+And if behaviour is data, the selection logic is behaviour too. A skill should
+carry not only its content but the operators deciding when it applies and how it
+composes, versioned and evolvable through the same flow as the content. Otherwise
+the knowledge is data-driven and the routing is hardcoded, which is where the
+interesting decisions actually live.
+
+### Skills live in two places, and that is the answer rather than a compromise
+
+<img src="assets/storage-split.svg" alt="Two panels with a bridge between them. Files in git hold skills, rules and compiled artifacts. A warehouse holds runs, events, findings and versions, and acts as catalog and governance over the files. Each is bad at the other's job." width="100%">
+
+The artifact belongs in git: diffable, reviewable, and in the form the agent reads
+best.
+
+The metadata belongs in a table: version, unique identifier, the job that created
+it, when it changed, what changed and why. Not bookkeeping — that half is what lets
+you ask whether a skill's evolution moved outcomes up or down, whether a set of
+skills is trending in the right direction, and what a change three months ago did
+to results since. You cannot ask those of a git history.
+
+The invariant underneath is what matters, and it holds regardless of where anything
+is stored: knowledge is versioned and immutable. New rows, never edits. The prior
+version and the diff always survive, and every version ties back to the job that
+produced it and the evidence that justified it.
+
+Whether a given thing lives in files, in a warehouse, or in both is a live question
+with real tradeoffs. Whether it is versioned and immutable is not.
 
 ## The six stages
 
-### 1. Sense — record everything
+### 1. Ingest — record everything
 
-Every agent session leaves a transcript. Every business system leaves events. All
-of it lands in one warehouse.
+Agent runs, business events, documents, exports. All of it lands in the warehouse
+at the finest granularity available.
 
-The part that matters is how rows are identified. Keys are computed from stable
-natural identifiers rather than handed out by a counter, so any worker can
-compute a row's key without coordinating with anything, and re-ingesting
-unchanged material writes zero rows by construction rather than by a
-deduplication pass. That makes ingest safe to schedule and forget.
+Row identifiers are computed from stable natural keys rather than handed out by a
+counter, so any worker can compute a row's key without coordinating with anything,
+and re-ingesting unchanged material writes zero rows by construction rather than by
+a deduplication pass. That makes ingest safe to schedule and forget.
 
-Two caveats worth stating plainly. Deterministic keys give you coordination-free
-key computation, which is what makes this pattern port to distributed pipelines —
-they do not by themselves give you multi-writer safety, which is a property of
-the store you choose. And the guarantee should be measured rather than asserted:
-every ingest run records rows read, written and skipped, so "re-ingest wrote
-nothing" is a number you can look at.
+Two honest caveats. Deterministic keys buy coordination-free key computation, which
+is what makes the pattern port to distributed pipelines — they do not by themselves
+buy multi-writer safety, which is a property of the store you choose. And the
+guarantee should be measured rather than asserted, which is what the load log is
+for.
 
 ### 2. Analyze — find what repeats
 
-Deterministic detectors scan the warehouse for patterns worth acting on. An
-extraction field corrected the same way twelve times. A source whose content hash
-no longer matches what was registered. A step in a process that fails at an
-elevated rate for one customer segment. In an agent context, the same tool
-retried identically in a loop.
+Deterministic detectors scan for patterns worth acting on. A field corrected the
+same way twelve times. A source whose hash no longer matches. A step failing at an
+elevated rate for one segment. A path the agent keeps taking that the guidance does
+not describe.
 
 Deterministic first, inference last. Detectors written as queries are cheap,
-repeatable, and give the same answer twice, so they run continuously without a
-model in the hot path. A model is asked only for the judgements a query cannot
-make.
+repeatable and give the same answer twice, so they run continuously with no model
+in the hot path. A model is asked only for judgements a query cannot make.
 
-The most important of those judgements is mechanism rather than symptom. Two
-failures with identical surface outcomes can have entirely different causes, so a
-finding should eventually record the terminal cause, the behaviour implicated,
-and the abstract mechanism the evidence exposes — not just a count. Findings that
-are diagnoses make proposals bounded; findings that are counters do not.
+The most important of those is mechanism rather than symptom. Two failures with
+identical surface outcomes can have entirely different causes, so a finding should
+record the terminal cause, the behaviour implicated, and the mechanism the evidence
+exposes. Findings that are diagnoses make proposals bounded. Findings that are
+counters do not.
 
-Findings also need a lifecycle. The same problem detected on ten consecutive runs
-should be one open case with a recurrence count, not ten identical rows.
-Otherwise the review queue fills with re-detections and people stop opening it.
+Findings also need a lifecycle. The same problem detected on ten consecutive runs is
+one open case with a recurrence count, not ten identical rows, or the review queue
+fills with re-detections and people stop opening it.
 
 ### 3. Propose — turn a pattern into a suggested change
 
-A finding with enough evidence becomes a written proposal: change this rule, add
-this instruction, retire this skill. What counts as enough is a threshold that
-lives as data per finding type, tunable per domain without a code change, rather
-than a constant buried in a detector.
+A finding with enough evidence becomes a written proposal. What counts as enough is
+a threshold stored as data per finding type, tunable per domain without a code
+change.
 
-The proposal links to the exact findings and rows that justify it, and those
-links carry a claim type, because a proposal's justification is really several
-different kinds of claim: a numerical one (the detector counted this), a
-reference one (the cited row exists and says what is claimed), a methodological
-one (this is what the wording change does), and a conclusion (therefore the
-pattern should shrink). Each is checkable in a different way, and a reviewer
-handed one undifferentiated blob of evidence checks none of them.
+The proposal links to the findings and records that justify it, and those links
+carry a claim type — because a justification is several different kinds of claim at
+once. A numerical one, that the detector counted this. A reference one, that the
+cited record exists and says what is claimed. A methodological one, that this is
+what the wording change does. And a conclusion, that the pattern should therefore
+shrink. Each is checkable differently, and a reviewer handed one undifferentiated
+blob checks none of them.
 
-That matters because of a documented failure. In a study of automated research
-systems, every approach that did not enforce claim-by-claim grounding produced
-surface-plausible output that hid broken evidence chains underneath. Prose
-summaries of evidence are exactly the thing not to trust — including prose
-summaries written by the proposing model.
+That matters because of a documented failure: in a study of automated research
+systems, every approach not enforcing claim-by-claim grounding produced
+surface-plausible output hiding broken evidence chains. Prose summaries of evidence
+are exactly the thing not to trust, including summaries written by the proposing
+model.
 
 ### 4. Approve — a person decides
 
@@ -166,172 +354,164 @@ summaries written by the proposing model.
 
 Nothing reaches the agent's context without someone saying yes.
 
-The argument for this is specific rather than general. The fully-automated
-version of this loop already exists in the literature, and its documented
-weakness is precisely the missing gate: a noisy automated curator silently
-pollutes the knowledge base and nothing catches it. Reported failures in
-self-editing systems include reward hacking, where the system learns to game its
-own scoring, and non-local damage, where an edit to a shared component breaks
-things far from where the edit happened. The human approval step is the direct
-fix for a named failure, not caution for its own sake.
+The argument is specific rather than general. The fully-automated version of this
+loop exists in the literature and its documented weakness is precisely the missing
+gate: a noisy automated curator silently pollutes the knowledge base and nothing
+catches it. Reported failures in self-editing systems include reward hacking, where
+the system learns to game its own scoring, and non-local damage, where an edit to a
+shared component breaks things far from where it was made. The human approval step
+is the direct fix for a named failure.
 
-The gate belongs in the tools rather than in a policy document. Tools an agent
-can call should only ever create drafts, drafts should never compile, and the
-approval action should always surface a prompt to the person running the session.
+The gate belongs in the tools rather than in a policy document. Tools an agent can
+call should only ever create drafts, drafts should never compile, and approval
+should always surface a prompt to the person running the session.
 
-Being honest about the limit of that: a gate implemented in one tool surface is
-only as strong as the other surfaces beside it. A command line, a database
-client, or a permission allowlist that quietly grows can each route around it.
-Anything with write access is part of the gate's threat model, and a design that
-only hardens the agent-facing tool has moved the problem rather than solved it.
+Being honest about the limit: a gate in one tool surface is only as strong as the
+other surfaces beside it. A command line, a database client, or a permission
+allowlist that quietly grows can each route around it. Anything with write access
+is in the gate's threat model.
 
-Automation here is aimed at reducing how much a person must look at, never at
-reducing how carefully they look. Those are different goals and only one of them
-is safe. Deduplicating recurring findings into single cases, batching related
-proposals, and routing by risk all reduce volume. Speeding up the review itself
-mostly means making it shallower.
+Automation here reduces how much a person must look at, never how carefully they
+look. Those are different goals and only one is safe. Deduplicating recurring
+findings, batching related proposals and routing by risk all reduce volume.
+Speeding up the review itself mostly makes it shallower.
 
-### 5. Publish — compile knowledge into what the agent loads
+### 5. Compile — build what the agent loads
 
 An approved change creates a new version. Old versions are not overwritten; they
-are closed with a date, so "what did we believe in March" stays a plain query and
-rolling back is selecting an earlier row rather than reconstructing history.
+are closed with a date, so what we believed in March stays a plain query and
+rolling back is selecting an earlier row.
 
-Current, active knowledge then compiles into the artifacts the agent actually
-loads. Those artifacts are build output: do-not-edit headers, a line naming the
-row they came from, and a footer naming the proposal and evidence behind them.
-The knowledge base is the source of truth; the files are a cache of it.
+Current, active knowledge compiles into the artifacts the agent loads. Those
+artifacts are build output: do-not-edit headers, a line naming the row they came
+from, a footer naming the proposal and evidence behind them. The knowledge base is
+the source of truth; the files are a cache of it.
 
 Because they are a cache, something has to check they still match. A drift check
-that compares compiled output against current rows belongs in continuous
-integration, not in trust — otherwise the first person who hand-edits a compiled
-file has silently forked the system, and the next compile reverts their work with
-no warning.
+comparing compiled output against current rows belongs in continuous integration,
+not in trust — otherwise the first person to hand-edit a compiled file has silently
+forked the system, and the next compile reverts their work without warning.
 
-A privacy gate runs before anything is written, and it should be fail-closed:
-output that would leak a credential, a home directory path, a customer
-identifier, or anything else that should not leave the machine does not get
-written, and the last good version stays in place.
+A privacy gate runs before anything is written and it should be fail-closed. The
+stronger version is to redact at ingest rather than at compile: blocking leaks on
+the way out while accepting a dirty warehouse means the warehouse becomes the
+exposure, and retention, deletion requests and audit all land on it.
 
-The stronger version of this is to redact at ingest rather than at compile.
-Blocking leaks on the way out while accepting a dirty warehouse means the
-warehouse itself becomes the exposure, and retention policy, deletion requests
-and audit all land on it.
+### 6. Verify — prove it helped
 
-### 6. Verify — prove it actually helped
+Before a new version ships, run it against work already reviewed and marked
+correct.
 
-Before a new version ships, run it against work that has already been reviewed
-and marked correct.
+The test is two-sided. The new version has to fix what it was written to fix, and
+break nothing else. Passing one and failing the other is a fail. When it fails, the
+last good version keeps serving.
 
-The test is two-sided. The new version has to fix the thing it was written to fix,
-and it has to break nothing else. Passing one and failing the other is a fail.
-When it fails, the last good version keeps serving.
-
-The detail that makes this data-driven rather than a test suite: the "did it fix
-the thing" set is derived from the proposal's own evidence chain — the findings
-it cited, the sessions those findings referenced, the validated outputs from
-those sessions — and an empty set fails closed rather than passing vacuously. The
-provenance chain is not decoration; it is what makes verification computable.
+What makes this data-driven rather than a test suite: the did-it-fix-it set is
+derived from the proposal's own evidence chain — the findings it cited, the runs
+those findings referenced, the validated outputs from those runs — and an empty set
+fails closed rather than passing vacuously. The provenance chain is not decoration.
+It is what makes verification computable.
 
 Two costs to be honest about. Verification is model inference per candidate per
-held-out item, so it grows with both proposal volume and holdout size. And a gate
-that becomes slow is a gate people route around, which is its own failure. Making
-verification rigorous and making it fast are in genuine tension, and any real
-deployment has to pick a point on that line deliberately.
+held-out item, so it grows with proposal volume and holdout size. And a gate that
+becomes slow is a gate people route around. Rigour and speed are in genuine
+tension and a real deployment picks a point on that line deliberately.
 
 ## Where the signal comes from
 
 <img src="assets/grounding-layer.svg" alt="Raw material feeds a governed middle layer with three parts: constraints, grounding data, and checks and feedback. The agent reads from that layer, and results feed back in." width="100%">
 
-This is the part that decides whether the loop compounds, and it is the part most
-implementations get wrong.
+This decides whether the loop compounds, and it is what most implementations get
+wrong.
 
-### Feedback is a labelled overlay on immutable data
+### Feedback is a labelled overlay on immutable records
 
-Records are never edited in place. An output stays exactly as produced; feedback
-about it is a separate row pointing at it. That keeps the original recoverable,
-lets several people disagree about the same output without overwriting each
-other, and makes "what did we think about this, and when" answerable.
+Records are never edited. An output stays as produced; feedback about it is a
+separate row pointing at it. The original stays recoverable, several people can
+disagree about the same output without overwriting each other, and what we thought
+about this and when stays answerable.
 
 Every piece of feedback carries who or what produced it — a named person, a
-model, a usage signal, a downstream system. Not just human or machine, but
-specific enough to filter on later. This label is what makes everything else in
-this section possible.
+specific model, a usage signal, a downstream system. Not a human-or-machine
+boolean, but granular enough to filter on years later. That label is what makes
+everything below possible.
 
-### Feedback arrives at two grains
+### Feedback arrives at the grain the decomposition made judgeable
 
-Field-level corrections say a specific output was wrong. Each type points at a
-different defect in the instructions:
+Field-level corrections say a specific output was wrong, and each type points at a
+different defect in the guidance:
 
 | Correction type | What it means | What it tells you |
 |---|---|---|
 | wrong value | the value is incorrect | the instructions are ambiguous |
-| missing field | something was not extracted | the skill needs to ask for more |
+| missing field | something was not extracted | the guidance needs to ask for more |
 | field mapping | right value, wrong place | the output shape is confusing |
-| false positive | the agent invented something | the skill needs a constraint |
+| false positive | the agent invented something | the guidance needs a constraint |
 
-Unit-level feedback says a piece of knowledge itself is wrong — outdated,
-unclear, or in fact the thing that solved the problem. This is what lets people
-who read the knowledge base, not just people who review agent output, turn the
-same flywheel. Both grains land in the same store, feed the same detectors, and
-become the same kind of proposal.
+Unit-level feedback says a piece of knowledge itself is wrong — outdated, unclear,
+or in fact the thing that solved the problem. That is what lets people who read the
+knowledge base, not only people reviewing agent output, turn the same loop.
+
+Deviation is a third source, and it is generated rather than submitted: the gap
+between prescribed and actual process, positive or negative, as described above.
+
+All of it lands in the same store, feeds the same detectors, and becomes the same
+kind of proposal.
 
 ### Model-generated feedback amplifies; it does not substitute
 
 Human review does not scale to the volume these systems produce, so the obvious
-move is to have a model generate feedback, using human-reviewed examples as its
-seed. Done carefully this works. Done carelessly it is the most efficient way to
-make a system confidently wrong that we know of.
+move is to have a model generate feedback from a human-reviewed seed. Done
+carefully this works. Done carelessly it is the most efficient way to make a system
+confidently wrong that we know of.
 
-The precondition is diversity of the seed, not size of it. A model given
-human feedback that covers a wide range of inputs can extend it sensibly. A model
-given feedback concentrated in one slice has two ways to fail on everything else,
-and both are bad:
+The precondition is diversity of the seed, not size of it. A model given human
+judgements spanning a wide range of inputs can extend them sensibly. A model given
+judgements concentrated in one slice has two ways to fail on everything else:
 
-- it falls back on its own prior knowledge, which is not your organisation's
-  judgement and cannot be audited against anything
-- it applies feedback from an unrelated slice, producing labels that are
-  confident, consistent, and about the wrong thing
+- it falls back on its own prior knowledge, which is not this organisation's
+  judgement, was reviewed by nobody, and cannot be audited against anything
+- it stretches the feedback it does have onto material that feedback was never
+  about, producing labels that are consistent, plausible and wrong
 
-Neither failure looks like a failure. Volume goes up, coverage appears solved,
-and the errors are systematic rather than noisy — which means they compound
-instead of averaging out.
+Neither looks like failure. Volume rises, coverage appears solved, and the errors
+are systematic rather than noisy — so they compound instead of averaging out.
 
-So the controls are structural rather than advisory. Keep the human-versus-model
-label on every row so model-derived feedback can be excluded from any measurement
-that matters. Hold a genuinely human-only slice that no model process has touched
-and measure against it separately. Keep a floor on the ratio of human judgements
-rather than letting model volume float free. And when the two disagree, believe
-the humans and go find out why.
+The controls are therefore structural. Keep the origin label on every row so
+model-derived feedback can be excluded from any measurement that matters. Hold a
+human-only slice no model process has touched and measure against it separately.
+Keep a floor on the human ratio rather than letting model volume float free. When
+the two disagree, believe the humans and find out why.
 
-### Sampling is a product surface, not a background job
+### Sampling is a product surface
 
-If diverse human feedback is the precondition, then collecting it is a design
-problem, not something that happens if people are diligent. Left alone, review
-concentrates on whatever is quickest to check, which is exactly the material the
-system already handles well.
+If seed diversity is the precondition, collecting a diverse seed is a design problem
+rather than a matter of diligence. Left alone, review concentrates on whatever is
+quickest to check, which is exactly the material the system already handles well.
 
-So something has to actively choose what a person is asked to look at: spread
-across domains, customers, task types and difficulty, weighted toward the slices
-where coverage is thin. That is a sampler with a user interface.
+So something has to actively choose what a person is asked to look at: spread across
+domains, customers, task types and difficulty, and across the decomposition, weighted
+toward thin coverage.
 
-The agreeable part is that the harness can be that interface. An agent can pull a
-stratified sample, present each item with the source beside it, capture the
-judgement, and write it back labelled — which makes the review surface one more
-thing built from the same data rather than a separate application to maintain.
+The harness can be that interface. An agent pulls a stratified sample, presents each
+item beside its source at the granularity the decomposition made judgeable, captures
+the judgement, and writes it back labelled — making the review surface one more thing
+built from the same data rather than an application to maintain.
 
 The loop, end to end:
 
 ```mermaid
 flowchart LR
-  S["source registered"] --> A["agent produces output"]
-  A --> B["session and events<br/>recorded"]
-  A --> H["sampled for review"]
-  H --> C["validation or correction<br/>labelled by who judged"]
-  C --> M["model-generated feedback<br/>seeded from human, labelled"]
+  S["source registered"] --> A["agent run<br/>decomposes as it works"]
+  A --> B["run recorded:<br/>steps, decisions, paths"]
+  A --> H["sampled for review<br/>at judgeable grain"]
+  H --> C["judgement, labelled<br/>by who judged"]
+  C --> M["model-generated feedback<br/>seeded from human"]
+  B --> P["prescribed vs actual<br/>compared"]
   B --> D["deterministic detectors"]
   C --> D
   M --> D
+  P --> D
   D --> E["finding<br/>with typed evidence"]
   E --> F["proposal"]
   F --> G{"a person<br/>approves"}
@@ -344,266 +524,189 @@ flowchart LR
 
 ## The grounding layer
 
-The governed data that the loop produces and consumes is the grounding layer: the
-layer between raw sources and the agent, with three faces.
+The governed data the loop produces and consumes is the grounding layer: the layer
+between raw sources and the agent, with three faces.
 
-Constraints on one end — rules, activation conditions, policies. Grounding data
-in the middle — validated knowledge, its evidence, its provenance. Verifiers and
-feedback on the other — eval gates, holdout results, corrections, usage signals.
+Constraints on one end. Grounding data in the middle — validated knowledge, its
+evidence, its provenance. Verifiers and feedback on the other: eval gates, holdout
+results, corrections, usage signals, deviation.
 
-It is a layer rather than a store because it has two physical forms. The
-warehouse is its governed source of truth; the compiled files are its
-agent-facing form. That single sentence is what connects everything in this
-document: the storage split below is not a separate design choice, it is what
-this layer looks like from underneath.
+It is a layer rather than a store because it has two physical forms. The warehouse
+is its governed source of truth; the compiled artifacts are its agent-facing form.
 
-## Three design choices
+## Behaviour lives in data, so it survives the tools
 
-### Skills are looked up, not switched on
+Keeping this as governed data rather than as code in an orchestration framework is a
+bet that frameworks churn faster than schemas do. The same rows can feed one harness
+today and another in two years.
 
-<img src="assets/progressive-disclosure.svg" alt="Three levels. Level one is small and always loaded. Level two is loaded when it matches the task. Level three is large and opened only on demand." width="100%">
+The clearest test of whether a system means it is what happens when you need a new
+category. Adding a new kind of finding, event type or feedback class should be
+inserting a row in a registry — no schema change, no deployment. The taxonomy of
+problems in any domain is discovered by running the loop, not designed in advance,
+so the vocabularies have to be open.
 
-A context window is attention, not memory. Filling it with material that does not
-apply to the current task makes answers worse, not just more expensive.
-
-So knowledge splits by how often it applies. A small always-loaded layer holds the
-constraints that apply to everything. A middle layer holds the instructions for a
-particular kind of job, loaded when it matches. A large bottom layer holds
-reference material, opened by name when the work needs it.
-
-Which means the routing decision is the product. At small scale a harness picks
-among a handful of skills by exact match. At real scale, consumers describe needs
-in fuzzy language and the system ranks thousands of knowledge units. The evidence
-points at lexical search plus ranking on structured metadata — status, validation
-state, eval score, usage signal — as the core, with embeddings as an optional
-last resort for large fuzzy corpora rather than the first thing reached for.
-
-There is a stronger version of this idea that is easy to miss. If behaviour is
-data, then the selection logic is behaviour too. A skill should carry not only its
-content but the operators that decide when it applies and how it composes — and
-those should be versioned and evolvable through the same proposal flow as the
-content. Otherwise you have made the knowledge data-driven and left the routing
-hardcoded, which is where the interesting decisions actually live.
-
-### Files and a warehouse do different jobs
-
-<img src="assets/storage-split.svg" alt="Two panels with a bridge between them. Files in git hold skills, rules and compiled artifacts. A SQL warehouse holds sessions, events, findings and versions, and acts as catalog and governance over the files. Each is bad at the other's job." width="100%">
-
-There is a long-running argument about whether agent knowledge belongs in files or
-in a database. It resolves by splitting on the kind of data, and then adding a
-third thing most summaries drop.
-
-Files win for anything the agent reads as instructions. Models are pretrained on
-file and shell idioms, so navigating files is a foundation skill rather than a
-system you have to build — and one that improves on its own as base models
-improve. Anthropic built vector search into early Claude Code and then removed
-it, reporting that agentic search worked better and avoided problems with
-staleness, privacy and reliability. Cursor is the notable counterexample, keeping
-embeddings for whole-codebase recall on large unfamiliar repositories, which is
-the case where the tradeoff genuinely flips.
-
-Warehouses win for anything you count, aggregate, or ask about over time. Grep
-cannot tell you whether the correction rate went down this quarter.
-
-The third thing: the warehouse is also the catalog and governance layer over the
-files. It holds what they were compiled from, when, on whose approval, and
-whether they still match. This is the same conclusion the lakehouse world reached
-independently — files hold content, a catalog holds schemas, snapshots and
-statistics, and the database's job is governance rather than primary storage.
-Drop this row and the split reads as two peers, when it is actually a hierarchy.
-
-### Behaviour lives in data, so it survives the tools
-
-Keeping this as governed data rather than as code in an orchestration framework is
-a bet that frameworks churn faster than schemas do. The same rows can feed one
-harness today and another in two years.
-
-The clearest test of whether a system really means it is what happens when you
-need a new category. Adding a new kind of finding, a new event type, or a new
-feedback class should be inserting a row in a registry — no schema change, no
-deployment, no code review. The taxonomy of problems in any domain is discovered
-by running the loop, not designed in advance, so the vocabularies have to be open.
-
-The contrast is just as important. Some vocabularies should stay closed. The set
-of things a proposal is allowed to modify is a closed list on purpose, because
-adding a member means the loop has learned to change a new kind of thing, and that
-is a deliberate engineering decision rather than a row somebody inserted. Knowing
-which vocabularies are open and which are closed is most of this design.
+The contrast matters as much. Some vocabularies should stay closed. The set of
+things a proposal may modify is a closed list on purpose, because adding a member
+means the loop has learned to change a new kind of thing, and that is a deliberate
+engineering decision rather than a row somebody inserted. Knowing which vocabularies
+are open and which are closed is most of this design.
 
 ## Provenance is a chain, not a footer
 
-The doc has claimed several times that you can always ask why a piece of knowledge
-says what it says. Here is what that actually means.
+The document has claimed several times that you can always ask why a piece of
+knowledge says what it says. Here is what that means.
 
 Every compiled artifact names the row it came from. Every row names the proposal
 that created it. Every proposal names the findings that justified it, each with a
-claim type. Every finding names the sessions and records that evidence it. And
-every one of those is a relationship between rows, not a comment in a file — so
-the question is a query, not an archaeology exercise:
+claim type. Every finding names the runs and records that evidence it. Every one of
+those is a relationship between rows, not a comment in a file, so the question is a
+query:
 
-> This rule says "escalate any contract with a non-standard indemnity clause."
-> Which proposal created this version, who approved it and when, which findings
-> did they cite, how many cases did each finding aggregate, and are those cases
-> still open?
+> This rule says escalate any contract with a non-standard indemnity clause. Which
+> proposal created this version, who approved it and when, which findings did they
+> cite, how many cases did each aggregate, and are those cases still open?
 
-Every hop in that sentence is a join. The footer in the compiled file is a
-convenience rendering of the first two hops, for a reader who has the file and
-not the database.
+Every hop there is a join. The footer in the compiled file is a convenience
+rendering of the first two hops for a reader who has the file and not the database.
 
-One consequence worth designing for from the start: knowledge and telemetry have
-different lifecycles. Sessions and events are high volume, sensitive, and
-retention-bound. Feedback, proposals and approval history are small, precious,
-and not re-derivable from anything — nobody can reconstruct a human judgement
-that was deleted. If the evidence a rule cites lives on a deletion clock, the
-provenance chain will one day point at rows that no longer exist, and it will look
-intact right up until someone follows it.
+One consequence to design for from the start: knowledge and telemetry have different
+lifecycles. Runs and events are high volume, sensitive and retention-bound. Feedback,
+proposals and approval history are small, precious and not re-derivable — nobody can
+reconstruct a human judgement that was deleted. If the evidence a rule cites lives on
+a deletion clock, the chain will one day point at rows that no longer exist, and it
+will look intact until someone follows it.
 
 ## How you know it is turning and not just spinning
 
-A flywheel that runs without compounding is worse than none, because it looks
-like progress. Four measures separate them:
+A flywheel that runs without compounding is worse than none, because it looks like
+progress. The measures that separate them:
 
-- correction rate per version — are people correcting the new version less than
-  the old one
+- correction rate per version — are people correcting the new version less
 - recurrence after a change — did the pattern the rule targeted actually shrink
 - time to validation — how long output waits before anyone checks it
 - rejection rate — a rate near zero means the gate is not really being used
+- deviation rate and its direction — is the agent departing from guidance, and are
+  those departures better or worse
 
-These are queries rather than a separate reporting system, and one modelling
-decision is what makes them cheap: facts carry the dimension attributes they were
-produced under, stamped at insert time. An output records the skill version that
-made it, so accuracy by version is a filter rather than a reconstruction. Without
-that, every one of these questions becomes an expensive historical join, and in
-practice nobody asks them.
+These are queries rather than a reporting system, and one modelling decision makes
+them cheap: facts carry the dimension attributes they were produced under, stamped
+at insert. An output records the skill version that made it, so accuracy by version
+is a filter rather than a reconstruction.
 
-Two disciplines about measurement itself. Denominate verification windows in
-volume rather than in elapsed days, because days tell you nothing about
-statistical power. And pair every detector with an outcome measure that is harder
-to game: a rule that stops the agent retrying will drive retry findings to zero
-whether the task now succeeds or the agent simply gives up.
+Two disciplines about measurement itself. Denominate verification windows in volume
+rather than elapsed days, because days say nothing about statistical power. And pair
+every detector with an outcome measure that is harder to game: a rule that stops the
+agent retrying drives retry findings to zero whether the task now succeeds or the
+agent simply gives up.
 
 ## How this goes wrong
 
-These loops fail from lack of signal far more often than from broken mechanics.
-The mechanical half is the visible engineering problem. The signal is what decides
-whether anything compounds — and building the mechanics while neglecting the
-signal is the single most common way these systems plateau.
-
-The five that cause most of it:
+These loops fail from lack of signal far more often than from broken mechanics. The
+mechanical half is the visible engineering problem. The signal is what decides
+whether anything compounds, and building the first while neglecting the second is
+the most common way these systems plateau.
 
 | Failure | What you see | First thing to check |
 |---|---|---|
-| Nobody corrects anything | detectors fire, no corrections arrive | corrections per week against volume per week |
-| Signal from one corner | one slice improves, others quietly rot | corrections grouped by domain, customer, task type |
+| Nobody corrects anything | detectors fire, no corrections arrive | corrections per week against volume |
+| Signal from one corner | one slice improves, others quietly rot | corrections grouped by domain, customer, task |
 | Model feedback from a thin seed | volume rises, quality does not | how the seed was sampled, and against what |
-| Knowledge goes stale | answers that were right last year | source hashes, age of each knowledge unit |
-| Approval becomes a rubber stamp | everything gets approved | rejection rate, and how many distinct approvers |
+| Knowledge goes stale | answers that were right last year | source hashes, age of each unit |
+| Approval becomes a rubber stamp | everything gets approved | rejection rate, distinct approvers |
+| Safeguards optimised away | deviations keep winning on speed | whether skipped steps guarded rare events |
 
-Three are counterintuitive enough to name here.
+Four are counterintuitive enough to name here.
 
 Success starves the loop. The fuel is errors, so removing errors removes fuel.
 Improvement flattens and correction volume falls, and it is genuinely ambiguous
 whether the system got good or people stopped looking.
 
-One reviewer becomes the policy. A single approver's preferences compound into
-the knowledge base, and there is no disagreement signal to detect it with. The
-check is structural rather than statistical: count distinct approvers. If it is
-one, you have this by construction whether or not it has bitten yet.
+One reviewer becomes the policy. A single approver's preferences compound into the
+knowledge base with no disagreement signal to detect it. The check is structural:
+count distinct approvers.
 
-The knowledge base only ever grows. Every finding adds a rule and nothing ever
-retires one, until the always-loaded layer is enormous and the instructions have
-become a document nobody reads — the exact failure this design exists to avoid.
-Retirement has to be a first-class change, not an afterthought.
+The knowledge base only ever grows. Every finding adds a rule and nothing retires
+one, until the always-loaded surface is enormous and the guidance has become a
+document nobody reads.
 
-[How data flywheels fail](flywheel-failure-modes.md) covers eighteen in detail —
-what each looks like, why it happens, and how to catch it.
+Safeguards get optimised away. Steps that prevent rare events look like waste in
+every sample that does not contain the rare event.
+
+[How data flywheels fail](flywheel-failure-modes.md) covers these in detail.
 
 ## Where the reference implementation actually is
 
-This repository is a working reference implementation of the pattern above, at
-single-operator scale. It is a research repo, not a product.
+This repository is a working reference implementation at single-operator scale. It
+is a research repo, not a product.
 
 | Stage | State |
 |---|---|
-| Sense | working, for agent transcripts and generic event streams |
-| Analyze | detection works; findings have no lifecycle yet, so recurrence is not tracked |
-| Propose | proposals work and carry evidence; claim types on evidence are not built |
+| Ingest | working, for agent transcripts and generic event streams |
+| Analyze | detection works; findings have no lifecycle, so recurrence is not tracked |
+| Propose | proposals work and carry evidence; claim types are not built |
 | Approve | working, including the draft-only tool gate |
-| Publish | compiling and provenance footers work; scope-organised output and the drift check are not built |
+| Compile | compiling and provenance footers work; scoped output and the drift check are not built |
 | Verify | not built |
 
-Also unbuilt: ranked retrieval, ingest-time redaction, identity and permissions,
-unit-level feedback, model-generated feedback with the labelling and sampling
-controls described above, and consolidation passes.
+Also unbuilt: everything in the constraints and evaluation section — right-hand
+constraints, decomposition as governed data, conformance checking, deviation as
+signal. Plus ranked retrieval, ingest-time redaction, identity and permissions,
+unit-level feedback, model-generated feedback with its controls, the stratified
+sampler, and consolidation passes.
 
 The honest summary is that the mechanical half of the loop exists and the
-signal-quality half mostly does not. That is the normal order in which these get
-built, and it is also why so many plateau.
+signal-quality half mostly does not. That is the normal order these get built in,
+and it is also why so many plateau.
 
 The loop has run end to end once, in July 2026: detectors found patterns, a model
-judged them, three evidence-linked proposals were written, the owner approved
-them, and they compiled with provenance footers. Three proposals and three
-approvals is also, by the rejection-rate measure above, indistinguishable from a
-rubber stamp — n of three supports nothing in either direction, and it is listed
-here as an existence proof that the machinery connects, not as evidence that the
-governance works.
+judged them, three evidence-linked proposals were written, the owner approved them,
+and they compiled with provenance footers. Three proposals and three approvals is
+also a zero rejection rate, which is what a rubber stamp looks like — n of three
+supports nothing in either direction, and it is listed as proof the machinery
+connects rather than that the governance works.
 
 The one measurement attempted was underpowered and is not evidence of anything:
 identical-retry sessions went from 1.5 percent before a rule to zero out of
-sixty-four sessions after, where the expected count at that base rate is about
-one.
+sixty-four after, where the expected count at that base rate is about one.
 
 ## What would show this is wrong
 
-A design that cannot be wrong is a manifesto. Three things would count as
-evidence against this one.
+A design that cannot be wrong is a manifesto. Three things would count as evidence
+against this one.
 
 If correction rates per version do not fall as versions accumulate, over a sample
 large enough to detect the effect, the loop is not compounding and the governance
-overhead is not buying anything.
+overhead buys nothing.
 
-If base model improvement dominates. This is the strongest competing explanation
-and it deserves stating plainly: if models improve faster than an accumulated rule
-corpus adds value, the grounding layer is at best neutral and at worst a drag,
-with stale rules constraining a more capable model. The test is to hold the corpus
-fixed across a model upgrade and then remove rules to see whether anything gets
-worse. Nobody has run it.
+If base model improvement dominates. This is the strongest competing explanation: if
+models improve faster than an accumulated corpus adds value, the grounding layer is
+neutral at best and drag at worst, with stale rules constraining a more capable
+model. The test is to hold the corpus fixed across a model upgrade and then remove
+rules to see whether anything gets worse. Nobody has run it.
 
 If the review burden exceeds the measured quality gain. There is a volume at which
-human approval stops being affordable, and no amount of triage automation removes
-it — it only moves where the judgement happens. If that point arrives before the
-loop demonstrably compounds, the pattern does not work at that scale.
+human approval stops being affordable, and triage automation does not remove it — it
+moves where the judgement happens. If that point arrives before the loop demonstrably
+compounds, the pattern does not work at that scale.
 
 ## Sources
 
-Claims above are drawn from the [research review](research-agent-data-representation.md),
-which carries full citations and its own sourcing caveats. Two worth repeating
-here: several of the papers cited were reachable only as abstracts and author
-summaries rather than full texts, so their reported results are author-claimed
-and not independently verified. Specifically, the self-editing failure modes in
-stage 4 and the evidence-chain study in stage 3 both rest on that weaker footing.
-The Anthropic vector-search decision is a directly attributed practice report, not
-a paper result.
+Claims here draw on the [research review](research-agent-data-representation.md),
+which carries full citations and its own caveats. Two worth repeating: several cited
+papers were reachable only as abstracts and author summaries, so their results are
+author-claimed rather than independently verified — this applies to the self-editing
+failure modes in stage 4 and the evidence-chain study in stage 3. The Anthropic
+vector-search decision is a directly attributed practice report, not a paper result.
 
 ## Learn more
 
-Start here if you want to run it:
-
-- [Cold-start tutorial](tutorial-cold-start.md) — day one, from an empty database
-  to the first turn of the loop
-- [Extraction tutorial](tutorial-arxiv-extraction.md) — the full pipeline against
-  a real document
-- [Feedback tutorial](tutorial-flywheel.md) — reviewing output and recording
-  corrections, then the governed path: detectors, proposal, approval, compile
-
-Go deeper on the design:
-
-- [How data flywheels fail](flywheel-failure-modes.md) — the failure modes above
-  in full, with what this repo defends against today
-- [Roadmap](../ROADMAP.md) — what scales, what breaks, and in what order
+- [Cold-start tutorial](tutorial-cold-start.md) — day one, from empty to first turn
+- [Extraction tutorial](tutorial-arxiv-extraction.md) — the pipeline against a real document
+- [Feedback tutorial](tutorial-flywheel.md) — corrections, then the governed path
+- [How data flywheels fail](flywheel-failure-modes.md) — the failure modes in full
+- [Roadmap](../ROADMAP.md) — what scales, what breaks, in what order
 - [Implementation plan](implementation-plan.md) — milestones and definitions of done
-- [Research review](research-agent-data-representation.md) — how this design holds
-  up against the 2026 literature and production practice
-- [Progressive disclosure](../skill/reference/retrieval-thesis.md) — why skills are
-  retrieval rather than configuration
+- [Research review](research-agent-data-representation.md) — the literature and practice behind this
+- [Progressive disclosure](../skill/reference/retrieval-thesis.md) — skills as retrieval
 - [Schema reference](../skill/reference/schema.md) — every table and column

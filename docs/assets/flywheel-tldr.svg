@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" role="img" aria-labelledby="t d">
   <title id="t">One turn of the data flywheel</title>
-  <desc id="d">Six stages in a loop: sense, analyze, propose, approve, publish, verify. A pulse travels the loop and each stage is explained in turn. Approve is done by a person and cannot be automated.</desc>
+  <desc id="d">Six stages in a loop: ingest, analyze, propose, approve, compile, verify. A pulse travels the loop and each stage is explained in turn. Approve is done by a person and cannot be automated.</desc>
 
   <rect x="0" y="0" width="960" height="560" rx="16" fill="#0b1220"/>
 
@@ -29,14 +29,14 @@
 
   <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle">
 
-    <!-- 0 sense -->
+    <!-- 0 ingest -->
     <circle cx="280" cy="175" r="40" fill="#16233a" stroke="#2c3e5e" stroke-width="1.5"/>
-    <text x="280" y="180" fill="#8fa2c0">sense</text>
+    <text x="280" y="180" fill="#8fa2c0">ingest</text>
     <g opacity="0">
       <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.156;0.167;1" dur="18s" repeatCount="indefinite"/>
       <circle cx="280" cy="175" r="46" fill="none" stroke="#4f8ef7" stroke-width="1.5" opacity="0.4"/>
       <circle cx="280" cy="175" r="40" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="2"/>
-      <text x="280" y="180" fill="#e6edf7">sense</text>
+      <text x="280" y="180" fill="#e6edf7">ingest</text>
     </g>
 
     <!-- 1 analyze -->
@@ -74,23 +74,23 @@
       <text x="280" y="438" fill="#c79a45" font-size="10.5" font-weight="500">a person</text>
     </g>
 
-    <!-- 4 publish -->
+    <!-- 4 compile -->
     <circle cx="171.7" cy="362.5" r="40" fill="#16233a" stroke="#2c3e5e" stroke-width="1.5"/>
-    <text x="171.7" y="367.5" fill="#8fa2c0">publish</text>
+    <text x="171.7" y="367.5" fill="#8fa2c0">compile</text>
     <g opacity="0">
       <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.667;0.678;0.822;0.833;1" dur="18s" repeatCount="indefinite"/>
       <circle cx="171.7" cy="362.5" r="46" fill="none" stroke="#4f8ef7" stroke-width="1.5" opacity="0.4"/>
       <circle cx="171.7" cy="362.5" r="40" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="2"/>
-      <text x="171.7" y="367.5" fill="#e6edf7">publish</text>
+      <text x="171.7" y="367.5" fill="#e6edf7">compile</text>
     </g>
 
     <!-- 5 verify -->
-    <circle cx="171.7" cy="237.5" r="40" fill="#16233a" stroke="#2c3e5e" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <circle cx="171.7" cy="237.5" r="40" fill="#16233a" stroke="#2c3e5e" stroke-width="1.5"/>
     <text x="171.7" y="242.5" fill="#8fa2c0">verify</text>
     <g opacity="0">
       <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.833;0.844;0.989;1;1" dur="18s" repeatCount="indefinite"/>
       <circle cx="171.7" cy="237.5" r="46" fill="none" stroke="#35c88f" stroke-width="1.5" opacity="0.4"/>
-      <circle cx="171.7" cy="237.5" r="40" fill="#14332a" stroke="#35c88f" stroke-width="2" stroke-dasharray="4 4"/>
+      <circle cx="171.7" cy="237.5" r="40" fill="#14332a" stroke="#35c88f" stroke-width="2"/>
       <text x="171.7" y="242.5" fill="#c9f5e3">verify</text>
     </g>
   </g>
@@ -100,18 +100,16 @@
 
   <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
 
-    <!-- 0 sense -->
+    <!-- 0 ingest -->
     <g opacity="0">
       <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.156;0.167;1" dur="18s" repeatCount="indefinite"/>
       <text x="530" y="186" font-size="12" font-weight="600" fill="#4f8ef7" letter-spacing="1.2">STAGE 1</text>
-      <text x="530" y="218" font-size="24" font-weight="600" fill="#e6edf7">Sense</text>
+      <text x="530" y="218" font-size="24" font-weight="600" fill="#e6edf7">Ingest</text>
       <text x="530" y="256" font-size="14" fill="#a8b8d4">Everything the system does gets recorded.</text>
       <text x="530" y="278" font-size="14" fill="#a8b8d4">Agent transcripts, event streams, documents —</text>
-      <text x="530" y="300" font-size="14" fill="#a8b8d4">all ingested into one warehouse. Row keys are</text>
-      <text x="530" y="322" font-size="14" fill="#a8b8d4">derived from content, so re-running ingest</text>
+      <text x="530" y="300" font-size="14" fill="#a8b8d4">all ingested into one warehouse. Keys come from</text>
+      <text x="530" y="322" font-size="14" fill="#a8b8d4">stable identifiers, so re-running ingest</text>
       <text x="530" y="344" font-size="14" fill="#a8b8d4">never duplicates anything.</text>
-      <rect x="530" y="376" width="72" height="24" rx="12" fill="#12332a" stroke="#2e7d5f"/>
-      <text x="566" y="392" font-size="12" font-weight="600" fill="#5fd6a4" text-anchor="middle">shipped</text>
     </g>
 
     <!-- 1 analyze -->
@@ -120,12 +118,10 @@
       <text x="530" y="186" font-size="12" font-weight="600" fill="#4f8ef7" letter-spacing="1.2">STAGE 2</text>
       <text x="530" y="218" font-size="24" font-weight="600" fill="#e6edf7">Analyze</text>
       <text x="530" y="256" font-size="14" fill="#a8b8d4">Plain SQL detectors scan for patterns that</text>
-      <text x="530" y="278" font-size="14" fill="#a8b8d4">repeat: retry loops, permission friction,</text>
-      <text x="530" y="300" font-size="14" fill="#a8b8d4">source files that changed since you read them.</text>
+      <text x="530" y="278" font-size="14" fill="#a8b8d4">repeat: a field corrected the same way twelve</text>
+      <text x="530" y="300" font-size="14" fill="#a8b8d4">times, a source that changed underneath you.</text>
       <text x="530" y="322" font-size="14" fill="#a8b8d4">Cheap and repeatable. No model calls — a model</text>
       <text x="530" y="344" font-size="14" fill="#a8b8d4">is only asked for judgment calls.</text>
-      <rect x="530" y="376" width="72" height="24" rx="12" fill="#12332a" stroke="#2e7d5f"/>
-      <text x="566" y="392" font-size="12" font-weight="600" fill="#5fd6a4" text-anchor="middle">shipped</text>
     </g>
 
     <!-- 2 propose -->
@@ -138,8 +134,6 @@
       <text x="530" y="300" font-size="14" fill="#a8b8d4">add this instruction. Every proposal links to</text>
       <text x="530" y="322" font-size="14" fill="#a8b8d4">the exact rows that justify it, so a reviewer</text>
       <text x="530" y="344" font-size="14" fill="#a8b8d4">can check the claim instead of trusting it.</text>
-      <rect x="530" y="376" width="72" height="24" rx="12" fill="#12332a" stroke="#2e7d5f"/>
-      <text x="566" y="392" font-size="12" font-weight="600" fill="#5fd6a4" text-anchor="middle">shipped</text>
     </g>
 
     <!-- 3 approve -->
@@ -152,24 +146,20 @@
       <text x="530" y="300" font-size="14" fill="#d8c69c">this step. The agent can draft a change, but it</text>
       <text x="530" y="322" font-size="14" fill="#d8c69c">cannot switch one on for itself — the tools it</text>
       <text x="530" y="344" font-size="14" fill="#d8c69c">can call refuse to create anything that loads.</text>
-      <rect x="530" y="376" width="72" height="24" rx="12" fill="#12332a" stroke="#2e7d5f"/>
-      <text x="566" y="392" font-size="12" font-weight="600" fill="#5fd6a4" text-anchor="middle">shipped</text>
-      <rect x="612" y="376" width="128" height="24" rx="12" fill="#2a2113" stroke="#7a5a1e"/>
-      <text x="676" y="392" font-size="12" font-weight="600" fill="#e0b45e" text-anchor="middle">human only, always</text>
+      <rect x="530" y="376" width="128" height="24" rx="12" fill="#2a2113" stroke="#7a5a1e"/>
+      <text x="594" y="392" font-size="12" font-weight="600" fill="#e0b45e" text-anchor="middle">human only, always</text>
     </g>
 
-    <!-- 4 publish -->
+    <!-- 4 compile -->
     <g opacity="0">
       <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.667;0.678;0.822;0.833;1" dur="18s" repeatCount="indefinite"/>
       <text x="530" y="186" font-size="12" font-weight="600" fill="#4f8ef7" letter-spacing="1.2">STAGE 5</text>
-      <text x="530" y="218" font-size="24" font-weight="600" fill="#e6edf7">Publish</text>
+      <text x="530" y="218" font-size="24" font-weight="600" fill="#e6edf7">Compile</text>
       <text x="530" y="256" font-size="14" fill="#a8b8d4">An approved change creates a new version of the</text>
       <text x="530" y="278" font-size="14" fill="#a8b8d4">rule or skill, and compiles into the markdown</text>
       <text x="530" y="300" font-size="14" fill="#a8b8d4">files the agent actually loads. Each file says</text>
       <text x="530" y="322" font-size="14" fill="#a8b8d4">do not edit me, and carries a footer naming the</text>
       <text x="530" y="344" font-size="14" fill="#a8b8d4">evidence and the approval behind it.</text>
-      <rect x="530" y="376" width="72" height="24" rx="12" fill="#12332a" stroke="#2e7d5f"/>
-      <text x="566" y="392" font-size="12" font-weight="600" fill="#5fd6a4" text-anchor="middle">shipped</text>
     </g>
 
     <!-- 5 verify -->
@@ -182,8 +172,6 @@
       <text x="530" y="300" font-size="14" fill="#9fc9bb">correct. It has to fix the thing it targeted and</text>
       <text x="530" y="322" font-size="14" fill="#9fc9bb">break nothing else. Otherwise the last good</text>
       <text x="530" y="344" font-size="14" fill="#9fc9bb">version keeps serving.</text>
-      <rect x="530" y="376" width="112" height="24" rx="12" fill="#2b2f3a" stroke="#4a5468"/>
-      <text x="586" y="392" font-size="12" font-weight="600" fill="#9aa8c0" text-anchor="middle">not built yet</text>
     </g>
   </g>
 

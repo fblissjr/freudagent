@@ -47,7 +47,7 @@
     <polygon points="248,398 243,388 253,388" fill="#4d6288"/>
 
     <rect x="36" y="396" width="888" height="52" rx="10" fill="#16233a" stroke="#3a5a8f" stroke-width="1.4"/>
-    <text x="60" y="418" font-size="11.5" font-weight="600" fill="#89b4f7" letter-spacing="1">THE BRIDGE</text>
-    <text x="60" y="438" font-size="13.5" fill="#c3d2ea">The warehouse is also the catalog over the files: what each was compiled from, when, on whose approval, and whether it still matches.</text>
+    <text x="60" y="418" font-size="11.5" font-weight="600" fill="#89b4f7" letter-spacing="1">THE INVARIANT</text>
+    <text x="60" y="438" font-size="13.5" fill="#c3d2ea">Wherever a thing lives, it is versioned and immutable. The warehouse is also the catalog: what was compiled from what, when, on whose approval.</text>
   </g>
 </svg>

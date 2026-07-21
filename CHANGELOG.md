@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.30.0
+
+Documentation only. `docs/data-flywheel.md` becomes the detailed source of truth
+for the design; a plain-English explainer will be derived from it separately.
+
+### Added
+
+- **Constraints on both sides.** An agent needs left-hand constraints (what it
+  may and must do) and right-hand constraints (what good means). Most systems
+  build only the first, and deferring the second is why they never demonstrably
+  improve. Evals are the right-hand constraint set, not a gate bolted on the end.
+- **Feedback granularity follows from decomposition.** People can only judge what
+  they can evaluate; judging a whole outcome yields a verdict with nowhere to go.
+  Work decomposes until a person can answer confidently, judgement is captured
+  there, and results aggregate up to business altitude. Interpretability comes
+  from the decomposition, not the evaluation.
+- **Decomposition happens during the run.** It is the shape of the work, emerging
+  as the agent goes, not an artifact authored in advance -- and depth is
+  genuinely variable, sometimes zero. The execution tree of one run is a fact;
+  the decomposition is the dimension learned from many, which then becomes
+  orchestrator-level guidance. An authored decomposition would rot exactly like
+  a data catalog.
+- **Deviation as bidirectional signal.** Comparing prescribed process against
+  observed process is conformance checking. A departure with a worse result means
+  the guidance was right; a departure with an equal or better result means the
+  guidance was wrong and the agent found out. Every detector described before
+  this found only problems. Safe only when outcomes are measurable at the level
+  the deviation occurred, and when guidance declares enough structure to depart
+  from.
+- **Skills as a ragged hierarchy** spanning orchestrator-level decomposition down
+  to field-level semantics -- what a column means to this business, which of
+  three date columns anyone means. That bottom rung is the best-evidenced part of
+  the whole design and was previously unmentioned. L1/L2/L3 is named as the
+  teaching simplification of arbitrary depth; progressive disclosure is lazy
+  traversal of it.
+- **Skills live in git and in a table.** Artifact in git, metadata in rows:
+  version, identifier, the job that created it, what changed and why. The second
+  half is what lets you ask whether a skill's evolution moved outcomes. The
+  invariant underneath holds regardless of storage -- versioned and immutable,
+  new rows never edits.
+- **Catalog rot as the motivation.** Every organisation's data catalog is
+  accurate at onboarding and describes a company that no longer exists within a
+  year. Agent skills rot the same way for the same reason. The question is not
+  how to write good instructions but who keeps them current.
+- Two failure modes in the companion doc: safeguards optimised away (steps
+  guarding rare events look like waste in every sample without the rare event),
+  and deviation acted on without outcome measurement.
+
+### Changed
+
+- Terminology. Ingestion is called ingestion; pipelines are pipelines. Invented
+  vocabulary removed where a standard term exists -- the "sense" stage is now
+  ingest, "publish" is compile, and "objects" (never an established term here)
+  is replaced by ordinary facts and dimensions. Coinage kept only for the
+  grounding layer, which has no other name.
+- The hero diagram follows the rename, drops its per-stage status chips now that
+  status lives in one section, and stops dashing the verify node.
+- `storage-split.svg` leads with the invariant rather than the split.
+
 ## 0.29.0
 
 Documentation only. No code or schema changes. `docs/data-flywheel.md` was

@@ -17,15 +17,16 @@ the entry says so.
 ## The short version
 
 If you only read one thing: the loop dies from lack of signal far more often
-than from bad mechanics. Five failures cause most of it.
+than from bad mechanics. Six failures cause most of it.
 
 | Failure | What you see | First thing to check |
 |---|---|---|
 | Nobody corrects anything | detectors fire, no corrections arrive | count of human corrections per week |
 | Signal from one corner | one domain improves, others quietly rot | corrections grouped by domain, user, task type |
-| Synthetic feedback from a biased seed | volume rises, quality does not | how the seed examples were sampled |
+| Model feedback from a thin seed | volume rises, quality does not | how the seed examples were sampled |
 | Knowledge goes stale | answers were right last year | age of each knowledge unit, source hashes |
 | Approval becomes a rubber stamp | everything gets approved | rejection rate |
+| Safeguards optimised away | deviations keep winning on speed | whether skipped steps guarded rare events |
 
 ## Signal starvation
 
@@ -322,6 +323,61 @@ knowledge-side storage rather than referencing telemetry that is on a deletion
 clock. Knowledge and telemetry need different retention, and this is the concrete
 reason why.
 
+## Process improvement turning on itself
+
+Comparing what the agent was told to do against what it actually did produces
+signal in both directions. A departure that produced a worse result says the
+guidance was right and something else went wrong. A departure that produced the
+same or better result faster says the guidance was wrong, and the agent found
+out. The second is one of the most valuable signals available. It also has two
+ways of going badly.
+
+### Safeguards get optimised away
+
+What it looks like: deviations that skip a step keep producing equal or better
+results, so the loop proposes removing the step, and a person approves it because
+the evidence is genuinely there.
+
+Why it happens: some steps exist to prevent something rare. A validation check, a
+second look at an edge case, a confirmation before an irreversible action. In
+every sample that does not contain the rare event, the step is pure cost. The
+deviation data says it is waste, correctly, right up until the event happens.
+
+This is the nastiest entry on the page, because the system is working exactly as
+designed. It measured, it found a real inefficiency, and a human agreed. The
+failure is that observed outcomes over a finite window cannot see the tail the
+step was protecting against, and the window is always finite.
+
+How to catch it: no measurement will save you, because the measurement is the
+problem. The check is structural. Before removing a step, ask what it was there
+for, and whether the answer is a rare event rather than an inefficiency. Rules
+that guard against tails should say so at the point they are written, because
+nobody can reconstruct that intent later from the rule text alone.
+
+What to do: knowledge units carry why they exist, not only what to do. Steps
+justified by rare-event protection are flagged as such, and removing one requires
+a different and higher standard of evidence than removing a step justified by
+efficiency. This is the one place where the loop should be deliberately harder to
+turn.
+
+### Deviation gets acted on without outcome measurement
+
+What it looks like: the system notices the agent taking a different path and
+proposes matching the guidance to it, on the strength of the deviation alone.
+
+Why it matters: without a definition of good at the level the deviation happened,
+a genuine shortcut and a corner cut are indistinguishable. Both are faster. Both
+produce output. Only one is correct, and the difference shows up later, if at
+all.
+
+How to catch it: check whether the proposal cites an outcome measure or only a
+process difference. A proposal whose entire evidence is "it did it differently
+and finished sooner" is not evidence of improvement.
+
+What to do: treat deviation detection as downstream of evaluation, not parallel
+to it. Until right-hand constraints exist at the relevant granularity, deviations
+are worth recording and not worth acting on.
+
 ## Gate failures
 
 ### Approval becomes a rubber stamp
@@ -415,6 +471,8 @@ Honest accounting, matching the status markers in
 | Measuring too early | learned the hard way; session-denominated windows planned (M13) |
 | Metric improves, problem does not | none |
 | Cannot separate change from confounders | none; versioned knowledge makes A/B possible later |
+| Safeguards optimised away | none; deviation detection is not built, and rules do not record why they exist |
+| Deviation acted on without outcome measurement | none; neither deviation detection nor the eval gate is built, so the pairing has not been designed |
 
 The pattern in that table is worth stating plainly rather than leaving implicit.
 The mechanical half of the loop is built and the signal-quality half is mostly
