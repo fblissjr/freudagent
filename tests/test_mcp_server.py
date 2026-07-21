@@ -114,6 +114,44 @@ class TestOpsRoundTrip:
         assert run.status.value == "completed"
         assert run.rows_written == 1
 
+    def test_feedback_add_writes_load_run(self, store):
+        """Human-authored facts need lineage too, or the chain has holes.
+
+        fact_feedback and fact_proposal are the two tables the design calls
+        "small, precious and not re-derivable" -- nobody can reconstruct a
+        judgment that was deleted. They were also the two carrying no
+        etl_run_id, so the one class of row you most need to trace was the one
+        class you could not.
+        """
+        skill_key = store.insert_skill(Skill(domain="d", task_type="t", content="c"))
+        source_key = store.insert_source(Source(content_path="/f", media_type="text/plain"))
+        session_key = store.insert_session(Session(task_description="t", task_type="t"))
+        ext_key = store.insert_extraction(Extraction(
+            source_key=source_key, skill_key=skill_key,
+            session_key=session_key, output={},
+        ))
+        result = ops.feedback_add(
+            store, extraction_key=ext_key,
+            correction_type=CorrectionType.WRONG_VALUE,
+            correction={"field": "fix"},
+        )
+        run = store.get_load_run(result["etl_run_id"])
+        assert run is not None
+        assert run.operation == "feedback_add"
+        assert run.status.value == "completed"
+        assert run.rows_written == 1
+
+    def test_proposal_add_writes_load_run(self, store):
+        """Same rule for the proposal that carries an approval into a version."""
+        result = ops.proposal_add(
+            store, target=TargetDimension.DIM_RULE,
+            natural_key={"name": "r"}, content="c",
+        )
+        run = store.get_load_run(result["etl_run_id"])
+        assert run is not None
+        assert run.operation == "proposal_add"
+        assert run.rows_written == 1
+
     def test_finding_add_unregistered_type_fails_closed(self, store):
         with pytest.raises(ValueError, match="not registered"):
             ops.finding_add(store, finding_type="nonexistent", summary="x")

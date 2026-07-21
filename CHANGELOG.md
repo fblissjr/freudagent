@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.35.2
+
+### Fixed
+
+- **`fact_feedback` and `fact_proposal` carried no `etl_run_id`.** The design
+  calls these two "small, precious and not re-derivable" -- nobody can
+  reconstruct a human judgment that was deleted -- and they were the two tables
+  with no lineage, so the rows most worth tracing were the ones you could not.
+  `ops.feedback_add` and `ops.proposal_add` now wrap their write in
+  `store.load_run()` the way `finding_add` already did. Every human write gets a
+  load-log row recording when and how it arrived, and both ops return the
+  `etl_run_id`.
+
+  `docs/data-flywheel.md` already described this honestly ("writes that arrive
+  one row at a time, like feedback and proposals, leave it empty"). That
+  sentence can now say lineage is total.
+
 ## 0.35.1
 
 ### Changed

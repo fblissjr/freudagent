@@ -152,18 +152,24 @@ def feedback_add(
     """
     ekey = store.resolve_key("fact_extraction", extraction_key)
     ext = store.get_extraction(ekey)
-    fb_key = store.insert_feedback(Feedback(
-        extraction_key=ekey,
-        session_key=ext.session_key,
-        skill_key=ext.skill_key,
-        correction=correction,
-        correction_type=correction_type,
-        notes=notes,
-        created_by=created_by,
-    ))
+    # Wrapped in its own load_run: a human judgment is not re-derivable, so it
+    # is the row most worth being able to trace back to when and how it arrived.
+    with store.load_run("feedback_add") as stats:
+        fb_key = store.insert_feedback(Feedback(
+            extraction_key=ekey,
+            session_key=ext.session_key,
+            skill_key=ext.skill_key,
+            correction=correction,
+            correction_type=correction_type,
+            notes=notes,
+            created_by=created_by,
+            etl_run_id=stats.etl_run_id,
+        ))
+        stats.rows_written = 1
     return {
         "feedback_key": fb_key, "extraction_key": ekey,
         "correction_type": correction_type.value,
+        "etl_run_id": stats.etl_run_id,
     }
 
 
@@ -236,14 +242,20 @@ def proposal_add(
         [store.resolve_key("fact_finding", k) for k in evidence]
         if evidence else evidence
     )
-    pkey = store.insert_proposal(Proposal(
-        target_dimension=target,
-        target_natural_key=natural_key,
-        proposed_content=content,
-        proposed_version=version,
-        evidence_finding_keys=resolved_evidence,
-    ))
-    return {"proposal_key": pkey, "status": "pending", "target_dimension": target.value}
+    with store.load_run("proposal_add") as stats:
+        pkey = store.insert_proposal(Proposal(
+            target_dimension=target,
+            target_natural_key=natural_key,
+            proposed_content=content,
+            proposed_version=version,
+            evidence_finding_keys=resolved_evidence,
+            etl_run_id=stats.etl_run_id,
+        ))
+        stats.rows_written = 1
+    return {
+        "proposal_key": pkey, "status": "pending",
+        "target_dimension": target.value, "etl_run_id": stats.etl_run_id,
+    }
 
 
 def proposal_approve(
