@@ -5,7 +5,7 @@
   <rect x="0" y="0" width="960" height="560" rx="16" fill="#0b1220"/>
 
   <text x="44" y="52" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="23" font-weight="600" fill="#e6edf7">One turn of the data flywheel</text>
-  <text x="44" y="78" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#8fa2c0">The agent runs, the system watches, a person approves, the agent gets better. Then it repeats.</text>
+  <text x="44" y="78" font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" fill="#8fa2c0">The agent runs, the system watches, a person approves, the guidance changes. Then it repeats.</text>
 
   <!-- ring track -->
   <circle cx="280" cy="300" r="125" fill="none" stroke="#22304a" stroke-width="2" stroke-dasharray="5 7"/>
