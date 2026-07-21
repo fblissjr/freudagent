@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.34.7
+
+### Fixed
+
+- **A non-active skill could be rendered into an assembled system prompt.**
+  `assemble_runner_context` called `store.get_skill()`, which returns the current
+  row whatever its status, and rendered it. This was the assembly half of the
+  self-modification gate going missing: `skill_add` forces `draft` regardless of
+  what a caller asks for, precisely so a session cannot write a skill that loads
+  into its own future context -- but the gate was stopping the status, not the
+  effect. A draft skill reached the prompt anyway.
+
+  Deprecation had the same hole for a different reason: retiring a skill did not
+  stop it being used.
+
+  Rules were never affected; `store.get_rules()` has always filtered on active.
+  The filter now sits in the render path alongside it, with a regression test
+  covering draft and deprecated plus a positive control so the filter cannot
+  pass by rejecting everything.
+
+  Note that `mcp_server.py`'s `skill_add` description already stated the
+  guarantee correctly ("Draft skills... are not loaded into runner context").
+  The description was right and the code had drifted from it, so no doc change
+  was needed -- only the code.
+
 ## 0.34.6
 
 Establishes a boundary the repo had been observing informally and violating

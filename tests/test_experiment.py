@@ -778,6 +778,38 @@ def test_assemble_runner_context(store):
     assert "Extract data" in user
 
 
+@pytest.mark.parametrize("status", [SkillStatus.DRAFT, SkillStatus.DEPRECATED])
+def test_assemble_context_excludes_non_active_skill(store, status):
+    """A skill that is not active must never reach an assembled prompt.
+
+    This is the assembly half of the self-modification gate. `skill_add` forces
+    `draft` regardless of what a caller asks for, precisely so that a session
+    cannot write a skill that loads into its own future context. That guarantee
+    is only real if the assembly path also refuses to render non-active skills --
+    otherwise the gate stops the status and not the effect.
+
+    Deprecated is covered by the same rule for a different reason: retiring a
+    skill has to actually stop it being used, or deprecation means nothing.
+    """
+    skill_key = store.insert_skill(Skill(
+        domain="d", task_type="t", content="NON_ACTIVE_SKILL_MARKER", status=status,
+    ))
+    system, _ = assemble_runner_context(store, skill_key=skill_key, source_keys=[])
+    assert "NON_ACTIVE_SKILL_MARKER" not in system, (
+        f"a {status.value} skill was rendered into the system prompt"
+    )
+
+
+def test_assemble_context_includes_active_skill(store):
+    """Positive control for the test above -- the filter must not reject everything."""
+    skill_key = store.insert_skill(Skill(
+        domain="d", task_type="t", content="ACTIVE_SKILL_MARKER",
+        status=SkillStatus.ACTIVE,
+    ))
+    system, _ = assemble_runner_context(store, skill_key=skill_key, source_keys=[])
+    assert "ACTIVE_SKILL_MARKER" in system
+
+
 def test_assemble_context_with_feedback_summary(store):
     skill_key = store.insert_skill(Skill(domain="d", task_type="t", content="Do the thing"))
     source_key = store.insert_source(Source(content_path="/f", media_type="text/plain"))

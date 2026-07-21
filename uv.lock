@@ -332,7 +332,7 @@ wheels = [
 
 [[package]]
 name = "freud-schema"
-version = "0.34.6"
+version = "0.34.7"
 source = { editable = "." }
 dependencies = [
     { name = "duckdb" },

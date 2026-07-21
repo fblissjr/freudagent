@@ -20,6 +20,7 @@ import orjson
 
 from freud_schema.harness import compose_preset
 from freud_schema.store import ExperimentStore
+from freud_schema.tables import SkillStatus
 
 
 # ---------------------------------------------------------------------------
@@ -118,9 +119,15 @@ def assemble_runner_context(
         rules_block = f"# Rules\n\n{rules_text}\n\n"
 
     # Layer 2: Skill (loaded by routing decision)
+    #
+    # Status is filtered here, not by the caller. This is the assembly half of
+    # the self-modification gate: mcp_server forces skill_add to create `draft`
+    # so a session cannot write a skill that loads into its own future context,
+    # and that only holds if the render path refuses non-active skills too.
+    # Rules are filtered the same way, inside store.get_rules().
     skill = store.get_skill(skill_key)
     skill_block = ""
-    if skill:
+    if skill and skill.status == SkillStatus.ACTIVE:
         skill_block = f"# Skill: {skill.domain} / {skill.task_type} (v{skill.version})\n\n{skill.content}\n\n"
 
     # Layer 2.5: Prior runs (institutional memory)
