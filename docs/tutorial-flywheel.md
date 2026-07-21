@@ -30,9 +30,13 @@ Output looks like:
 
 ```
 Feedback for skill 9c1e4a7b:
-  missing_field             1x
-  wrong_value               1x
+  missing_field           1x (fields: field, missing)
+  wrong_value             1x (fields: field, should_be, was)
 ```
+
+The `(fields: ...)` suffix lists the correction JSON's own keys (sorted), not the
+values -- it tells you what shape the correction took, not which extracted field it
+was about.
 
 Each correction type tells you something different about the skill:
 - `missing_field` -- the skill doesn't ask for something it should
@@ -104,8 +108,8 @@ These changes map directly to the feedback: `wrong_value` on authors -> spelling
 
 ## 4. v1 is superseded automatically
 
-`dim_skill` is SCD-2, keyed by `(domain, task_type)` -- v1 and v2 share the
-same `skill_key`. Inserting v2 in step 3 already closed v1's row
+`dim_skill` is SCD-2, keyed by `(tenant_id, domain, task_type)` -- v1 and v2 share
+the same `skill_key`. Inserting v2 in step 3 already closed v1's row
 (`is_current = false`), so there's no separate deprecate step: `get_active_skill()`
 only ever looks at the current row, and v2 is now it. Running
 `skill deprecate <key>` at this point would flip the *current* row (v2, the
@@ -121,7 +125,7 @@ uv run freud-schema skill list
 
 You should see one row: v2, `active`. `skill list` only shows current rows --
 v1's closed row still exists in `dim_skill` with `is_current = false`; inspect
-it with the DuckDB MCP tools if you want the version history:
+it with the store-ops MCP server's `query` tool if you want the version history:
 
 ```sql
 SELECT version, status, is_current, effective_from, effective_to
@@ -448,8 +452,8 @@ at agent-invoked tools specifically.
   the output, add corrections. Does v2 actually produce fewer errors? The database
   answers this.
 
-- **Aggregate across versions.** Use the DuckDB MCP tools to compare feedback
-  counts between skill versions -- `skill_version` is denormalized onto
+- **Aggregate across versions.** Use the store-ops MCP server's `query` tool to
+  compare feedback counts between skill versions -- `skill_version` is denormalized onto
   `fact_feedback`, so no join is needed:
   ```sql
   SELECT skill_key, skill_version, COUNT(*) as corrections

@@ -1,6 +1,6 @@
 # Tutorial: Extracting structured data from an arxiv paper
 
-Last updated: 2026-07-07
+Last updated: 2026-07-21
 
 This walks through the full FreudAgent pipeline using a real arxiv paper as
 the data source. Every step explains not just the command but why the system
@@ -50,7 +50,7 @@ uv run freud-schema db init
 declarative data-driven orchestration produce measurably better results than
 code-driven workflow approaches?" To test that, you need structured records of
 what was attempted, what was produced, and what humans corrected. Files can't
-do that. The dimensional schema (4 dim tables, 5 fact tables, 6 analytical
+do that. The dimensional schema (9 dimension tables, 11 fact tables, 10 analytical
 views) isn't plumbing -- it's the experiment itself.
 
 **Why `init` is separate from `run`:** You set up the database once, then run
@@ -207,9 +207,9 @@ print(result.content)
 store.close()
 ```
 
-Or in Claude Code, use the DuckDB MCP tools to inspect skills, rules, and sources
-directly. The harness (Claude Code, Agent SDK) handles extraction -- step 6b below
-is the primary path.
+Or in Claude Code, use the store-ops MCP server's `query` tool to inspect skills,
+rules, and sources directly. The harness (Claude Code, Agent SDK) handles extraction
+-- step 6b below is the primary path.
 
 Look for:
 - Are all 3 rules present in the system prompt?
@@ -253,11 +253,13 @@ the CLI implements, but the harness handles routing natively.
 **File access.** Claude Code reads the PDF directly via the Read tool. It reads the
 file, understands the content, and extracts from it directly.
 
-**Data access.** Claude Code uses the DuckDB MCP tools (`execute_query`, `list_tables`,
-`list_columns`) for all database operations. The CLI cannot access the database while
-the MCP server is active -- DuckDB allows only one process to connect to a file at a time.
-Use MCP tools (`execute_query`) for all database access during Claude Code sessions.
-Use the CLI for standalone scripting or when MCP is not running.
+**Data access.** Claude Code uses the store-ops MCP server (`freud-schema mcp-serve`,
+configured in `.mcp.json`) for all database operations: the read-only `query` tool
+(single SELECT, enforced by `classify_readonly`) for inspection, and typed write tools
+(`rule_add`, `skill_add`, `source_add`, `feedback_add`, `extraction_validate`, and so
+on) for writes. The CLI cannot access the database while that server holds the
+connection -- DuckDB allows only one process to connect to a file at a time. Use the
+CLI for standalone scripting or when the MCP server is not running.
 
 **Orchestration.** If the task requires decomposition (e.g., "extract from these 5
 papers and compare"), Claude Code uses its Agent tool to spawn subagents. Each subagent
@@ -409,7 +411,7 @@ It's the result.
   section numbers as hierarchical: 3.1 is a subsection of 3"), add a
   domain-specific rule instead of modifying the skill.
 
-- **Query the database directly.** Use the DuckDB MCP tools or the CLI:
+- **Query the database directly.** Use the store-ops MCP server's `query` tool or the CLI:
   ```bash
   uv run freud-schema db ddl | duckdb :memory:
   ```

@@ -1,6 +1,6 @@
 # Tutorial: Using the RLM provider for large-context extraction
 
-Last updated: 2026-07-07
+Last updated: 2026-07-21
 
 The RLM (Recursive Language Model) provider wraps any model with a Python REPL
 loop. Instead of passing the entire source to the model in one shot, the model
@@ -77,8 +77,8 @@ When RLMProvider receives a user message containing source tags like:
 <source id="5e7a2c904b1d8f3e6a0c9b2d4f6e8a1c" type="application/pdf" path="data/papers/attention-is-all-you-need.pdf" />
 ```
 
-(`id` is the full 32-char MD5 `source_key`, not a truncated prefix -- unlike
-CLI arguments, tag content isn't resolved through `resolve_key()`.)
+(`id` is the full 32-char sha256/32 `source_key`, not a truncated prefix --
+unlike CLI arguments, tag content isn't resolved through `resolve_key()`.)
 
 It parses the tags and attempts to load the file content:
 
@@ -159,9 +159,10 @@ What happens inside:
 7. After several iterations, the model calls `FINAL(json_output)`
 8. The final answer flows back through the normal extraction pipeline
 
-**`--max-iterations`** caps the REPL loop. Default is 10. If the model hasn't
-called `FINAL()` by then, the last response text becomes the answer. Start
-with 10 and adjust based on how many iterations your model typically needs.
+**`max_iterations`** (a keyword argument to `get_provider()`, not a CLI flag)
+caps the REPL loop. Default is 10. If the model hasn't called `FINAL()` by
+then, the last response text becomes the answer. Start with 10 and adjust
+based on how many iterations your model typically needs.
 
 ## 5. Run with RLM (Claude API)
 
@@ -278,9 +279,18 @@ RLM code execution is sandboxed by default:
   and `llm_query()` function injected into its namespace.
 
 The sandbox is not a security boundary (no process isolation). It prevents
-accidental damage during experimentation. If you need to run trusted code with
-full Python access, pass `sandbox=False` when constructing the provider
-programmatically.
+accidental damage during experimentation. `sandbox` is an `RLMProvider`
+keyword argument, but `get_provider()` does not forward it -- to disable the
+sandbox, construct `RLMProvider` directly instead of going through
+`get_provider("rlm", ...)`:
+
+```python
+from freud_schema.orchestrator import OpenAICompatProvider
+from freud_schema.rlm import RLMProvider
+
+inner = OpenAICompatProvider(base_url="http://localhost:8080", model="default")
+rlm = RLMProvider(inner, sandbox=False)
+```
 
 ## 10. Compare single-shot vs RLM
 
@@ -327,11 +337,14 @@ The questions to answer:
 - **Larger sources.** RLM is designed for 10K+ token inputs where single-shot
   struggles. Try concatenating multiple papers or using a long technical document.
 
-- **Custom sub-model routing.** Use `--sub-model echo` to see what `llm_query()`
-  calls the model makes without actually running them. This shows the model's
-  decomposition strategy.
+- **Custom sub-model routing.** Pass `sub_model="echo"` to `get_provider()` to
+  see what `llm_query()` calls the model makes. The sub-calls still run --
+  `EchoProvider` returns the sub-prompt it was given instead of a model
+  answer -- so you get every `llm_query()` argument back verbatim rather than
+  a real answer. This shows the model's decomposition strategy without
+  spending sub-call tokens on a real model.
 
-- **Tune max-iterations.** Some tasks converge in 3 iterations, others need 15.
+- **Tune `max_iterations`.** Some tasks converge in 3 iterations, others need 15.
   Check the trace data to find the right ceiling for your domain.
 
 - **Compare with the flywheel.** After running RLM extractions, use the

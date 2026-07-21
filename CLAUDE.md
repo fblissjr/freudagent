@@ -81,8 +81,11 @@ tests/
                        test_citation_graph.py
 skill/
   skill.md           - Routing document: CLI reference, and pointers into reference/
-  reference/         - Deep references, opened on demand: schema, archetypes, hierarchy,
-                       flywheel, retrieval thesis, trace-capture
+  reference/         - Deep references, opened on demand: schema, archetypes,
+                       archetype patterns, context assembly, hierarchy, flywheel,
+                       retrieval thesis, translation matrix, trace-capture (the
+                       last one is a spec for an unbuilt capture path, not a
+                       runnable procedure -- it says so at the top)
 scripts/
   trace-hook.sh      - PostToolUse hook for automatic tool_call trace capture
   generate_synthetic_data.py - Deterministic generator for data/synthetic/

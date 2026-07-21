@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.34.4
+version: 0.34.5
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -56,6 +56,7 @@ FreudAgent handles data.
 | Archetype usage patterns and examples | `reference/archetype_patterns.md` |
 | German-English translation nuances | `reference/translation_matrix.md` |
 | Retrieval thesis, progressive disclosure rationale | `reference/retrieval-thesis.md` |
+| What a reasoning trace should contain (capture path unbuilt) | `reference/trace-capture.md` |
 
 ## CLI Reference
 
@@ -80,9 +81,10 @@ sources, sampling configs) and `compile` -- omitting it preserves single-tenant 
 > window for writes.
 
 Keys are sha256/32 hashes (`keys.dimension_key()`), not integers -- every command that
-takes an entity reference (skill, source, rule, extraction, feedback, session,
-trace) accepts a full key or a unique prefix, git-short-hash style, resolved via
+takes an entity reference (skill, extraction, proposal, session, trace) accepts a
+full key or a unique prefix, git-short-hash style, resolved via
 `store.resolve_key()`. An ambiguous or non-matching prefix exits with an error.
+No command takes a source, rule, or feedback key today.
 
 ### Data Management
 

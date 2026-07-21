@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.34.5
+
+Fixes from a docs claims audit: every present-tense "the system does X" statement
+across the docs, checked against the code that does or does not do it. Roughly
+480 claims checked, about 90% held. Findings and the ones not yet acted on are in
+the internal audit note.
+
+### Fixed
+
+- **Four tutorial steps could not be run as written.**
+  - `tutorial-cold-start.md` step 7 passed `--evidence` to `proposal add`, but
+    nothing in steps 1-7 creates a finding (`couch run` is step 8) and an
+    unresolvable evidence prefix exits 1 without writing the proposal. Moving
+    `couch run` earlier was tested and rejected: it returns zero findings at that
+    point, because `stale_source` cannot fire until step 8's file edit. The
+    example now omits `--evidence` and explains why it is not available yet.
+  - `tutorial-rlm-provider.md` documented `--max-iterations` and `--sub-model` as
+    CLI flags. Neither exists; both are `get_provider()` keyword arguments. It
+    also told readers to pass `sandbox=False` through `get_provider()`, which
+    does not forward it and raises `TypeError` -- replaced with a construction
+    that runs.
+- **`--sub-model echo` was described as showing calls "without actually running
+  them".** The sub-calls do run; `EchoProvider` returns the sub-prompt instead of
+  a model answer.
+- **Stale key algorithm in two more places.** `tutorial-rlm-provider.md` and
+  `skill/reference/trace-capture.md` still described keys as MD5. They have been
+  sha256/32 since v0.23.
+- **Stale schema counts.** `tutorial-arxiv-extraction.md` said 4 dimension
+  tables, 5 fact tables and 6 views; it is 9, 11 and 10.
+- **`feedback list --aggregate` output was shown without the `(fields: ...)`
+  suffix** the CLI prints whenever corrections carry JSON keys, and with the
+  wrong column padding. Corrected against the real format string, with a note on
+  what the suffix actually lists.
+- **`dim_skill`'s natural key was given as `(domain, task_type)`.** It is
+  tenant-leading.
+- **Six references to generic "DuckDB MCP tools"** across two tutorials now name
+  the store-ops server's `query` tool and its typed write tools, matching how
+  `CLAUDE.md` describes the same thing.
+- **`scripts/trace-hook.sh` pointed at a loader that was never built.** Its
+  comment told readers to load the buffer via a `bulk_import_traces` MCP tool
+  which exists nowhere. The comment now says there is no loader.
+
+### Changed
+
+- **`skill/reference/trace-capture.md` is a spec, not a procedure.** Every key
+  recipe in it computed MD5, so an agent following it wrote rows keyed against
+  nothing the store computes -- silently, with no error at write time, breaking
+  idempotent re-ingest and prefix resolution. It also routed writes through a
+  generic DuckDB MCP server that the store-ops server replaced. Those mechanics
+  are removed rather than repaired, and the file now opens by stating that no
+  write path exists: `store.insert_trace()` has no callers outside tests, there
+  is no `trace add` command or store-op, and transcript ingest keeps no thinking
+  content. What remains is the guidance on what a reasoning trace should
+  contain, which is the part worth keeping as the spec for building the capture
+  path.
+- **`skill/skill.md` routing table now lists `trace-capture.md`**, labelled as
+  unbuilt. It was absent, so an agent had no route to it.
+- **`CLAUDE.md`'s reference listing** named 6 of 9 files in `skill/reference/`.
+- **`skill/skill.md`'s prefix-resolution claim** named source, rule and feedback,
+  none of which have a key-taking command, and omitted proposal, which does. The
+  real set is skill, extraction, proposal, session, trace.
+
+### Notes
+
+The recurring shape across the audit is one fact stated in two files and updated
+in one. This is not hypothetical: M16's own rationale, written 2026-07-09, names
+the exact defect class -- the couch skill's key recipe still saying md5, "exactly
+the drift raw-SQL write paths breed". That pass fixed `couch.md` and missed
+`trace-capture.md`, which carried the identical problem and stayed broken for
+another twelve days. Enum tables, view lists and table inventories are derivable
+from `db.py` and `tables.py`; a test asserting each documented enum table matches
+its Python enum would catch this class mechanically.
+
 ## 0.34.4
 
 ### Removed

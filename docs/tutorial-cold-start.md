@@ -1,6 +1,6 @@
 # Tutorial: Cold start -- from empty database to a turning flywheel
 
-Last updated: 2026-07-09
+Last updated: 2026-07-21
 
 This is the day-one playbook: what to do when the warehouse is empty and the
 knowledge you want the agent to use exists only as documents and expertise in
@@ -121,10 +121,15 @@ state -- aggregate, propose, approve, compile:
 uv run freud-schema feedback list --skill-key <key-prefix> --aggregate
 uv run freud-schema proposal add --target dim_skill \
     --natural-key '{"domain": "acme", "task_type": "extraction"}' \
-    --content "..." --evidence <finding-keys>
+    --content "..."
 uv run freud-schema proposal approve <key-prefix> --by you
 uv run freud-schema compile --out .claude/rules
 ```
+
+No `--evidence` yet: it resolves each key against `fact_finding`, and a
+cold-start database hasn't run a detector yet -- `couch run` is step 8.
+Skip it for this first revolution; once findings exist, later proposals can
+cite them.
 
 That's one full revolution: seed -> extract -> validate -> correct ->
 aggregate -> approve -> compile. Every turn after this one gets cheaper,

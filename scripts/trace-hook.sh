@@ -1,7 +1,11 @@
 #!/bin/bash
 # PostToolUse hook: capture tool calls as trace events.
-# Writes JSONL records to a buffer file. Load into DB via bulk_import_traces
-# MCP tool at session end.
+# Writes JSONL records to a buffer file.
+#
+# NOTE: there is no loader for this buffer. An earlier comment here pointed at a
+# `bulk_import_traces` MCP tool that was never built, and nothing else reads the
+# file either -- `store.insert_trace()` has no callers outside tests. The buffer
+# accumulates and is not ingested. See skill/reference/trace-capture.md.
 #
 # Usage: Configure as a PostToolUse hook in .claude/settings.json:
 #   "hooks": {
