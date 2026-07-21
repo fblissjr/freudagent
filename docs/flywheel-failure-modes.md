@@ -152,7 +152,8 @@ What it looks like: a single person approves everything, and their preferences
 compound into rules. Nothing is wrong with any individual decision. The result
 is a knowledge base encoding one person's taste as fact.
 
-Why it happens: approval is the human atom, and it is usually one human.
+Why it happens: approval is the one step only a person can do, and it is
+usually one human.
 
 How to catch it: this one is nearly invisible from inside, because there is no
 disagreement signal to measure. The honest check is structural: count distinct

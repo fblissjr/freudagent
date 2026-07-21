@@ -254,10 +254,10 @@ def proposal_approve(
 ) -> dict:
     """Approve a pending proposal: applies it to the target dimension.
 
-    THE human atom in the flywheel. key may be a full key or a unique
-    prefix. Callers that must guarantee a human clicked "allow" (the MCP
-    server) enforce that at the tool layer, not here -- this function has
-    no opinion about who is calling it.
+    The one step in the flywheel only a person can do. key may be a full key
+    or a unique prefix. Callers that must guarantee a human clicked "allow"
+    (the MCP server) enforce that at the tool layer, not here -- this
+    function has no opinion about who is calling it.
     """
     pkey = store.resolve_key("fact_proposal", key)
     result_key = store.approve_proposal(pkey, reviewed_by=reviewed_by)

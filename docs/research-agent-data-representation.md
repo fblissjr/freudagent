@@ -81,7 +81,7 @@ deterministic compilation is ACE's architecture with better guarantees. The
 "one big evolving instructions file" pattern is the documented anti-pattern.
 **Implication (differentiates)**: ACE's curation is fully automated, and its
 documented weakness is exactly that — a noisy reflector silently pollutes
-the playbook with no gate. The human-approval atom is the fix for ACE's own
+the playbook with no gate. Human approval is the fix for ACE's own
 failure mode, not overhead.
 
 ### MCE — mechanism and content both evolve, both as data
@@ -321,7 +321,7 @@ the Research-Review Amendments section; recorded here with their rationale.
    capability; compiled knowledge artifacts adopt YAML frontmatter for
    routing metadata; agent-authored diagrams compile as diagrams-as-code.
 
-One deliberate non-change: the human approval atom stays, now with
+One deliberate non-change: human approval stays, now with
 empirical backing — the fully-automated alternative's own literature
 reports amplified reward hacking and non-local edit propagation, and the
 strongest automated system (Self-Harness) flags that higher-stakes changes

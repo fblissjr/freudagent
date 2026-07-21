@@ -12,14 +12,14 @@ surfaces cannot drift), and reads get a real read-only SQL tool instead of
 none at all.
 
 Gate design (non-negotiable -- see docs/implementation-plan.md Track H,
-Risk paragraph "self-modification without the human atom"):
+Risk paragraph "self-modification without human approval"):
 
   (a) rule_add/skill_add accept only the non-compiling status, regardless
       of what a caller asks for. Rules have no draft status; INACTIVE is
       the non-compiling analog (materialize.compile_rules only renders
       status=active). Skills force SkillStatus.DRAFT. Activation is only
       reachable through proposal_add -> proposal_approve.
-  (b) proposal_approve is the one human atom's transport: its tool
+  (b) proposal_approve is how approval reaches a person: its tool
       description opens with a sentence instructing operators to never
       allowlist it, so the harness's permission prompt fires on every
       call. reviewed_by is a required parameter -- there is no calling
@@ -162,7 +162,7 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
             "truncated": truncated,
         }
 
-    # -- Gated writes: self-modification without the human atom -----------
+    # -- Gated writes: self-modification without human approval -----------
     # See the module docstring's gate design (a). Both tools accept a
     # `status` argument so a caller can see what it asked for was ignored,
     # but the value passed to ops.* is always the non-compiling one.
@@ -324,11 +324,11 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
     def proposal_reject(key: str, reviewed_by: str | None = None) -> dict:
         return ops.proposal_reject(store, key=key, reviewed_by=reviewed_by)
 
-    # -- The one human atom -------------------------------------------------
+    # -- The one step only a person can do ----------------------------------
     # Gate design (b): this sentence is load-bearing. Whatever configures
     # tool permissions for this server must never put proposal_approve on
     # an allowlist -- every call has to surface the harness's permission
-    # prompt, because that prompt IS the human atom's transport.
+    # prompt, because that prompt IS how approval reaches a person.
 
     @server.tool(
         name="proposal_approve",

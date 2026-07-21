@@ -48,7 +48,7 @@ domain:
    for judgment calls only.
 4. **Evolve**: findings become proposals; humans approve; approvals create new
    SCD-2 versions of skills and rules. Approval is the one irreducibly human
-   atom — nothing auto-applies.
+   step — nothing auto-applies.
 5. **Materialize**: current, active knowledge compiles into the artifacts the
    harness (and eventually human consumers) actually load, each carrying
    provenance back to the proposal and findings that justified it.
@@ -279,13 +279,13 @@ re-emits everything it sees. With one careful operator running it
 occasionally, "did the pattern shrink" being a plain query is fine; run it
 continuously at enterprise volume and the review queue is mostly
 re-detections with no way to distinguish *new* from *known* from *resolved*.
-Meanwhile the single human-approval atom — correct for governance — becomes a
+Meanwhile the single human-approval step — correct for governance — becomes a
 throughput bottleneck without a workflow around it.
 
 **What exists as the seed**: deterministic keys make recurrence recognition
 nearly free (same finding, same natural key). Proposal status and reviewer
 fields exist. The flywheel decomposition already names "flag conflicts" and
-"threshold evaluation" as atoms — unimplemented but correctly identified.
+"threshold evaluation" as steps — unimplemented but correctly identified.
 
 **What to build**:
 - **Findings become cases**: open → triaged → addressed-by-version-X →
@@ -299,7 +299,8 @@ fields exist. The flywheel decomposition already names "flag conflicts" and
 - **Review workflow at volume**: triage tiers (risk-scored auto-routing,
   batch review, escalation), reviewer assignment, and queue SLAs — built
   *around* the proposal table, which already supports it, not into a new
-  system. Approval remains the human atom; the workflow makes it survivable.
+  system. Approval remains the one step only a person can do; the workflow
+  makes it survivable.
 - **Per-domain detector thresholds as data**: thresholds move from module
   constants to registry rows, tunable per domain without code changes —
   already flagged in the code as the planned extension.
@@ -316,7 +317,7 @@ against history before it ships.
 **What exists as the seed**: validated extractions are already queryable as a
 holdout set; sessions carry skill version stamps, so "accuracy by version" is
 a join away; the flywheel decomposition specifies all three verification
-atoms and their handoffs.
+steps and their handoffs.
 
 **What to build**:
 - **Eval gates before compile**: candidate skill/rule versions run against
@@ -393,9 +394,9 @@ visual surfaces over the store.
 - **Reimplementing orchestration.** The harness decomposes, routes, and
   loops. This project remains a data layer; every phase above adds data,
   gates, and query surface — never a competing execution engine.
-- **Autonomous knowledge mutation.** No phase removes the human approval
-  atom. The flywheel's speed comes from making review cheap (dedup, triage,
-  eval gates), never from skipping it.
+- **Autonomous knowledge mutation.** No phase removes human approval, the
+  one step that cannot be delegated. The flywheel's speed comes from making
+  review cheap (dedup, triage, eval gates), never from skipping it.
 - **A universal ontology.** Finding types, facet types, and skill domains
   stay open-vocabulary registries. The taxonomy of any domain is discovered
   through the loop, not designed up front.

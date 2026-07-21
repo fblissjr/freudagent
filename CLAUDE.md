@@ -37,7 +37,8 @@ src/freud_schema/
                        cannot drift
   mcp_server.py      - Store-ops MCP server (M16): read-only `query` tool + gated write
                        tools; self-modification gate lives here (rule_add/skill_add force
-                       non-compiling statuses; proposal_approve is the human atom)
+                       non-compiling statuses; proposal_approve is the one
+                       step only a person can do)
   vendor/ccutils_parsers/ - Vendored transcript parsers, pinned upstream commit --
                        do not edit here, sync from upstream
   orchestrator.py    - Context assembly, provider protocol, provider implementations
@@ -169,7 +170,7 @@ is the preferred connection holder** (implementation plan M16, landed
   what a caller asks for -- a session cannot make a rule or skill load into
   its own future context by calling these tools directly. The only path to
   activation is `proposal_add` -> `proposal_approve`.
-- `proposal_approve` is the one human atom's transport: **never allowlist
+- `proposal_approve` is how approval reaches a person: **never allowlist
   it** in permissions config, at any scope. Every call must surface the
   harness's permission prompt -- that prompt IS the approval. `reviewed_by`
   is a required argument, not optional.
@@ -307,4 +308,4 @@ All in `internal/` (gitignored). Read before proposing new work.
 
 - `BACKLOG.md` -- known gaps, deferred work. Check here before suggesting features. Mark items DONE with version when resolved.
 - `log/` -- session logs
-- `flywheel_decomposition.json` -- 12-atom decomposition mapping to Agent SDK primitives
+- `flywheel_decomposition.json` -- 12-step decomposition mapping to Agent SDK primitives

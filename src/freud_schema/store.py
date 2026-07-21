@@ -1724,8 +1724,9 @@ class ExperimentStore:
 
     def approve_proposal(self, proposal_key: str, *, reviewed_by: str | None = None) -> str:
         """Approve a pending proposal: apply it to the target dimension
-        (SCD-2 evolution) and record the resulting dimension key. The one
-        human atom in the flywheel -- nothing calls this automatically.
+        (SCD-2 evolution) and record the resulting dimension key. This
+        is the one step in the flywheel only a person can do -- nothing
+        calls it automatically.
 
         Returns the entity key of the evolved/created dimension row.
         """

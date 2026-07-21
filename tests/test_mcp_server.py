@@ -238,7 +238,7 @@ class TestClassifyReadonlyRejects:
 
 
 # ---------------------------------------------------------------------------
-# Gate design: self-modification without the human atom
+# Gate design: self-modification without human approval
 # ---------------------------------------------------------------------------
 
 

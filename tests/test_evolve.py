@@ -1,6 +1,6 @@
 """Tests for the evolve stage (Phase 3): proposal lifecycle + rollback.
 
-Approval is the one human atom in the flywheel (flywheel atom 1.3.2):
+Approval is the one step only a person can do (flywheel step 1.3.2):
 it creates the new SCD-2 dimension version and records which findings
 justified it. Rollback is the symmetric operation: flip is_current back,
 no destructive undo.

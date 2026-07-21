@@ -588,8 +588,9 @@ state transitions are exercised end-to-end via CLI.
 
 ### M12. Review queue and conflict handling
 
-**Goal**: the human approval atom survives volume. Triage, assignment, and
-conflict detection around the existing proposal table.
+**Goal**: human approval, the one step that cannot be delegated, survives
+volume. Triage, assignment, and conflict detection around the existing
+proposal table.
 
 **Changes**
 - `fact_proposal` gains `priority INTEGER`, `risk` enum (low | medium |
@@ -675,7 +676,7 @@ holdout inputs — that's where model calls live.
 - CLI: `eval holdout --skill <key>` (emits the holdout spec as JSON for the
   harness to execute), `eval record` (ingests the harness's candidate
   outputs and scores them), `eval show <key>`, `policy set require-eval on`.
-- Docs: `skill/reference/flywheel.md` Phase 4 atoms marked implemented, with
+- Docs: `skill/reference/flywheel.md` Phase 4 steps marked implemented, with
   the harness-side execution documented as a project skill recipe;
   `docs/tutorial-flywheel.md` extended with the gated approve.
 
@@ -847,7 +848,7 @@ method → row present); the read-only `query` tool rejects
 INSERT/UPDATE/DELETE/DDL; a full flywheel-turn script (rule add → proposal
 → approve → compile) passes through tools alone.
 
-**Risk — self-modification without the human atom** (identified
+**Risk — self-modification without human approval** (identified
 2026-07-09, before build): an in-session agent with direct `rule_add` /
 `skill_add` tools can write rules that load into its own future sessions,
 bypassing the proposal → human-approval flow entirely. The CLI has the
@@ -855,8 +856,8 @@ same bypass, but a human runs the CLI; MCP tools are agent-invoked. Gate
 design, non-negotiable: (a) `rule_add`/`skill_add` tools accept only
 `status=draft` (drafts don't compile — activation requires the proposal
 flow); (b) `proposal_approve` is never allowlisted — it must surface the
-harness permission prompt every single time, making the approval click
-the human atom's transport; (c) the read-only `query` tool enforces
+harness permission prompt every single time, and that prompt is how
+approval reaches a person; (c) the read-only `query` tool enforces
 read-only via statement classification AND rejects multi-statement input
 (CTE/ATTACH/COPY smuggling is a known bypass class — test it explicitly);
 (d) `db reset` and other destructive ops are not exposed as tools at all.
@@ -899,7 +900,7 @@ These don't get milestone numbers; they get enforced at every milestone.
 | Serving API becomes a second write path | M14 | API writes only feedback/usage facts; dimension mutations have no endpoint; enforced by tests that assert the route table |
 | Reset-and-rebuild via the locked MCP connection wedges DuckDB's catalog dependency tracking (hit 2026-07-09) | M1 recipe, any reset while the MCP server holds the DB | One transaction per `execute_query` call: creates, indexes, and data loads as separate calls; never `COPY FROM DATABASE`/`IMPORT DATABASE` on the long-lived connection (single-transaction). Full recipe in CLAUDE.md's DuckDB MCP section |
 | ~~Fresh full ingest costs minutes~~ RESOLVED 0.26.0 | M1 recipe at scale | Spill-to-JSONL + `read_json` landed with M5: ~600x on the insert loop, live rebuild 2m17s → 13.6s wall |
-| In-session write tools enable agent self-modification (rules that load into the agent's own future sessions) with the human atom bypassed | M16 | Gate design in M16: add-tools are draft/inactive-only (never compiled), `proposal_approve` never allowlisted (harness permission prompt = the human atom's transport), read-only `query` enforced at the parser level with multi-statement rejection, no destructive tools exposed |
+| In-session write tools enable agent self-modification (rules that load into the agent's own future sessions) with human approval bypassed | M16 | Gate design in M16: add-tools are draft/inactive-only (never compiled), `proposal_approve` never allowlisted (harness permission prompt = how approval reaches a person), read-only `query` enforced at the parser level with multi-statement rejection, no destructive tools exposed |
 | Read-only SQL classification bypassed via CTE/ATTACH/COPY/PRAGMA smuggling | M16 `query` tool | Parser-level statement extraction (single statement, SELECT-type only), explicit bypass-attempt tests in the suite |
 
 ## Research-Review Amendments (2026-07-08)
@@ -970,9 +971,9 @@ scheduler, no workflow runtime — the harness decomposes, routes, loops, and
 runs anything that needs a model. No data migrations, ever, in this repo —
 warehouse data is disposable by policy (CLAUDE.md); schema changes reset
 and re-ingest, and only a production descendant would reintroduce
-migration machinery. No removal of the human approval atom —
-every automation added here (auto-approve grants, case auto-verify, eval
-gates) narrows what humans must look at; none widens what machines may
-change. And no universal ontology: every vocabulary added in this plan
-(event types, redaction patterns, thresholds, eval policies) is rows, not
-code.
+migration machinery. No removal of human approval, the one step that cannot
+be delegated — every automation added here (auto-approve grants, case
+auto-verify, eval gates) narrows what humans must look at; none widens what
+machines may change. And no universal ontology: every vocabulary added in
+this plan (event types, redaction patterns, thresholds, eval policies) is
+rows, not code.
