@@ -136,8 +136,6 @@ README.md            - The explainer and entry point; the short version of
 ROADMAP.md           - What scales, what breaks, in what order
 CHANGELOG.md         - Semver, no dates. Historical entries are a record; do not
                        edit them to match current conventions
-AVIF-TEST.md         - Throwaway render test (see the file). Delete it and this line
-                       once the question it asks is answered
 LICENSE
 .mcp.json            - MCP server config: freud-schema mcp-serve (the store-ops
                        connection holder for this project; committed)
