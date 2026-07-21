@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.41.0
+
+Group 4 (reasoning capture) closed on the library-and-skill side.
+
+### Added
+
+- **`.claude/skills/derive-traces.md`** -- the procedure that turns captured
+  reasoning into typed traces, mirroring `couch.md`. Pull the queue with
+  `reasoning_list`, read each `thinking_text`, judge in scoped subagents, write
+  each step back with `trace_add`.
+
+  It is a skill rather than a code loop for the same reason the couch's LLM
+  layer is: the library holds no model calls, orchestration is the harness's
+  job. The queue and write path (0.40.0) are the mechanism; this packages the
+  judgment between them as a repeatable, re-runnable pass.
+
+### Where group 4 stops, and why
+
+A recurring autonomous driver -- something that runs a derivation pass on a
+cadence without being asked -- is deliberately not built here. It belongs in the
+harness (a scheduled Claude Code agent or an Agent SDK workflow) and wraps the
+existing MCP tools with no new library code. The couch's LLM layer was left at
+the same line for the same reason. Building a model-calling loop inside
+`freud_schema` would cross the boundary the whole design keeps: the harness
+orchestrates, this holds the data.
+
 ## 0.40.0
 
 Schema version 11. Group 4's second half: reasoning captured at ingest can now
