@@ -1,4 +1,4 @@
-"""Tests for transcript discovery and ingestion (Phase 1: sense).
+"""Tests for transcript discovery and ingestion (Phase 1: ingest).
 
 Fixture layout mirrors the real ~/.claude/projects structure verified
 on disk 2026-07-07:

@@ -1,4 +1,4 @@
-"""Transcript discovery for Claude Code's projects directory (Phase 1: sense).
+"""Transcript discovery for Claude Code's projects directory (Phase 1: ingest).
 
 Built fresh against the layout verified on disk 2026-07-07 (ccutils'
 discovery module targets an obsolete flat layout and is deliberately

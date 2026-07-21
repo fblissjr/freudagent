@@ -1,5 +1,5 @@
 """Ingestion: transcripts and generic event streams into the warehouse
-(Phase 1: sense).
+(Phase 1: ingest).
 
 Grain produced per transcript file:
 - one fact_session row (accumulating snapshot: completed_at/model_used
