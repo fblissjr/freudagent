@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.35.0
+
+### Added
+
+- **`docs/data-flywheel.md`: what actually changes a skill.** The doc read as if
+  a cross-run pattern promotes itself into guidance. It does not, and saying so
+  matters because the naive version -- take a good run, make it a skill --
+  encodes harness mechanics or one customer's edge case as the general shape of
+  the work.
+
+  A skill change is decided by a pipeline reading three inputs, not one: the
+  runs in aggregate, the feedback on them, and the source data itself. That
+  third one is the input most designs omit. A core table gains a custom field
+  carrying most of the meaning for an outcome, and every skill touching that
+  table is now wrong -- with no failing run, no correction, and nothing in the
+  record to detect. The agent's behavior did not change; the world it describes
+  did.
+
+  The output is add, modify or retire, and the most common correct answer is
+  none of them. A pipeline that emits a change every run is generating rather
+  than learning, and the knowledge base grows until nobody reads it -- which is
+  already a named failure mode, and why retire has to be as available as add.
+- **`tests/test_docs_inventory.py`: CLAUDE.md's repo map must name every tracked
+  directory and root document.** 16 entries checked. Verified non-vacuous by
+  removing one and confirming the failure.
+
+### Fixed
+
+- **CLAUDE.md's repo map omitted `.claude/agents/`** while listing its siblings,
+  so the map implied the directory did not exist -- and the delegation rule that
+  routes work to those agents had no visible target. Also missing: `.githooks/`,
+  `README.md`, `ROADMAP.md`, `LICENSE`, and the eleven subsystem test suites.
+
+  The map is selective by design and should stay that way; naming all 21 test
+  files would be noise. The defect was that selection was indistinguishable from
+  completeness. It is now exhaustive at the level where absence misleads
+  (directories, root documents) and explicitly a selection below that.
+- **CLAUDE.md said `.claude/rules/` is compiled output, do not edit.** Five of
+  six files are. `model-delegation.md` is hand-authored and backed by no
+  `dim_rule` row, so the instruction told a reader not to edit the one file
+  there that can only be edited by hand. The compiler was always right about
+  this -- `materialize.py` reaps only marker-headed files.
+- **`provenance-chain.svg` and the matching prose understated the compiled
+  artifact.** Both said the footer copies "the first two steps only". `_render`
+  writes the `dim_rule` key and `effective_from` in the header and the proposal
+  and findings in the footer -- four of the five links. Only the runs are
+  absent, which is exactly the point the panel is making, and the old wording
+  blunted it.
+- **Four British spellings outside the paths swept in 0.34.9**: two `defence`,
+  one `modelling`, one in an SVG comment. Left alone deliberately: `CHANGELOG.md`
+  history, which is a record of what was written when, and `aria-labelledby` in
+  all seven diagrams, which is spelled that way by spec.
+
 ## 0.34.9
 
 ### Changed

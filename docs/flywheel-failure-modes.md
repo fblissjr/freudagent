@@ -11,7 +11,7 @@ the loop is meant to work. Read that first if you have not.
 
 Nothing here is specific to this repo. Any system that improves itself from its
 own usage data can fail in these ways, whether the knowledge is prompts, rules,
-retrieval indexes or model weights. Where this repo has a defence, or lacks one,
+retrieval indexes or model weights. Where this repo has a defense, or lacks one,
 the entry says so.
 
 ## The short version

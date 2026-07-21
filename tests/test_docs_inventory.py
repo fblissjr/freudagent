@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import enum
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -150,6 +151,52 @@ def test_every_enum_value_is_documented() -> None:
     assert not missing, (
         f"skill/reference/schema.md omits enum value(s) defined in tables.py: "
         f"{missing}. An agent cannot tell a valid value from an invalid one."
+    )
+
+
+def test_claude_md_map_names_every_directory_and_root_doc() -> None:
+    """CLAUDE.md's repo map must be exhaustive where absence misleads.
+
+    A map is selective by design -- naming all 21 test files would be noise, not
+    accuracy. But that only works if the reader can tell selection from
+    completeness. `.claude/agents/` was missing while `.claude/rules/` was
+    listed, so the map implied the directory did not exist, and the delegation
+    rule that routes work to those agents had no visible target.
+
+    So the rule is: exhaustive at the level where absence is a wrong signal
+    (directories, root documents), selective below it. This asserts the first
+    half only. The second half is a judgment call and should not be frozen into
+    an assertion.
+
+    Config files (.gitignore, uv.lock, pyproject.toml) are deliberately exempt:
+    they are conventional, and nobody concludes anything from their absence.
+    """
+    tracked = subprocess.run(
+        ["git", "ls-files"],
+        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    ).stdout.splitlines()
+
+    directories = sorted({p.split("/")[0] + "/" for p in tracked if "/" in p})
+    claude_subdirs = sorted({
+        "/".join(p.split("/")[:2]) + "/"
+        for p in tracked
+        if p.startswith(".claude/") and p.count("/") > 1
+    })
+    root_docs = sorted(
+        p for p in tracked
+        if "/" not in p and p.endswith(".md") and p != "CLAUDE.md"
+    )
+
+    text = _read(REPO_ROOT / "CLAUDE.md")
+    required = directories + claude_subdirs + root_docs
+    missing = [
+        name for name in required
+        if name.rstrip("/").split("/")[-1] not in text
+    ]
+    assert not missing, (
+        f"CLAUDE.md's repo map does not name {missing}. A reader takes absence "
+        f"from the map as absence from the repo -- add an entry, or the next "
+        f"person concludes it does not exist."
     )
 
 

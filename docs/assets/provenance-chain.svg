@@ -60,9 +60,9 @@
     <!-- the failure this design has to survive -->
     <rect x="500" y="356" width="424" height="132" rx="14" fill="#221520" stroke="#5a3340" stroke-width="1.4"/>
     <text x="524" y="386" font-size="12" font-weight="600" fill="#c9a3ad" letter-spacing="1">WHERE IT BREAKS</text>
-    <text x="524" y="414" font-size="13" fill="#c9a3ad">The footer inside the compiled file is a copy of</text>
-    <text x="524" y="433" font-size="13" fill="#c9a3ad">the first two steps only, for a reader who has</text>
-    <text x="524" y="452" font-size="13" fill="#c9a3ad">the file and not the records. If the runs at the</text>
-    <text x="524" y="471" font-size="13" fill="#c9a3ad">bottom are deleted, the chain looks intact.</text>
+    <text x="524" y="414" font-size="13" fill="#c9a3ad">The compiled file's header and footer copy every</text>
+    <text x="524" y="433" font-size="13" fill="#c9a3ad">link except the runs, for a reader who has the</text>
+    <text x="524" y="452" font-size="13" fill="#c9a3ad">file and not the records. If those runs are</text>
+    <text x="524" y="471" font-size="13" fill="#c9a3ad">deleted, the chain still looks intact.</text>
   </g>
 </svg>

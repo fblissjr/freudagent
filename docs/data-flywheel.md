@@ -510,7 +510,7 @@ There is a failure inside this worth naming here rather than only in the
 companion document. Some steps exist to prevent something rare. Skipping them
 looks strictly better every time until the rare thing happens. A system that
 promotes deviations on observed outcomes will systematically strip out exactly
-the safeguards whose value is invisible in the sample. The defence is that rules
+the safeguards whose value is invisible in the sample. The defense is that rules
 carry why they exist, not only what to do.
 
 Putting both halves together — the machinery above, and the signal that
@@ -562,6 +562,38 @@ its semantic layer against raw text-to-SQL, on queries the layer covers, and
 reporting large gains. Schema cards carrying column descriptions and sample
 values as data are the shape it takes. It is the least glamorous part and, on
 that evidence, the most reliably valuable.
+
+### What actually changes a skill
+
+Not a good run. A single run is an anecdote, and promoting one into guidance is
+how you get a rule that encodes the harness's mechanics or one customer's edge
+case as if it were the general shape of the work.
+
+What decides a change is a pipeline in its own right, and it reads three things
+rather than one. The runs, in aggregate: what repeated, what failed, where the
+breakdown differed from what the guidance prescribed. The feedback on those
+runs: what people corrected, at what level, and whether the corrections cluster.
+And the source data itself, because it moves independently of anything the agent
+did.
+
+That third input is the one most designs forget. A core table gains a custom
+field that turns out to carry most of the meaning for an outcome, and every
+skill that touches that table is now subtly wrong — with no failing run, no
+correction, and no pattern in the record to detect. Nothing about the agent's
+behavior changed. The world it describes did.
+
+The output is not only "add". It is add, modify, or retire, and the most common
+correct answer is none of them. Most passes over the evidence should conclude
+that nothing has changed enough to act on. A pipeline that produces a change
+every time it runs is not learning, it is generating, and the knowledge base
+will grow until nobody reads it — which is one of the named failure modes and
+the reason retire has to be as available as add.
+
+So this is a job for the same loop as everything else: evidence aggregated into
+a finding, a finding carried into a proposal, a person approving it. The
+difference is only what the detectors read and how wide a window they read it
+over. A run-level detector looks at one session. This one looks across sessions,
+across feedback, and at whether the sources underneath have moved.
 
 ### Loading only what applies
 
@@ -633,9 +665,9 @@ query:
 > did they cite, how many cases did each aggregate, and are those cases still
 > open?
 
-Every step there is a join. The footer in the compiled file is a convenience
-rendering of the first two steps, for a reader who has the file and not the
-database.
+Every step there is a join. The compiled file's header and footer render every
+link except the runs, for a reader who has the file and not the database — which
+is also why a deleted run leaves a chain that still reads as intact.
 
 One consequence to design for from the start: knowledge and telemetry have
 different lifecycles. Runs and events are high volume, sensitive, and subject to
@@ -676,7 +708,7 @@ like progress. The measures that separate them:
 - deviation rate and its direction — is the agent departing from guidance, and
   are those departures better or worse
 
-These are queries rather than a reporting system, and one modelling decision
+These are queries rather than a reporting system, and one modeling decision
 makes them cheap: facts carry the attributes they were produced under, stamped
 at the time. An output records the skill version that made it, so accuracy by
 version is a filter rather than a reconstruction.

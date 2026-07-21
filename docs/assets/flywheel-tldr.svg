@@ -20,7 +20,7 @@
     <polygon points="224.4,187.8 211.5,189.4 216.5,198.1"/>
   </g>
 
-  <!-- travelling pulse -->
+  <!-- traveling pulse -->
   <g>
     <animateTransform attributeName="transform" type="rotate" values="-90 280 300;270 280 300" dur="24s" repeatCount="indefinite"/>
     <circle cx="423" cy="300" r="13" fill="#7cc4ff" opacity="0.22"/>

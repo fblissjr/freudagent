@@ -79,6 +79,13 @@ tests/
                        (snapshots/staleness), test_synthetic_conflicts.py
                        (conflict schema + resolution-rule vocab), and
                        test_citation_graph.py
+  test_docs_inventory.py - Agent-facing docs must match code: every view, table,
+                       enum value and record_source in db.py/tables.py appears in
+                       schema.md and db-query.md, and no doc names a view that
+                       does not exist
+  (also) test_couch, test_events, test_evolve, test_ingest, test_ingest_events,
+                       test_keys, test_materialize, test_mcp_server, test_tenancy,
+                       test_schema_v017, test_store_v017 -- one per subsystem
 skill/
   skill.md           - Routing document: CLI reference, and pointers into reference/
   reference/         - Deep references, opened on demand: schema, archetypes,
@@ -115,9 +122,23 @@ a2ui/                - MCP server + Lit client for A2UI visual surfaces
 internal/            - Analysis docs, backlog, session logs (gitignored)
 .claude/
   skills/            - Project-specific Claude Code skills (committed)
-  rules/             - Compiled rule output from dim_rule (committed; do NOT edit --
-                       change the dimension row via proposal and recompile)
+  rules/             - Rules the agent loads (committed). Files carrying the
+                       compiled marker header are build output from dim_rule --
+                       do NOT edit those; change the dimension row via proposal
+                       and recompile. Unmarked files (model-delegation.md) are
+                       hand-authored, backed by no row, and the reaper leaves
+                       them alone
+  agents/            - Pre-shaped delegation subagents (fast-executor,
+                       task-coder), referenced by rules/model-delegation.md
   settings.local.json - Personal permissions (gitignored)
+.githooks/pre-commit - Opt-in corpus + path-privacy guard. Enable once with
+                       `git config core.hooksPath .githooks`
+README.md            - The explainer and entry point; the short version of
+                       docs/data-flywheel.md
+ROADMAP.md           - What scales, what breaks, in what order
+CHANGELOG.md         - Semver, no dates. Historical entries are a record; do not
+                       edit them to match current conventions
+LICENSE
 .mcp.json            - MCP server config: freud-schema mcp-serve (the store-ops
                        connection holder for this project; committed)
 ```
