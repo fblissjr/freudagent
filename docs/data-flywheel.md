@@ -731,17 +731,6 @@ The honest summary is that the mechanical half of the loop exists and the
 signal-quality half mostly does not. That is the normal order these get built
 in, and it is also why so many plateau.
 
-The loop has run once through every stage that exists, in July 2026: detectors found patterns, a
-model judged them, three evidence-linked proposals were written, the owner
-approved them, and they compiled with provenance footers. Three proposals and
-three approvals is also a zero rejection rate, which is what a rubber stamp
-looks like — three of anything supports nothing in either direction, and it is
-listed as proof the machinery connects rather than that the governance works.
-
-The one measurement attempted was too small to conclude anything from:
-identical-retry sessions went from 1.5 percent before a rule to zero out of
-sixty-four sessions after, where you would expect about one at that rate anyway.
-
 ## What would show this is wrong
 
 A design that cannot be wrong is a manifesto. Three things would count as

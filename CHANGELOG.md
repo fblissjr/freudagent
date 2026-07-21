@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.34.4
+
+### Removed
+
+- **Run counts and the retry measurement are out of `docs/data-flywheel.md`.**
+  That document is the design, not a status report, and the paragraph reported a
+  count it then told you was meaningless -- while decaying every time the loop
+  turns. It had already gone stale: it claimed one turn and three proposals when
+  git holds two turns and four. The per-stage status table already establishes
+  that the machinery connects, which is the only thing the run report was
+  carrying. Operational history lives in git, `CHANGELOG.md` and
+  `docs/implementation-plan.md`. `skill/reference/flywheel.md` carried the same
+  paragraph and follows its parent.
+
+  The retry measurement stays in `docs/flywheel-failure-modes.md`, where it is
+  not scorekeeping: it is the worked example of "you measure too early", and an
+  admission illustrating a named failure earns its place.
+
 ## 0.34.3
 
 ### Changed

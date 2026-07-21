@@ -259,12 +259,6 @@ identity and permissions, unit-level feedback, and consolidation passes.
 The mechanical half of the loop exists; the signal-quality half mostly does not.
 That is the normal order these get built in, and it is also why so many plateau.
 
-The loop has run once through every stage that exists, in July 2026: detectors found patterns, a model
-judged them, three evidence-linked proposals were written, the owner approved
-them, and they compiled with provenance footers. Three approvals and zero
-rejections is also what a rubber stamp looks like — it is proof the machinery
-connects, not that the governance works.
-
 ## Dev / eval data
 
 `data/synthetic/` is a committed, all-fictional corpus for developing and
