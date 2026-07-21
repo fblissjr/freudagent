@@ -45,6 +45,7 @@ from freud_schema import ops
 from freud_schema.store import ExperimentStore
 from freud_schema.tables import (
     CorrectionType,
+    TraceType,
     FeedbackOriginKind,
     FindingScope,
     RuleScope,
@@ -287,6 +288,58 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
             correction=correction, notes=notes, created_by=created_by,
             origin_id=origin_id,
         )
+
+    @server.tool(
+        name="reasoning_list",
+        description=(
+            "List messages carrying captured reasoning that has not been "
+            "derived into typed traces yet -- the derivation pass's queue. "
+            "Returns message_key, session_key, sequence_num and thinking_text. "
+            "Read these, judge what each turn's reasoning contains, then write "
+            "the structure back with trace_add."
+        ),
+    )
+    def reasoning_list(
+        session_key: str | None = None,
+        underived_only: bool = True,
+        limit: int = 50,
+    ) -> list[dict]:
+        return store.list_reasoning_messages(
+            session_key=session_key, underived_only=underived_only, limit=limit)
+
+    @server.tool(
+        name="trace_add",
+        description=(
+            "Record one typed trace DERIVED from a message's captured "
+            "reasoning. Pass source_message_key naming the message it came "
+            "from -- a structured claim whose evidence cannot be reached is a "
+            "broken provenance chain. trace_type is one of decision_point, "
+            "path_taken, path_discarded, insight, dead_end, subagent_spawn, "
+            "tool_call, conclusion. Use sequence_order to place several steps "
+            "found in one turn's reasoning. Re-deriving the same message and "
+            "position converges on the same row rather than duplicating, so "
+            "re-running a pass with a better prompt is safe. "
+            "This is NOT for narrating the current run: the trail is derived "
+            "from what was captured, not volunteered while working."
+        ),
+    )
+    def trace_add(
+        session_key: str,
+        trace_type: str,
+        title: str,
+        source_message_key: str | None = None,
+        sequence_order: int = 0,
+        depth: int = 0,
+        reasoning: str | None = None,
+        content: str | None = None,
+        alternatives: dict | None = None,
+        outcome: dict | None = None,
+    ) -> dict:
+        return ops.trace_add(
+            store, session_key=session_key, trace_type=TraceType(trace_type),
+            title=title, source_message_key=source_message_key,
+            sequence_order=sequence_order, depth=depth, reasoning=reasoning,
+            content=content, alternatives=alternatives, outcome=outcome)
 
     @server.tool(
         name="finding_add",

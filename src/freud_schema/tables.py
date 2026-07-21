@@ -705,6 +705,12 @@ class Trace(BaseModel):
 
     trace_key: str | None = None
     session_key: str
+    source_message_key: str | None = Field(
+        default=None,
+        description="The fact_message whose thinking_text this was derived "
+                    "from. A structured claim you cannot trace back to its "
+                    "evidence is a broken chain, so derived traces require it",
+    )
     parent_trace_key: str | None = None
     trace_type: TraceType
     depth: int = 0

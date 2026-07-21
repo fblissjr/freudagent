@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.39.0
+version: 0.40.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -55,7 +55,7 @@ FreudAgent handles data.
 | Archetype usage patterns and examples | `reference/archetype_patterns.md` |
 | German-English translation nuances | `reference/translation_matrix.md` |
 | Retrieval thesis, progressive disclosure rationale | `reference/retrieval-thesis.md` |
-| What a reasoning trace should contain (capture path unbuilt) | `reference/trace-capture.md` |
+| What a reasoning trace should contain, and how derivation works | `reference/trace-capture.md` |
 
 ## CLI Reference
 
@@ -72,7 +72,7 @@ sources, sampling configs) and `compile` -- omitting it preserves single-tenant 
 > Prefer the **store-ops server** (`freud-schema mcp-serve`, configured in `.mcp.json`,
 > implementation plan M16): its `query` tool covers reads, and every write goes through
 > a gated tool (`rule_add`, `skill_add`, `source_add`, `feedback_add`,
-> `feedback_origin_add`, `finding_add`,
+> `feedback_origin_add`, `finding_add`, `reasoning_list`, `trace_add`,
 > `extraction_validate`/`reject`, `proposal_add`/`reject`, `couch_run`, `compile`,
 > `ingest_transcripts`, `ingest_events`) instead of a CLI write-window toggle.
 > `proposal_approve` is never allowlisted -- every approval surfaces the permission

@@ -1,5 +1,5 @@
 <!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
-<!-- source: dim_rule 600458d4ed677e534fffb362005afb1c effective_from 2026-07-21T17:15:25.164329 -->
+<!-- source: dim_rule 600458d4ed677e534fffb362005afb1c effective_from 2026-07-21T17:29:05.554890 -->
 
 
 # External search cutoff

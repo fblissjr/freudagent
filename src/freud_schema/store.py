@@ -993,11 +993,28 @@ class ExperimentStore:
     def insert_trace(self, trace: Trace) -> str:
         """Insert a trace node. Denormalizes skill attrs from session.
 
-        Key: (session_key, depth, sequence_order, title) -- deterministic,
-        so bulk re-imports of the same trace buffer are idempotent.
+        Two key recipes, because there are two ways a trace can arise.
+
+        Derived from captured reasoning (the only writer today):
+        (source_message_key, sequence_order). Deliberately NOT title-keyed --
+        a model re-reading the same reasoning will not word the title the same
+        way twice, so a title-keyed row would duplicate the whole corpus on
+        every re-derivation pass while looking like it found new material.
+        Keying on the evidence and the position within it makes re-derivation
+        converge.
+
+        Without a source message: (session_key, depth, sequence_order, title),
+        the original recipe, kept for any caller recording a trace that did not
+        come from a message.
         """
-        key = dimension_key(trace.session_key, trace.depth,
-                            trace.sequence_order, trace.title)
+        if trace.source_message_key is not None:
+            if not self._key_exists("fact_message", trace.source_message_key):
+                raise ValueError(
+                    f"Source message {trace.source_message_key} not found")
+            key = dimension_key(trace.source_message_key, trace.sequence_order)
+        else:
+            key = dimension_key(trace.session_key, trace.depth,
+                                trace.sequence_order, trace.title)
         if self._key_exists("fact_trace", key):
             return key
         skill_key = trace.skill_key
@@ -1015,13 +1032,15 @@ class ExperimentStore:
                 tenant_key = attrs.get("tenant_key")
         tenant_key = tenant_key or self._default_tenant_key
         self.con.execute(
-            """INSERT INTO fact_trace (trace_key, session_key, parent_trace_key,
+            """INSERT INTO fact_trace (trace_key, session_key, source_message_key,
+               parent_trace_key,
                trace_type, depth, sequence_order, title, content, reasoning,
                alternatives, outcome, child_session_key, duration_ms,
                skill_key, skill_domain, skill_task_type, tenant_key,
                record_source, etl_run_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            [key, trace.session_key, trace.parent_trace_key, trace.trace_type,
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            [key, trace.session_key, trace.source_message_key,
+             trace.parent_trace_key, trace.trace_type,
              trace.depth, trace.sequence_order, trace.title, trace.content,
              trace.reasoning, _json(trace.alternatives), _json(trace.outcome),
              trace.child_session_key, trace.duration_ms,
@@ -1035,6 +1054,43 @@ class ExperimentStore:
         d = self._fetchone(
             "SELECT * FROM fact_trace WHERE trace_key = ?", [trace_key])
         return Trace(**d) if d else None
+
+    def list_traces(self, session_key: str | None = None) -> list[Trace]:
+        """All traces, optionally scoped to one session."""
+        q = "SELECT * FROM fact_trace WHERE 1=1"
+        params: list = []
+        if session_key is not None:
+            q += " AND session_key = ?"
+            params.append(session_key)
+        q += " ORDER BY session_key, depth, sequence_order"
+        return [Trace(**d) for d in self._fetchall(q, params)]
+
+    def list_reasoning_messages(
+        self,
+        session_key: str | None = None,
+        underived_only: bool = True,
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Messages carrying captured reasoning -- the derivation pass's queue.
+
+        Defaults to messages with no traces derived from them yet, so the pass
+        runs incrementally over a warehouse that keeps growing rather than
+        re-reading everything each time.
+        """
+        q = ("SELECT message_key, session_key, sequence_num, occurred_at, "
+             "thinking_text FROM fact_message WHERE thinking_text IS NOT NULL")
+        params: list = []
+        if session_key is not None:
+            q += " AND session_key = ?"
+            params.append(session_key)
+        if underived_only:
+            q += (" AND message_key NOT IN "
+                  "(SELECT source_message_key FROM fact_trace "
+                  " WHERE source_message_key IS NOT NULL)")
+        q += " ORDER BY session_key, sequence_num"
+        if limit is not None:
+            q += f" LIMIT {int(limit)}"
+        return self._fetchall(q, params)
 
     def get_session_traces(self, session_key: str) -> list[Trace]:
         """Get all trace nodes for a session, ordered for tree rendering."""

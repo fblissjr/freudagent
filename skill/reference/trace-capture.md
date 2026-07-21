@@ -2,30 +2,61 @@
 
 Last updated: 2026-07-21
 
-## Status: there is no write path yet
+## Status: derivation works, nothing drives it automatically
 
-Read this before anything else in this file. Reasoning traces are a schema and a
-read surface with nothing writing to them.
+Read this before anything else in this file.
 
-- `fact_trace` exists and `TraceType` carries all eight types.
-- `store.insert_trace()` has no callers outside `tests/`.
-- There is no `trace add` CLI command and no store-op MCP tool for traces.
-- Transcript ingest records messages and tool calls only. It reduces thinking
-  blocks to a boolean and keeps no content.
-- `scripts/trace-hook.sh` captures `tool_call` events to a JSONL buffer, needs
-  opt-in hook configuration, and has no loader to hand that buffer to.
+What exists:
 
-Earlier versions of this file gave raw-SQL insert recipes. They have been removed
-rather than repaired. They computed keys with `md5()`, and keys have been
-sha256/32 since v0.23 — an agent following them wrote rows keyed against nothing
-the store computes, with no error at write time, silently breaking idempotent
-re-ingest and prefix resolution. They also routed writes through a generic DuckDB
-MCP server, which the store-ops server replaced. Writes go through store ops; see
-`.claude/skills/db-query.md`.
+- `fact_message.thinking_text` keeps each turn's reasoning verbatim, captured at
+  ingest for every run (schema v10).
+- `reasoning_list` (MCP) / `store.list_reasoning_messages()` returns the messages
+  whose reasoning has not been derived yet -- the queue.
+- `trace_add` (MCP) / `ops.trace_add()` writes one typed trace, wrapped in its
+  own `load_run`, with `record_source = derived`.
+- Every derived trace carries `source_message_key`, so the structured claim can
+  be checked against the reasoning it came from.
 
-What remains here is the part that stays true regardless of mechanism: what a
-reasoning trace should contain. Treat it as the spec for the capture path when it
-gets built, not as instructions you can follow today.
+What does not exist: any pass that runs this over the warehouse on its own. Today
+someone has to ask. That is the remaining half.
+
+### Derived, not self-reported -- and the difference is the design
+
+These write the same table, so it is easy to collapse them. Do not.
+
+Self-reporting is an agent narrating its own reasoning while it works. It exists
+only when someone turned it on, it degrades whenever reporting is not
+load-bearing for the agent's own task, and it is missing for exactly the run you
+later wanted to look at. The design rules this out: the trail is meant to be
+"recorded by default rather than switched on when someone suspects a problem,
+because you never suspect in time".
+
+Derivation is a later pass over `thinking_text`, which was captured whether
+anyone was curious or not. It is independent of the run it describes, it covers
+everything captured, and it can be redone tomorrow with a better prompt without
+losing anything -- re-deriving the same message converges on the same rows
+rather than duplicating them, because the key is
+`(source_message_key, sequence_order)` and not the title. A model will not word a
+title the same way twice; a title-keyed row would duplicate the corpus on every
+pass while looking like it found new material.
+
+So `scripts/trace-hook.sh` stays unwired. It captures `tool_call` events the
+agent emits about itself, which is the self-reporting shape.
+
+### How to run a derivation pass
+
+1. `reasoning_list` for the queue (optionally scoped to one session).
+2. Read each `thinking_text` and decide what it actually contains -- often
+   nothing worth structuring, which is a valid answer.
+3. `trace_add` per step found, with `sequence_order` placing them within the
+   turn, `source_message_key` naming the evidence, and `reasoning` carrying the
+   why rather than restating the title.
+
+Earlier versions of this file gave raw-SQL insert recipes. They were removed
+rather than repaired: they computed keys with `md5()`, and keys have been
+sha256/32 since v0.23, so an agent following them wrote rows keyed against
+nothing the store computes -- silently, with no error at write time. Writes go
+through store ops.
 
 ## Why this matters more than its size suggests
 

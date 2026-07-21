@@ -45,6 +45,8 @@ from freud_schema.tables import (
     SkillStatus,
     Source,
     TargetDimension,
+    Trace,
+    TraceType,
     ValidationStatus,
 )
 
@@ -144,6 +146,60 @@ def source_add(
 # ---------------------------------------------------------------------------
 # Feedback
 # ---------------------------------------------------------------------------
+
+
+def trace_add(
+    store: ExperimentStore,
+    *,
+    session_key: str,
+    trace_type: TraceType,
+    title: str,
+    source_message_key: str | None = None,
+    sequence_order: int = 0,
+    depth: int = 0,
+    reasoning: str | None = None,
+    content: str | None = None,
+    alternatives: dict | None = None,
+    outcome: dict | None = None,
+) -> dict:
+    """Record one typed trace derived from captured reasoning.
+
+    This is the write path for a DERIVATION pass -- a later read over
+    `fact_message.thinking_text`, which was captured for every run whether
+    anyone was curious at the time or not. It is not a way for an agent to
+    narrate its own run. That distinction is the point: a self-reported trail
+    exists only when someone turned it on, degrades whenever reporting is not
+    load-bearing for the agent's own task, and is missing for exactly the run
+    you wanted to look at.
+
+    Because it is a derivation it behaves like the other ones: wrapped in its
+    own load_run, written with record_source=derived, and it names the message
+    it came from so the claim can be checked against the evidence.
+
+    Re-deriving the same message and position converges on the same row rather
+    than adding another -- see the key recipe in store.insert_trace.
+    """
+    with store.load_run("trace_derive", record_source=RecordSource.DERIVED) as stats:
+        trace_key = store.insert_trace(Trace(
+            session_key=session_key,
+            source_message_key=source_message_key,
+            trace_type=trace_type,
+            title=title,
+            sequence_order=sequence_order,
+            depth=depth,
+            reasoning=reasoning,
+            content=content,
+            alternatives=alternatives,
+            outcome=outcome,
+            record_source=RecordSource.DERIVED,
+        ))
+        stats.rows_written = 1
+    return {
+        "trace_key": trace_key, "session_key": session_key,
+        "trace_type": trace_type.value,
+        "source_message_key": source_message_key,
+        "etl_run_id": stats.etl_run_id,
+    }
 
 
 def feedback_origin_add(

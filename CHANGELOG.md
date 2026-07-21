@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.40.0
+
+Schema version 11. Group 4's second half: reasoning captured at ingest can now
+be derived into typed traces.
+
+### Added
+
+- **`ops.trace_add`** and MCP **`trace_add`** -- the write path for one typed
+  trace derived from a message's captured reasoning. Wrapped in its own
+  `load_run` with `record_source = derived`, like every other derivation.
+- **`store.list_reasoning_messages`** and MCP **`reasoning_list`** -- the queue:
+  messages carrying reasoning that has not been derived yet, so a pass runs
+  incrementally over a warehouse that keeps growing.
+- **`fact_trace.source_message_key`** -- every derived trace names the message it
+  came from. A structured claim whose evidence you cannot reach is the broken
+  provenance chain this repo keeps warning about.
+
+### Changed
+
+- **`fact_trace` keying.** A trace with a source message is keyed on
+  `(source_message_key, sequence_order)` rather than on the title. A model
+  re-reading the same reasoning does not word a title the same way twice, so the
+  title-based key would have duplicated the whole corpus on every re-derivation
+  pass while looking like it found new material. Traces without a source message
+  keep the original recipe.
+
+  The practical effect: re-running a derivation pass with a better prompt is
+  safe. Verified end to end -- re-deriving one message with different wording
+  produced 2 traces, not 3.
+
+### The distinction this encodes
+
+Derivation and self-reporting write the same table, and collapsing them would
+undo the point. Self-reporting is an agent narrating its own run: it exists only
+when someone turned it on, degrades whenever reporting is not load-bearing for
+the agent's own task, and is missing for exactly the run you later wanted.
+Derivation is a separate pass over reasoning captured whether anyone was curious
+or not -- independent of the run it describes, complete over what was captured,
+and redoable.
+
+`scripts/trace-hook.sh` therefore stays unwired: it captures events the agent
+emits about itself, which is the self-reporting shape.
+
+### Still missing
+
+Nothing drives derivation automatically. Someone has to ask. That last piece is
+the same shape as the couch's LLM layer and is what unblocks group 5.
+
 ## 0.39.0
 
 Schema version 10. Group 4 (reasoning capture), first half.

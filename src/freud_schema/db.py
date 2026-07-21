@@ -282,6 +282,7 @@ def _build_tables_ddl() -> list[str]:
         f"""CREATE TABLE IF NOT EXISTS fact_trace (
     trace_key VARCHAR NOT NULL,
     session_key VARCHAR NOT NULL,
+    source_message_key VARCHAR,
     parent_trace_key VARCHAR,
     trace_type VARCHAR NOT NULL,
     depth INTEGER NOT NULL DEFAULT 0,
@@ -622,6 +623,7 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (8, "v0.36: fact_proposal.review_notes -- rejections record why, not only who"),
     (9, "v0.37: feedback origin -- dim_feedback_origin registry, fact_feedback.feedback_origin_key + denormalized origin_kind"),
     (10, "v0.39: fact_message.thinking_text -- the reasoning trail is kept rather than reduced to a boolean"),
+    (11, "v0.40: fact_trace.source_message_key -- typed traces are derived from captured reasoning and name the message they came from"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it

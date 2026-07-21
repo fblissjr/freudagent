@@ -120,11 +120,13 @@ they arrive. Recorded by default rather than switched on when someone suspects a
 problem, because you never suspect in time — and because reasoning is the part
 that cannot be recovered later. A transcript rotates and it is gone.
 
-Capture and structure are different jobs, and only the first is settled here.
-The raw reasoning is kept. Turning it into a typed trail — this was a decision
-point with these alternatives, that was a dead end, here the approach changed —
-is a derivation on top of it, and belongs with the other analysis steps rather
-than with ingestion. It is not built.
+Capture and structure are different jobs. The raw reasoning is kept at ingest.
+Turning it into a typed trail — this was a decision point with these
+alternatives, that was a dead end, here the approach changed — is a derivation
+on top of it, and belongs with the other analysis steps rather than with
+ingestion. The write path for that exists and each derived row names the message
+it came from; what does not exist yet is a pass that drives it over the whole
+warehouse without someone asking.
 
 The order matters and it is easy to get backwards. A system that asks the agent
 to volunteer structured traces gets a trail that exists only when someone
@@ -765,7 +767,7 @@ It is a research repo, not a product.
 | Stage | State |
 |---|---|
 | Ingest | working, for agent transcripts and generic event streams; messages, tool calls and raw reasoning are all captured. Deriving a typed trail from that reasoning is not built |
-| Analyze | detection works; findings have no lifecycle, so recurrence is not tracked |
+| Analyze | detection works; deriving typed traces from captured reasoning has a write path and no automated pass driving it; findings have no lifecycle, so recurrence is not tracked |
 | Propose | proposals work and carry evidence; claim types are not built, and detector thresholds are code constants rather than data |
 | Approve | working, including the draft-only tool gate |
 | Compile | compiling and provenance footers work; scoped output and the drift check are not built |

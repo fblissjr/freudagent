@@ -333,6 +333,7 @@ Reasoning trace tree nodes within a session.
 |--------|------|-------|
 | trace_key | VARCHAR | `dimension_key(session_key, depth, sequence_order, title)` |
 | session_key | VARCHAR NOT NULL | Parent session (no FK constraint) |
+| source_message_key | VARCHAR | The `fact_message` whose `thinking_text` this was derived from. Derived traces require it -- a structured claim you cannot trace to its evidence is a broken chain. NULL only for traces not derived from a message |
 | parent_trace_key | VARCHAR | Tree structure (NULL for top-level) |
 | trace_type | VARCHAR | decision_point, path_taken, path_discarded, insight, dead_end, subagent_spawn, tool_call, conclusion |
 | depth | INTEGER DEFAULT 0 | Tree depth (0 = top-level) |

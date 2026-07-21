@@ -1,5 +1,5 @@
 <!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
-<!-- source: dim_rule ba43f4713f8b6561edfbf4e973b47e0f effective_from 2026-07-21T17:15:25.169248 -->
+<!-- source: dim_rule ba43f4713f8b6561edfbf4e973b47e0f effective_from 2026-07-21T17:29:05.560580 -->
 
 
 # No machine details in committed artifacts
