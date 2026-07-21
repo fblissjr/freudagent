@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.33.0
+
+### Changed
+
+- **README cut from 373 lines to 81.** It had become a stale copy of five other
+  documents: the CLI reference (which lives in `skill/skill.md`), the full table
+  inventory (`skill/reference/schema.md`), the archetype and preset tables
+  (`skill/reference/archetypes.md`), the project structure (`CLAUDE.md`) and a
+  Python API example (the extraction tutorial). Every one of those was verified
+  to exist elsewhere before removal. A front door duplicating five documents is
+  the same rot problem this project is about, aimed at ourselves.
+
+  It now does what a README should: says plainly what this is, shows the
+  animated loop, and links out. The opening no longer describes the project as
+  "a meta-framework for declarative agent orchestration" -- it says agent
+  instructions go stale and this is a design for keeping them current.
+
+  The animated flywheel now sits near the top, which is the slot a short
+  explainer video would take when one exists.
+
 ## 0.32.0
 
 ### Added
