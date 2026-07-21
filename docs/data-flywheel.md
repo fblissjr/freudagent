@@ -114,12 +114,24 @@ leaving it an option at the call site, as it is here.
 
 A skill is guidance for the agent. It gets its own section below.
 
-A run is one execution, recorded at the lowest granularity available. The
-messages and the tool calls are captured. The reasoning trail — decisions, paths
-taken, paths discarded, dead ends, conclusions — has a table waiting for it and
-nothing writing to it: ingest keeps a flag saying a turn had reasoning and
-discards the content. All of it should be recorded by default rather than
-switched on when someone suspects a problem, because you never suspect in time.
+A run is one execution, recorded at the lowest granularity available: the
+messages, the tool calls, and the reasoning behind them, all kept verbatim as
+they arrive. Recorded by default rather than switched on when someone suspects a
+problem, because you never suspect in time — and because reasoning is the part
+that cannot be recovered later. A transcript rotates and it is gone.
+
+Capture and structure are different jobs, and only the first is settled here.
+The raw reasoning is kept. Turning it into a typed trail — this was a decision
+point with these alternatives, that was a dead end, here the approach changed —
+is a derivation on top of it, and belongs with the other analysis steps rather
+than with ingestion. It is not built.
+
+The order matters and it is easy to get backwards. A system that asks the agent
+to volunteer structured traces gets a trail that exists only when someone
+thought to turn it on, degrades whenever reporting is not load-bearing for the
+agent's own task, and is missing for exactly the run you wanted. Capturing
+everything and deriving structure afterwards costs storage. Self-reporting costs
+the evidence.
 
 An output is one thing an agent produced, recording which source, which skill
 version, and which run made it.
@@ -752,7 +764,7 @@ It is a research repo, not a product.
 
 | Stage | State |
 |---|---|
-| Ingest | working, for agent transcripts and generic event streams; messages and tool calls are captured, the reasoning trail has a table but nothing writes to it |
+| Ingest | working, for agent transcripts and generic event streams; messages, tool calls and raw reasoning are all captured. Deriving a typed trail from that reasoning is not built |
 | Analyze | detection works; findings have no lifecycle, so recurrence is not tracked |
 | Propose | proposals work and carry evidence; claim types are not built, and detector thresholds are code constants rather than data |
 | Approve | working, including the draft-only tool gate |

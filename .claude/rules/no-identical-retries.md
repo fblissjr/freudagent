@@ -1,5 +1,5 @@
 <!-- compiled by freud-schema: do not edit; change the dimension row and recompile -->
-<!-- source: dim_rule 41e373fd2c53f65f3369289a60dab0e8 effective_from 2026-07-21T16:58:42.136444 -->
+<!-- source: dim_rule 41e373fd2c53f65f3369289a60dab0e8 effective_from 2026-07-21T17:15:25.167667 -->
 
 
 

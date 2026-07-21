@@ -427,6 +427,7 @@ Ingestion-scale table: deterministic keys, skip-if-exists inserts.
 | occurred_at | TIMESTAMP | Original transcript timestamp |
 | content_text | VARCHAR | Message text |
 | has_thinking | BOOLEAN DEFAULT FALSE | Whether an extended-thinking block was present |
+| thinking_text | VARCHAR | The turn's reasoning, kept verbatim; NULL when the turn had none. Captured at ingest rather than self-reported -- a trail the agent has to volunteer is switched on after someone already suspects a problem, and by then the run you wanted is gone |
 | stop_reason | VARCHAR | Provider stop reason |
 | input_tokens | INTEGER | |
 | output_tokens | INTEGER | |

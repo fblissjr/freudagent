@@ -149,7 +149,8 @@ _MESSAGE_JSON_TYPES: dict[str, str] = {
     "message_key": "VARCHAR", "session_key": "VARCHAR", "project_key": "VARCHAR",
     "role": "VARCHAR", "entry_uuid": "VARCHAR", "parent_uuid": "VARCHAR",
     "sequence_num": "INTEGER", "occurred_at": "TIMESTAMP", "content_text": "VARCHAR",
-    "has_thinking": "BOOLEAN", "stop_reason": "VARCHAR", "input_tokens": "INTEGER",
+    "has_thinking": "BOOLEAN", "thinking_text": "VARCHAR",
+    "stop_reason": "VARCHAR", "input_tokens": "INTEGER",
     "output_tokens": "INTEGER", "is_meta": "BOOLEAN", "is_sidechain": "BOOLEAN",
     "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
 }
@@ -1502,6 +1503,7 @@ class ExperimentStore:
                 "entry_uuid": m.entry_uuid, "parent_uuid": m.parent_uuid,
                 "sequence_num": m.sequence_num, "occurred_at": m.occurred_at,
                 "content_text": m.content_text, "has_thinking": m.has_thinking,
+                "thinking_text": m.thinking_text,
                 "stop_reason": m.stop_reason, "input_tokens": m.input_tokens,
                 "output_tokens": m.output_tokens, "is_meta": m.is_meta,
                 "is_sidechain": m.is_sidechain,

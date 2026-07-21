@@ -136,6 +136,8 @@ README.md            - The explainer and entry point; the short version of
 ROADMAP.md           - What scales, what breaks, in what order
 CHANGELOG.md         - Semver, no dates. Historical entries are a record; do not
                        edit them to match current conventions
+AVIF-TEST.md         - Throwaway render test (see the file). Delete it and this line
+                       once the question it asks is answered
 LICENSE
 .mcp.json            - MCP server config: freud-schema mcp-serve (the store-ops
                        connection holder for this project; committed)
@@ -299,7 +301,10 @@ Schema docs: `.claude/skills/db-query.md`
 
 ### Privacy
 - `data/freudagent.duckdb` holds personal transcript content -- gitignored, and transcript
-  text must never be quoted into committed files, commit messages, or finding summaries
+  text must never be quoted into committed files, commit messages, or finding summaries.
+  Since schema v10 that includes `fact_message.thinking_text`, the model's reasoning kept
+  verbatim. Treat it as the most sensitive column in the warehouse: it is unrehearsed and
+  was never written for an audience. Redaction on the way in is still unbuilt
 - Finding summaries and compiled artifacts are clean by construction (tool names, counts,
   rates only); `compile`'s privacy gate refuses rather than degrades — it is not advisory
 

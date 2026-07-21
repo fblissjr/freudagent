@@ -161,6 +161,18 @@ def _text_of(blocks: list) -> str:
     return "\n".join(b.text for b in blocks if isinstance(b, TextBlock) and b.text)
 
 
+def _thinking_of(blocks: list) -> str | None:
+    """The turn's reasoning, kept verbatim.
+
+    Separate from _text_of on purpose: thinking is not what the agent said, it
+    is why, and conflating them would make the two impossible to tell apart
+    downstream.
+    """
+    parts = [b.thinking for b in blocks
+             if isinstance(b, ThinkingBlock) and b.thinking]
+    return "\n".join(parts) or None
+
+
 def _result_text(content) -> str | None:
     """Flatten a tool_result content payload to a bounded string."""
     if content is None:
@@ -384,6 +396,7 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
                 occurred_at=ts,
                 content_text=_text_of(blocks) or None,
                 has_thinking=any(isinstance(b, ThinkingBlock) for b in blocks),
+                thinking_text=_thinking_of(blocks),
                 stop_reason=msg.get("stop_reason"),
                 input_tokens=usage.get("input_tokens"),
                 output_tokens=usage.get("output_tokens"),

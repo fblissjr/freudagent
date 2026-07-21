@@ -210,6 +210,38 @@ class TestIngest:
         assert final[3] == 150           # input_tokens
         assert final[4] == "end_turn"
 
+    def test_thinking_content_is_kept_not_reduced_to_a_flag(self, store, projects_root):
+        """The reasoning trail has to survive ingest or it is gone for good.
+
+        Ingest used to record has_thinking=True and discard the text. That is
+        the one loss in this pipeline that cannot be repaired later: transcripts
+        rotate, and a boolean saying reasoning existed is not reasoning. Every
+        downstream use -- interpretability, deviation-as-signal, extracting
+        structured decision points -- reads this column.
+
+        Deliberately captured raw at the message grain rather than
+        self-reported by the agent. A trail the agent has to volunteer is
+        switched on when someone already suspects a problem, and by then the run
+        you wanted is gone.
+        """
+        ingest_transcripts(store, root=projects_root)
+        key_a = dimension_key(RecordSource.TRANSCRIPT_INGEST.value, UUID_A)
+        rows = store.con.execute(
+            "SELECT has_thinking, thinking_text FROM fact_message "
+            "WHERE session_key = ? ORDER BY sequence_num", [key_a]).fetchall()
+        thinking = [r for r in rows if r[0]]
+        assert thinking, "fixture should contain a thinking block"
+        assert thinking[-1][1] == "done"
+
+    def test_messages_without_thinking_store_null(self, store, projects_root):
+        ingest_transcripts(store, root=projects_root)
+        key_a = dimension_key(RecordSource.TRANSCRIPT_INGEST.value, UUID_A)
+        rows = store.con.execute(
+            "SELECT has_thinking, thinking_text FROM fact_message "
+            "WHERE session_key = ? AND NOT has_thinking", [key_a]).fetchall()
+        assert rows, "fixture should contain non-thinking messages"
+        assert all(r[1] is None for r in rows)
+
     def test_tool_use_joined_with_result(self, store, projects_root):
         ingest_transcripts(store, root=projects_root)
         key_a = dimension_key(RecordSource.TRANSCRIPT_INGEST.value, UUID_A)

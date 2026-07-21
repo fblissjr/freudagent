@@ -80,9 +80,12 @@ justified it.
 
 Six steps, looping.
 
-The system records what it does. Outputs, messages and tool calls are captured
-today. The reasoning behind them — what it tried, what it discarded, where it
-changed approach — is meant to be recorded the same way, and isn't yet.
+The system records what it does — outputs, messages, tool calls, and the
+reasoning behind them, kept as it arrives rather than summarized. Turning that
+reasoning into a typed trail (this was a decision point, that was a dead end) is
+a separate step and isn't built. Capture comes first because it's the part you
+can't go back for: transcripts rotate, and a note saying reasoning existed
+isn't reasoning.
 
 Something scans that record for things that repeat. A field corrected the same
 way twelve times. A source document that changed since anyone read it. A step
@@ -121,9 +124,10 @@ That breakdown isn't something someone authors up front. The agent does it while
 it works, leaning on its skills and context to navigate, the same way a person
 would. A trivial request doesn't break down at all — there's nothing to break
 down, and forcing structure onto it would be invention. Recording the breakdown
-as it happens is what would give you the why rather than just the what: which
-path it chose, what it considered and discarded, where it changed its mind.
-Nothing captures it as data here yet.
+as it happens is what gives you the why rather than just the what: which path it
+chose, what it considered and discarded, where it changed its mind. The raw
+material for that is captured here; structuring it into judgeable units isn't
+built yet.
 
 **Getting a model to generate feedback is the obvious fix and the fastest way to
 break it.** Human review doesn't scale, so you seed a model with human-reviewed
@@ -245,7 +249,8 @@ treating what comes out of it as truth just because the system produced it.
 
 The mechanical half of this exists and the signal half mostly doesn't.
 Verification doesn't exist, so no change has ever been checked against work
-already judged correct before shipping. Reasoning capture doesn't either. The
+already judged correct before shipping. Reasoning is captured now, but nothing
+yet turns it into the structured trail the rest of the argument leans on. The
 per-stage table in [the data flywheel](docs/data-flywheel.md) is the detailed
 version.
 

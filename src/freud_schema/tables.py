@@ -471,6 +471,13 @@ class Message(BaseModel):
     occurred_at: datetime | None = None
     content_text: str | None = None
     has_thinking: bool = False
+    thinking_text: str | None = Field(
+        default=None,
+        description="The turn's reasoning, kept verbatim. Captured at ingest "
+                    "rather than self-reported: a trail the agent has to "
+                    "volunteer is switched on after someone suspects a "
+                    "problem, and by then the run you wanted is gone",
+    )
     stop_reason: str | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None

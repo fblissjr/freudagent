@@ -364,6 +364,7 @@ def _build_tables_ddl() -> list[str]:
     occurred_at TIMESTAMP,
     content_text VARCHAR,
     has_thinking BOOLEAN NOT NULL DEFAULT FALSE,
+    thinking_text VARCHAR,
     stop_reason VARCHAR,
     input_tokens INTEGER,
     output_tokens INTEGER,
@@ -620,6 +621,7 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
         "registry, event_ingest record_source"),
     (8, "v0.36: fact_proposal.review_notes -- rejections record why, not only who"),
     (9, "v0.37: feedback origin -- dim_feedback_origin registry, fact_feedback.feedback_origin_key + denormalized origin_kind"),
+    (10, "v0.39: fact_message.thinking_text -- the reasoning trail is kept rather than reduced to a boolean"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it

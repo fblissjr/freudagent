@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.39.0
+
+Schema version 10. Group 4 (reasoning capture), first half.
+
+### Added
+
+- **`fact_message.thinking_text`** -- the turn's reasoning, kept verbatim.
+  Ingest previously recorded `has_thinking=True` and threw the text away. That
+  was the one loss in this pipeline that cannot be repaired later: transcripts
+  rotate, and a boolean saying reasoning existed is not reasoning.
+
+  Kept separate from `content_text` deliberately. Thinking is not what the agent
+  said, it is why, and merging them would make the two impossible to tell apart
+  downstream.
+
+### Design note: capture, not self-reporting
+
+The backlog proposed a `trace_add` store op and a loader for the hook buffer --
+that is, traces the agent volunteers. Rejected, because it implements the
+failure the design explicitly names. The trail is supposed to be "recorded by
+default rather than switched on when someone suspects a problem"; a
+self-reported trail exists only when someone turned it on, degrades whenever
+reporting is not load-bearing for the agent's own task, and is missing for
+exactly the run you wanted.
+
+Capturing everything and deriving structure afterwards costs storage.
+Self-reporting costs the evidence.
+
+So `fact_trace` still has no writer, and that is now a deliberate gap rather
+than an oversight: turning raw reasoning into typed rows is a derivation and
+belongs with the analysis steps. `scripts/trace-hook.sh` stays unwired.
+
+### Privacy
+
+`thinking_text` is the most sensitive column in the warehouse -- unrehearsed,
+and never written for an audience. The DB is gitignored and the existing rule
+against quoting transcript content into committed artifacts covers it, but
+redaction on the way in is still unbuilt. Noted in CLAUDE.md.
+
 ## 0.38.0
 
 ### Removed
