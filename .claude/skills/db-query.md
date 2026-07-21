@@ -22,7 +22,8 @@ DuckDB is single-process and CLI commands fail with a lock error.
 **Inside Claude Code — writes:** never raw SQL. Use the store-ops server's
 write tools (`rule_add`, `skill_add`, `source_add`, `feedback_add`,
 `finding_add`, `extraction_validate`/`reject`, `proposal_add`/`approve`/
-`reject`, `couch_run`, `compile`, `ingest_transcripts`) -- each is a thin
+`reject`, `couch_run`, `compile`, `ingest_transcripts`, `ingest_events`) --
+each is a thin
 wrapper over the store's one write path (validation, key recipes,
 denormalization, lineage). On a generic duckdb server, use the CLI write
 window instead (see CLAUDE.md's DuckDB MCP section).

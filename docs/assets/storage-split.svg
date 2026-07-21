@@ -1,53 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" width="960" height="470" role="img" aria-labelledby="t d">
-  <title id="t">Files and the warehouse do different jobs</title>
-  <desc id="d">Two panels. Files in git hold the knowledge the agent reads. A SQL warehouse holds the events, evidence and history. Each is bad at the other's job.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 496" width="960" height="496" role="img" aria-labelledby="t d">
+  <title id="t">One skill, two stores</title>
+  <desc id="d">A skill's artifact lives in git and its metadata lives in a warehouse. Each store is bad at the other's job. Wherever a thing lives, it is versioned and immutable.</desc>
 
-  <rect x="0" y="0" width="960" height="470" rx="16" fill="#0b1220"/>
+  <rect x="0" y="0" width="960" height="496" rx="16" fill="#0b1220"/>
 
   <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
-    <text x="40" y="48" font-size="21" font-weight="600" fill="#e6edf7">Two stores, two jobs</text>
-    <text x="40" y="74" font-size="13.5" fill="#8fa2c0">The split is not a preference. Each store is genuinely bad at the other one's work.</text>
+    <text x="40" y="48" font-size="21" font-weight="600" fill="#e6edf7">One skill, two stores</text>
+    <text x="40" y="74" font-size="13.5" fill="#8fa2c0">The artifact and its metadata live apart on purpose. Each store is genuinely bad at the other one's work.</text>
 
     <!-- files panel -->
-    <rect x="36" y="100" width="424" height="270" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
+    <rect x="36" y="100" width="424" height="292" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
     <text x="60" y="134" font-size="16" font-weight="600" fill="#89b4f7">Files in git</text>
     <text x="60" y="155" font-size="12.5" fill="#7f92b0">the form the agent reads</text>
 
     <text x="60" y="188" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">HOLDS</text>
-    <text x="60" y="210" font-size="13.5" fill="#a8b8d4">skills, rules, documentation, compiled artifacts</text>
+    <text x="60" y="210" font-size="13.5" fill="#a8b8d4">skill artifacts, rules, references, compiled files</text>
+    <text x="60" y="230" font-size="13.5" fill="#a8b8d4">— the content itself, diffable and reviewable</text>
 
-    <text x="60" y="242" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">READ WITH</text>
-    <text x="60" y="264" font-size="13.5" fill="#a8b8d4">glob, grep, open the file — the things models are</text>
-    <text x="60" y="284" font-size="13.5" fill="#a8b8d4">already good at without being taught</text>
+    <text x="60" y="264" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">READ WITH</text>
+    <text x="60" y="286" font-size="13.5" fill="#a8b8d4">glob, grep, open the file — the things models are</text>
+    <text x="60" y="306" font-size="13.5" fill="#a8b8d4">already good at without being taught</text>
 
-    <text x="60" y="316" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
-    <text x="60" y="338" font-size="13.5" fill="#c49a86">counting, aggregating, answering "has this got</text>
-    <text x="60" y="356" font-size="13.5" fill="#c49a86">better since March", concurrent writes</text>
+    <text x="60" y="338" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
+    <text x="60" y="360" font-size="13.5" fill="#c49a86">counting, aggregating, answering "did this get</text>
+    <text x="60" y="378" font-size="13.5" fill="#c49a86">better after version 3", concurrent writes</text>
 
     <!-- warehouse panel -->
-    <rect x="500" y="100" width="424" height="270" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
-    <text x="524" y="134" font-size="16" font-weight="600" fill="#89b4f7">A SQL warehouse</text>
+    <rect x="500" y="100" width="424" height="292" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
+    <text x="524" y="134" font-size="16" font-weight="600" fill="#89b4f7">A warehouse</text>
     <text x="524" y="155" font-size="12.5" fill="#7f92b0">the governed source of truth</text>
 
     <text x="524" y="188" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">HOLDS</text>
-    <text x="524" y="210" font-size="13.5" fill="#a8b8d4">sessions, events, findings, corrections, every version</text>
+    <text x="524" y="210" font-size="13.5" fill="#a8b8d4">runs, events, findings, corrections, every version</text>
+    <text x="524" y="230" font-size="13.5" fill="#a8b8d4">— and each skill's metadata: id, job, what and why</text>
 
-    <text x="524" y="242" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">READ WITH</text>
-    <text x="524" y="264" font-size="13.5" fill="#a8b8d4">queries and prepared views — counts, trends, and</text>
-    <text x="524" y="284" font-size="13.5" fill="#a8b8d4">"what did we believe on this date"</text>
+    <text x="524" y="264" font-size="12" font-weight="600" fill="#6f83a3" letter-spacing="1">READ WITH</text>
+    <text x="524" y="286" font-size="13.5" fill="#a8b8d4">queries and prepared views — counts, trends, and</text>
+    <text x="524" y="306" font-size="13.5" fill="#a8b8d4">"what did we believe on this date"</text>
 
-    <text x="524" y="316" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
-    <text x="524" y="338" font-size="13.5" fill="#c49a86">being read as instructions — text search over rows</text>
-    <text x="524" y="356" font-size="13.5" fill="#c49a86">is the worst of both worlds</text>
+    <text x="524" y="338" font-size="12" font-weight="600" fill="#a3705a" letter-spacing="1">BAD AT</text>
+    <text x="524" y="360" font-size="13.5" fill="#c49a86">being read as instructions — text search over rows</text>
+    <text x="524" y="378" font-size="13.5" fill="#c49a86">is the worst of both worlds</text>
 
-    <!-- bridge: the third row, easiest to lose in summary -->
-    <line x1="466" y1="235" x2="494" y2="235" stroke="#3b4c6b" stroke-width="2" stroke-dasharray="4 4"/>
-    <path d="M712 372 L712 392" fill="none" stroke="#4d6288" stroke-width="1.6"/>
-    <path d="M248 372 L248 392" fill="none" stroke="#4d6288" stroke-width="1.6" stroke-dasharray="4 4"/>
-    <polygon points="248,398 243,388 253,388" fill="#4d6288"/>
+    <!-- one skill spans both -->
+    <line x1="466" y1="220" x2="494" y2="220" stroke="#4d6288" stroke-width="2"/>
 
-    <rect x="36" y="396" width="888" height="52" rx="10" fill="#16233a" stroke="#3a5a8f" stroke-width="1.4"/>
-    <text x="60" y="418" font-size="11.5" font-weight="600" fill="#89b4f7" letter-spacing="1">THE INVARIANT</text>
-    <text x="60" y="438" font-size="13.5" fill="#c3d2ea">Wherever a thing lives, it is versioned and immutable. The warehouse is also the catalog: what was compiled from what, when, on whose approval.</text>
+    <path d="M712 394 L712 414" fill="none" stroke="#4d6288" stroke-width="1.6"/>
+    <path d="M248 394 L248 414" fill="none" stroke="#4d6288" stroke-width="1.6"/>
+
+    <rect x="36" y="418" width="888" height="68" rx="10" fill="#16233a" stroke="#3a5a8f" stroke-width="1.4"/>
+    <text x="60" y="438" font-size="11.5" font-weight="600" fill="#89b4f7" letter-spacing="1">WHAT IS ACTUALLY FIXED</text>
+    <text x="60" y="458" font-size="13.5" fill="#c3d2ea">Versioned and immutable, wherever it lives — new rows, never edits, prior version and diff always kept. Where any</text>
+    <text x="60" y="476" font-size="13.5" fill="#c3d2ea">given thing is stored is a live tradeoff; that it is versioned is not.</text>
   </g>
 </svg>

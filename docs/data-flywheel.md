@@ -56,11 +56,11 @@ replaced the one that is written down. Nobody updates it, because updating it is
 unglamorous work with no owner and no deadline. Eventually it describes a company
 that no longer exists, people stop trusting it, and then stop opening it.
 
-Agent skills will rot the same way and for the same reason. Businesses change,
-rules evolve, and new data changes what the rules should be. Human maintenance of
-knowledge does not fail because people are careless — it fails structurally, in
-every organisation that has tried it, which is a strong enough pattern to design
-around rather than hope past.
+Most agent skills will rot the same way and for the same reason — not all of
+them, but most. Businesses change, rules evolve, and new data changes what the
+rules should be. Human maintenance of knowledge does not fail because people are
+careless — it fails structurally, in every organisation that has tried it, which
+is a strong enough pattern to design around rather than hope past.
 
 So the question is not how to write good instructions. It is who keeps them
 current. This design answers: the system does, from evidence, with people
@@ -102,15 +102,21 @@ whether a business outcome was good produces a verdict with nowhere to go — yo
 learn it was bad, not where it went wrong or why. Evaluating outcomes alone is
 close to useless for improvement, however satisfying it is to report.
 
-So the work has to be decomposed until you reach a level where a person can look
-at one thing and answer confidently, capture judgement there, and aggregate back
-up to whatever altitude the business cares about. Interpretability comes from the
-decomposition, not from the evaluation.
+So the work is decomposed as far down as it goes, and judgement is captured
+wherever a person can look at one thing and answer confidently. Those judgements
+then aggregate up to whatever altitude the business cares about. Interpretability
+comes from the decomposition, not from the evaluation.
 
-The depth at which that happens is set by what a business user can meaningfully
-judge, which is a real constraint rather than a design preference. Too coarse and
-the judgement is unactionable. Too fine and you are asking someone to review
-mechanics they have no opinion about.
+Two different depths are in play here and conflating them causes trouble.
+Decomposition and recording go all the way down, because you cannot aggregate
+detail you did not keep, and because the level that turns out to matter is rarely
+the one you would have guessed. Where a person is asked to look is separate and
+higher: it is set by what a business user can meaningfully judge. Ask too coarse
+and the judgement is unactionable. Ask too fine and you are asking someone to
+review mechanics they have no opinion about.
+
+The design consequence is that granularity of capture is not a dial to tune. It
+goes to the bottom. Only the asking is tuned.
 
 Once enough human judgements exist at that level, they become the reference that
 lets a model perform the same decomposed evaluation. That is the only version of
@@ -133,20 +139,22 @@ interpretability: not just what the agent did, but why it chose this path, what 
 considered and discarded, and where it changed approach. You cannot reconstruct
 that afterwards from an outcome.
 
-One distinction worth keeping sharp. The execution tree of a single run is a
-fact — raw, noisy, and partly shaped by harness mechanics rather than by the task.
-The decomposition is what you learn from many such trees: work of this shape
-reliably breaks down these ways, in roughly this order, failing at these points.
-That is a dimension derived from many facts, not the facts themselves.
+Each run's decomposition is a fact, recorded as it happened. Across many runs a
+pattern shows up on top of those facts: work of this shape reliably breaks down
+these ways, in roughly this order, failing at these points. That pattern is
+derived rather than observed, and it is worth keeping separate from the runs it
+came from — a single run's tree is raw and partly shaped by harness mechanics
+rather than by the task, so no one run should be mistaken for the general case.
 
-Once learned, it becomes guidance for future runs — which makes it an
-orchestrator-level skill. There is no separate decomposition catalog to maintain,
-which matters, because an authored one would rot exactly like the data catalog
-above.
+Once the pattern is established it becomes guidance for future runs, which makes
+it an orchestrator-level skill. So there is no separate decomposition catalog for
+anyone to maintain. That matters, because an authored one would rot exactly like
+the data catalog above.
 
-Cold start is the honest exception. On day one there are no runs to learn from, so
-you hand-author a first guess the way you hand-author the first skills, and treat
-it as untrusted until the loop has corrected it.
+The exception is a system with no history. On day one there are no runs to derive
+anything from, so the first decomposition is hand-authored alongside the first
+skills and treated as untrusted until the loop has corrected it. Cold start is
+covered under the data model below.
 
 ### Deviation is signal in both directions
 
@@ -214,10 +222,28 @@ A finding is one detected pattern with the records that evidence it. A proposal 
 one suggested change with the findings that justify it. An approval turns a
 proposal into a new version.
 
-Every fact carries the identifier of the job that produced it, and every job is a
-row in a load log recording what it read, wrote and skipped, when, and whether it
-succeeded. That is what makes lineage total rather than aspirational: any record
-ties to the run that created it, and those ties aggregate.
+Every fact carries the identifier of the ETL run that produced it, and every run
+is a row in a load log recording what it read, wrote and skipped, when, and
+whether it succeeded. That is what makes lineage total rather than aspirational:
+any record ties to the run that created it, and those ties aggregate.
+
+### Cold start: when none of this exists yet
+
+Every deployment begins with an empty warehouse and a body of existing knowledge
+in the wrong shape — in people's heads, in a wiki nobody trusts, in a stale
+catalog. The loop needs a first turn and it cannot derive one from nothing.
+
+So day one is deliberately manual. Register the sources with a content hash so
+staleness has a baseline to compare against. Hand-author the first rules, the
+first skills and the first decomposition, marking them as human-authored rather
+than derived. Run the agent over the seed corpus. Then route every single output
+through human validation, because nothing derived is trustworthy yet and the
+first turn's job is to produce a reference set, not to save anyone time.
+
+That is the most expensive turn and it never repeats. Everything after it starts
+from evidence. The failure to avoid is treating cold-start output as truth
+because it came out of the system — it is the one point where the system has no
+grounds for anything it says.
 
 ## Skills are a ragged hierarchy
 
@@ -275,11 +301,16 @@ interesting decisions actually live.
 The artifact belongs in git: diffable, reviewable, and in the form the agent reads
 best.
 
-The metadata belongs in a table: version, unique identifier, the job that created
-it, when it changed, what changed and why. Not bookkeeping — that half is what lets
+The metadata belongs in a table: version, unique identifier, the ETL run that
+created it, when it changed, what changed and why. Not bookkeeping — that half is what lets
 you ask whether a skill's evolution moved outcomes up or down, whether a set of
 skills is trending in the right direction, and what a change three months ago did
 to results since. You cannot ask those of a git history.
+
+Which is where evals earn their place a second time. Stage 6 uses them as a gate
+before a version ships; here they are the outcome measure the version history is
+trended against. A skill table without eval scores attached tells you what changed
+and when, and nothing about whether it helped.
 
 The invariant underneath is what matters, and it holds regardless of where anything
 is stored: knowledge is versioned and immutable. New rows, never edits. The prior
@@ -431,10 +462,11 @@ separate row pointing at it. The original stays recoverable, several people can
 disagree about the same output without overwriting each other, and what we thought
 about this and when stays answerable.
 
-Every piece of feedback carries who or what produced it — a named person, a
-specific model, a usage signal, a downstream system. Not a human-or-machine
-boolean, but granular enough to filter on years later. That label is what makes
-everything below possible.
+Every piece of feedback carries what produced it. Human or model-derived is the
+floor and it is what the rest of this section depends on; more granular origin —
+a named person, a specific model, a usage signal, a downstream system — is the
+direction to grow in, because filtering years later is easier the more specific
+the label was at the time.
 
 ### Feedback arrives at the grain the decomposition made judgeable
 
@@ -550,7 +582,7 @@ The contrast matters as much. Some vocabularies should stay closed. The set of
 things a proposal may modify is a closed list on purpose, because adding a member
 means the loop has learned to change a new kind of thing, and that is a deliberate
 engineering decision rather than a row somebody inserted. Knowing which vocabularies
-are open and which are closed is most of this design.
+are open and which are closed is a good test of whether a system means it.
 
 ## Provenance is a chain, not a footer
 

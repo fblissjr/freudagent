@@ -142,10 +142,10 @@
       <text x="530" y="186" font-size="12" font-weight="600" fill="#f5a524" letter-spacing="1.2">STAGE 4</text>
       <text x="530" y="218" font-size="24" font-weight="600" fill="#ffd68a">Approve</text>
       <text x="530" y="256" font-size="14" fill="#d8c69c">A person reads the proposal and says yes or no.</text>
-      <text x="530" y="278" font-size="14" fill="#d8c69c">Nothing reaches the agent's context without</text>
-      <text x="530" y="300" font-size="14" fill="#d8c69c">this step. The agent can draft a change, but it</text>
-      <text x="530" y="322" font-size="14" fill="#d8c69c">cannot switch one on for itself — the tools it</text>
-      <text x="530" y="344" font-size="14" fill="#d8c69c">can call refuse to create anything that loads.</text>
+      <text x="530" y="278" font-size="14" fill="#d8c69c">The agent can draft a change but cannot switch</text>
+      <text x="530" y="300" font-size="14" fill="#d8c69c">one on for itself: the tools it calls only make</text>
+      <text x="530" y="322" font-size="14" fill="#d8c69c">drafts, and drafts never load. Other write paths</text>
+      <text x="530" y="344" font-size="14" fill="#d8c69c">are a separate risk, not covered by this gate.</text>
       <rect x="530" y="376" width="128" height="24" rx="12" fill="#2a2113" stroke="#7a5a1e"/>
       <text x="594" y="392" font-size="12" font-weight="600" fill="#e0b45e" text-anchor="middle">human only, always</text>
     </g>

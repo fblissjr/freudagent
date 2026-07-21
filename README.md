@@ -270,7 +270,7 @@ src/freud_schema/
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
                        comes from the path, never the internal sessionId)
-  ingest.py          - Sense: transcript ingestion (idempotent by key construction) +
+  ingest.py          - Ingest: transcript ingestion (idempotent by key construction) +
                        the IngestAdapter protocol (transcript and JSONL event adapters)
   couch.py           - Analyze: SQL finding detectors over the warehouse (no model calls)
   materialize.py     - Materialize: rule compiler with provenance + fail-closed privacy gate

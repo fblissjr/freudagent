@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.30.1
+
+Documentation only. An alignment pass after six independent reviews of the core
+doc, its diagrams, and `.claude/`.
+
+### Fixed
+
+- **Decomposition granularity was inverted.** The doc said work is decomposed
+  *until* it reaches a judgeable level. The design is the opposite: decomposition
+  and recording go all the way down, and the judgeable level is where a person is
+  *asked to look*, which is higher. The doc's version also argued against going
+  too fine, which contradicts recording at the lowest granularity. Capture depth
+  is not a dial; only the asking is tuned.
+- **The decomposition section contradicted its own title.** Headed "Decomposition
+  happens during the run", it then redefined decomposition as a cross-run
+  dimension. Each run's decomposition is now stated as a fact recorded as it
+  happens, with the cross-run pattern presented as something derived on top of
+  those facts rather than as what the word means.
+- Feedback origin labelling was hardened past the design: human versus
+  model-derived is the floor, more granular origin is the direction, and the doc
+  had rejected the binary as insufficient.
+- "Agent skills will rot" restored to "most, not all".
+- "the job that created it" restored to "the ETL run that created it" -- plainer
+  here was less precise, and ETL run is the standard term.
+- Evals reconnected to version trending. They appeared only as a pre-ship gate;
+  they are also the outcome measure a skill's version history is trended against.
+  A skill table without eval scores says what changed and when, not whether it
+  helped.
+- Cold start had lost its home and was left as a dangling forward reference. It
+  now has a section under the data model.
+- Open/closed vocabularies no longer claim to be "most of this design" -- it was
+  one of four competing claims about which part decides everything.
+
+### Diagrams
+
+- `grounding-layer.svg` rewritten. It drew one constraint face plus two other
+  things, contradicting the doc's headline claim of constraints on both sides.
+  Now left-hand constraints, grounding data, right-hand constraints, with the two
+  constraint faces sharing a treatment the middle does not, and deviation added
+  to the right-hand list.
+- `storage-split.svg` rewritten. It listed skills as living in git only, directly
+  contradicting the section it illustrates. Now shows a skill's artifact and its
+  metadata across both stores, leading with the versioned-and-immutable invariant.
+- `human-gate.svg` and the hero's stage 4 panel both stated the gate as an
+  absolute guarantee. Scoped to tools that route through it, since the doc now
+  says anything with write access is in the threat model.
+- Hero: verify node no longer dashed, which was a leftover status signal.
+
+### Elsewhere
+
+- `.claude/skills/db-query.md`: `ingest_events` was missing from the write-tools
+  prose list though present in the table below it.
+- `CLAUDE.md` and `README.md` still described `ingest.py` with the retired "Sense"
+  stage name.
+
 ## 0.30.0
 
 Documentation only. `docs/data-flywheel.md` becomes the detailed source of truth

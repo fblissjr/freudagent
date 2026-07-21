@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 468" width="960" height="468" role="img" aria-labelledby="t d">
   <title id="t">The approval gate</title>
   <desc id="d">An agent can draft a proposal, which a person approves before it becomes a new version. An agent cannot switch on a rule for itself: the write tools only create drafts, and drafts do not compile.</desc>
 
-  <rect x="0" y="0" width="960" height="440" rx="16" fill="#0b1220"/>
+  <rect x="0" y="0" width="960" height="468" rx="16" fill="#0b1220"/>
 
   <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
     <text x="36" y="46" font-size="21" font-weight="600" fill="#e6edf7">The one step that stays human</text>
@@ -64,7 +64,8 @@
     <text x="536" y="306" font-size="13.5" fill="#c9a3ad">drafts, drafts never compile, and the approval tool always</text>
     <text x="536" y="326" font-size="13.5" fill="#c9a3ad">asks the person running the session first.</text>
 
-    <rect x="36" y="374" width="888" height="44" rx="10" fill="#16233a" stroke="#2c3e5e"/>
-    <text x="480" y="402" font-size="14" fill="#c3d2ea" text-anchor="middle">Automation makes the review cheap and quick. It never makes the review optional.</text>
+    <rect x="36" y="374" width="888" height="72" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="480" y="400" font-size="14" fill="#c3d2ea" text-anchor="middle">Automation reduces how much a person must look at. It never reduces how carefully they look.</text>
+    <text x="480" y="426" font-size="12.5" fill="#8fa2c0" text-anchor="middle">This holds for tools that route through the gate. A raw connection or a widened allowlist is a separate risk, not covered here.</text>
   </g>
 </svg>

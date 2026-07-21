@@ -27,7 +27,7 @@ src/freud_schema/
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
                        from the path, never the internal sessionId -- it's the parent's)
-  ingest.py          - Sense: transcript ingestion (idempotent by key construction) +
+  ingest.py          - Ingest: transcript ingestion (idempotent by key construction) +
                        the IngestAdapter protocol (TranscriptAdapter, JsonlEventAdapter)
                        for the generic fact_event grain
   couch.py           - Analyze: SQL finding detectors; thresholds live here, never in view DDL
