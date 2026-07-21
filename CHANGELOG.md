@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.34.0
+
+### Added
+
+- **`docs/assets/provenance-chain.svg`** — the claim that provenance is a chain
+  rather than a footer had no picture, despite being the most diagrammable thing
+  in the document and despite two other diagrams leaning on it. Shows the five
+  links as a vertical chain read upward from what you are holding: the file names
+  the version, the version names the proposal a person approved, the proposal
+  names the findings it cited, the findings name the runs behind them. Alongside
+  it, the worked question from the prose, and a panel on where the chain breaks —
+  the footer inside the file copies only the first two links, so deleting the
+  runs at the bottom leaves it looking intact.
+- **`docs/assets/verify-gate.svg`** — verify had four seconds in the animated
+  loop and nothing else, despite being the stage the docs are most careful about
+  and the one that appears twice in the argument. Shows a candidate meeting two
+  checks, both of which must pass, with the fail path leading back to the last
+  good version continuing to serve. Includes the case that would otherwise slip
+  through: an evidence chain that yields nothing to test against is a fail, not a
+  pass.
+
+Both follow the family — same canvas, palette and heading pattern, blue for
+machine steps, amber reserved for the human one, muted red for a path that does
+not proceed. Both are placed after the claim they illustrate rather than under a
+bare heading, matching every other diagram.
+
 ## 0.33.3
 
 Visual review of the rendered diagrams, acted on.

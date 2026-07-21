@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 452" width="960" height="452" role="img" aria-labelledby="t d">
+  <title id="t">The check before a version ships</title>
+  <desc id="d">A candidate version faces two checks: did it fix what it was written to fix, tested against the runs its own evidence cited, and did it break anything else, tested against other work already judged correct. Both must pass. If either fails, the last good version keeps serving.</desc>
+
+  <rect x="0" y="0" width="960" height="452" rx="16" fill="#0b1220"/>
+
+  <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+    <text x="40" y="48" font-size="21" font-weight="600" fill="#e6edf7">Two-sided, or it does not ship</text>
+    <text x="40" y="74" font-size="13.5" fill="#8fa2c0">Passing one check and failing the other is a fail. Nothing here needs a person; it needs work already judged correct.</text>
+
+    <!-- candidate -->
+    <rect x="36" y="176" width="150" height="76" rx="11" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.6"/>
+    <text x="111" y="206" font-size="13.5" font-weight="600" fill="#cfe0ff" text-anchor="middle">a new version</text>
+    <text x="111" y="226" font-size="12" fill="#94a6c4" text-anchor="middle">approved, not yet</text>
+    <text x="111" y="242" font-size="12" fill="#94a6c4" text-anchor="middle">serving anything</text>
+
+    <path d="M186 214 L216 214 L216 148 L246 148" fill="none" stroke="#3b4c6b" stroke-width="1.8"/>
+    <polygon points="254,148 244,143 244,153" fill="#3b4c6b"/>
+    <path d="M186 214 L216 214 L216 292 L246 292" fill="none" stroke="#3b4c6b" stroke-width="1.8"/>
+    <polygon points="254,292 244,287 244,297" fill="#3b4c6b"/>
+
+    <!-- check one -->
+    <rect x="258" y="110" width="330" height="76" rx="11" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="280" y="138" font-size="13.5" font-weight="600" fill="#c3d2ea">Did it fix what it targeted?</text>
+    <text x="280" y="159" font-size="12.5" fill="#94a6c4">tested against what its own evidence points at:</text>
+    <text x="280" y="176" font-size="12.5" fill="#94a6c4">the findings it cited, and their runs</text>
+
+    <!-- check two -->
+    <rect x="258" y="254" width="330" height="76" rx="11" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="280" y="282" font-size="13.5" font-weight="600" fill="#c3d2ea">Did it break anything else?</text>
+    <text x="280" y="303" font-size="12.5" fill="#94a6c4">tested against other work already judged</text>
+    <text x="280" y="320" font-size="12.5" fill="#94a6c4">correct and kept aside for exactly this</text>
+
+    <path d="M588 148 L618 148 L618 200" fill="none" stroke="#3b4c6b" stroke-width="1.8"/>
+    <path d="M588 292 L618 292 L618 240" fill="none" stroke="#3b4c6b" stroke-width="1.8"/>
+    <path d="M618 220 L636 220 L636 176 L654 176" fill="none" stroke="#3b4c6b" stroke-width="1.8"/>
+    <polygon points="662,176 652,171 652,181" fill="#3b4c6b"/>
+    <path d="M618 220 L636 220 L636 264 L654 264" fill="none" stroke="#5a3340" stroke-width="1.8"/>
+    <polygon points="662,264 652,259 652,269" fill="#5a3340"/>
+    <text x="606" y="216" font-size="11.5" fill="#7f92b0" text-anchor="end">both</text>
+
+    <!-- outcomes -->
+    <rect x="670" y="140" width="254" height="72" rx="11" fill="#16233a" stroke="#3a5a8f" stroke-width="1.6"/>
+    <text x="694" y="168" font-size="13.5" font-weight="600" fill="#cfe0ff">Both pass — it ships</text>
+    <text x="694" y="190" font-size="12.5" fill="#94a6c4">compiled, and the agent loads it next run</text>
+
+    <rect x="670" y="228" width="254" height="72" rx="11" fill="#221520" stroke="#5a3340" stroke-width="1.4"/>
+    <text x="694" y="256" font-size="13.5" font-weight="600" fill="#d4a3b0">Either fails — it does not</text>
+    <text x="694" y="278" font-size="12.5" fill="#a3798a">the last good version keeps serving</text>
+
+    <!-- the empty-set case, which is the one that would pass by accident -->
+    <rect x="36" y="358" width="888" height="62" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="60" y="382" font-size="12" font-weight="600" fill="#89b4f7" letter-spacing="1">THE CASE THAT WOULD SLIP THROUGH</text>
+    <text x="60" y="404" font-size="13.5" fill="#c3d2ea">If a proposal's evidence chain yields nothing to test the fix against, that is a fail rather than a pass. An empty check is not a passed check.</text>
+  </g>
+</svg>

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 512" width="960" height="512" role="img" aria-labelledby="t d">
+  <title id="t">Provenance is a chain of records</title>
+  <desc id="d">A compiled file names the row it was built from; the row names the proposal that created it; the proposal names the findings it cited, each with a claim type; the findings name the runs and records that evidence them. Every step is a relationship between records, so asking why a rule says what it says is a query rather than an archaeology exercise.</desc>
+
+  <rect x="0" y="0" width="960" height="512" rx="16" fill="#0b1220"/>
+
+  <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+    <text x="40" y="48" font-size="21" font-weight="600" fill="#e6edf7">Why does this say what it says?</text>
+    <text x="40" y="74" font-size="13.5" fill="#8fa2c0">Every step below is a relationship between records, not a comment in a file. So the question is a query.</text>
+
+    <!-- the chain, read upward from what you are holding -->
+    <rect x="40" y="106" width="400" height="54" rx="10" fill="#1b2c4d" stroke="#4f8ef7" stroke-width="1.6"/>
+    <text x="60" y="130" font-size="13.5" font-weight="600" fill="#cfe0ff">the file the agent loaded</text>
+    <text x="60" y="149" font-size="12" fill="#94a6c4">what you are holding</text>
+
+    <path d="M240 160 L240 182" stroke="#4d6288" stroke-width="1.6"/>
+    <polygon points="240,186 235,176 245,176" fill="#4d6288"/>
+    <text x="256" y="177" font-size="11.5" fill="#7f92b0">names the row it was built from</text>
+
+    <rect x="40" y="188" width="400" height="54" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="60" y="212" font-size="13.5" font-weight="600" fill="#c3d2ea">the version it came from</text>
+    <text x="60" y="231" font-size="12" fill="#94a6c4">one row, closed with a date when superseded</text>
+
+    <path d="M240 242 L240 264" stroke="#4d6288" stroke-width="1.6"/>
+    <polygon points="240,268 235,258 245,258" fill="#4d6288"/>
+    <text x="256" y="259" font-size="11.5" fill="#7f92b0">names the proposal that created it</text>
+
+    <rect x="40" y="270" width="400" height="54" rx="10" fill="#2a2113" stroke="#7a5a1e" stroke-width="1.4"/>
+    <text x="60" y="294" font-size="13.5" font-weight="600" fill="#ffd68a">the proposal a person approved</text>
+    <text x="60" y="313" font-size="12" fill="#c79a45">who approved it, and when</text>
+
+    <path d="M240 324 L240 346" stroke="#4d6288" stroke-width="1.6"/>
+    <polygon points="240,350 235,340 245,340" fill="#4d6288"/>
+    <text x="256" y="341" font-size="11.5" fill="#7f92b0">names the findings it cited, each typed</text>
+
+    <rect x="40" y="352" width="400" height="54" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="60" y="376" font-size="13.5" font-weight="600" fill="#c3d2ea">the findings behind it</text>
+    <text x="60" y="395" font-size="12" fill="#94a6c4">a count, a reference, a conclusion — checkable apart</text>
+
+    <path d="M240 406 L240 428" stroke="#4d6288" stroke-width="1.6"/>
+    <polygon points="240,432 235,422 245,422" fill="#4d6288"/>
+    <text x="256" y="423" font-size="11.5" fill="#7f92b0">names the runs behind them</text>
+
+    <rect x="40" y="434" width="400" height="54" rx="10" fill="#16233a" stroke="#2c3e5e"/>
+    <text x="60" y="458" font-size="13.5" font-weight="600" fill="#c3d2ea">the runs it all came from</text>
+    <text x="60" y="477" font-size="12" fill="#94a6c4">what actually happened, recorded at the time</text>
+
+    <!-- the question, as one query -->
+    <rect x="500" y="106" width="424" height="234" rx="14" fill="#111a2b" stroke="#2c4370" stroke-width="1.6"/>
+    <text x="524" y="136" font-size="12" font-weight="600" fill="#89b4f7" letter-spacing="1">ONE QUESTION, FIVE JOINS</text>
+    <text x="524" y="166" font-size="13.5" fill="#c3d2ea">This rule says escalate any contract with a</text>
+    <text x="524" y="186" font-size="13.5" fill="#c3d2ea">non-standard indemnity clause.</text>
+    <text x="524" y="216" font-size="13.5" fill="#a8b8d4">Which proposal created this version, who</text>
+    <text x="524" y="236" font-size="13.5" fill="#a8b8d4">approved it and when, which findings did they</text>
+    <text x="524" y="256" font-size="13.5" fill="#a8b8d4">cite, how many cases did each aggregate, and</text>
+    <text x="524" y="276" font-size="13.5" fill="#a8b8d4">are those cases still open?</text>
+    <text x="524" y="310" font-size="12.5" fill="#7f92b0">Every hop in that sentence is a join. Nobody</text>
+    <text x="524" y="328" font-size="12.5" fill="#7f92b0">has to go digging through history for it.</text>
+
+    <!-- the failure this design has to survive -->
+    <rect x="500" y="356" width="424" height="132" rx="14" fill="#221520" stroke="#5a3340" stroke-width="1.4"/>
+    <text x="524" y="386" font-size="12" font-weight="600" fill="#c9a3ad" letter-spacing="1">WHERE IT BREAKS</text>
+    <text x="524" y="414" font-size="13" fill="#c9a3ad">The footer inside the compiled file is a copy of</text>
+    <text x="524" y="433" font-size="13" fill="#c9a3ad">the first two steps only, for a reader who has</text>
+    <text x="524" y="452" font-size="13" fill="#c9a3ad">the file and not the records. If the runs at the</text>
+    <text x="524" y="471" font-size="13" fill="#c9a3ad">bottom are deleted, the chain looks intact.</text>
+  </g>
+</svg>

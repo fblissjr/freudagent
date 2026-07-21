@@ -498,6 +498,8 @@ audit all land on it.
 Before a new version ships, run it against work already reviewed and marked
 correct, kept aside for exactly this purpose.
 
+<img src="assets/verify-gate.svg" alt="A candidate version faces two checks: did it fix what it targeted, tested against what its own evidence points at, and did it break anything else, tested against other work already judged correct. Both must pass or the last good version keeps serving." width="100%">
+
 The test is two-sided. The new version has to fix what it was written to fix,
 and break nothing else. Passing one and failing the other is a fail. When it
 fails, the last good version keeps serving.
@@ -592,6 +594,8 @@ and when, and nothing about whether it helped.
 
 The document has claimed several times that you can always ask why a piece of
 knowledge says what it says. Here is what that means.
+
+<img src="assets/provenance-chain.svg" alt="A chain of records: the file the agent loaded names the version it came from, which names the proposal a person approved, which names the findings it cited, which name the runs behind them. Every step is a relationship between records rather than a comment in a file." width="100%">
 
 Every compiled artifact names the row it came from. Every row names the proposal
 that created it. Every proposal names the findings that justified it, each with
