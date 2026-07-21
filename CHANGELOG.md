@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.34.9
+
+### Changed
+
+- **"Is this different from writing better prompts?" now answers the question it
+  was dodging.** The old answer said the system maintains the instructions
+  instead of you, which concedes the premise -- that someone writes them. Mostly
+  nobody does. Skills come out of the loop: what the agent did, the patterns
+  across those runs, and people's judgments on real work. A person approves and
+  corrects; they rarely author, and after the first turn they mostly shouldn't,
+  because hand-writing one means guessing at what the evidence would have said.
+  `docs/data-flywheel.md` already put it this way ("the question is not how to
+  write good instructions, it is who keeps them current") -- the README had
+  drifted weaker than its own source.
+- **"Deviation cuts both ways" is now "When the agent doesn't follow the
+  guidance".** The idiom was doing the work the heading should do. The other
+  three docs already said it plainly.
+
+### Fixed
+
+- **64 British spellings normalized to American** across five docs -- judgement,
+  organisation, behaviour, optimised, labelled, summarisation, cancelling. These
+  came in with the style skill used to draft the docs and kept reappearing in
+  edited passages. American already led in code, and one of the six stage names
+  is `analyze`.
+
 ## 0.34.8
 
 ### Changed

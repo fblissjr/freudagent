@@ -153,7 +153,7 @@ is quickest to check, which is exactly the material the system already handles
 fine. Something has to actively pick what a person gets shown, spread across
 domains, customers and difficulty. The harness itself can be that interface —
 pull the sample, show each item next to its source, capture the judgment, write
-it back labelled. The review tool becomes one more thing built from the same
+it back labeled. The review tool becomes one more thing built from the same
 data rather than another application to maintain.
 
 ## Why a person approves
@@ -181,10 +181,10 @@ The automation here is aimed at reducing how much a person has to look at. Never
 at reducing how carefully they look. Those are different goals and only one of
 them is safe.
 
-## Deviation cuts both ways
+## When the agent doesn't follow the guidance
 
 If you record what the agent was told to do and what it actually did, the gap
-between them is information — and it runs in both directions.
+between them is information — and it can indict either side.
 
 The agent departs from the guidance and does worse: the guidance was right.
 
@@ -203,15 +203,25 @@ happens.
 
 ## Is this different from writing better prompts?
 
-Three things make it different.
+The question assumes someone sits down and writes the instructions. Mostly, in
+this design, nobody does.
+
+Skills come out of the loop: what the agent actually did, the patterns detected
+across those runs, and people's judgments on real work. A person approves
+changes and corrects output. They rarely author a skill, and after the first
+turn they mostly shouldn't — writing one by hand means guessing at what the
+evidence would have told you, and the guess is what goes stale.
+
+That changes three things.
 
 It accumulates. Every change is a version with evidence attached, so the
 knowledge base gets better over time instead of drifting. You can ask why a rule
 exists and get an answer.
 
-It's maintained by the system, not by you. That's the entire point. Human
-maintenance of knowledge fails structurally rather than through carelessness, in
-every organization that has tried it.
+Maintenance has an owner. Human upkeep of written knowledge fails structurally
+rather than through carelessness, in every organization that has tried it — so
+the system does it, and people govern what changes rather than doing the
+writing.
 
 You can tell whether it's working. Correction rates per version, whether a
 pattern actually shrank after you targeted it, how often proposals get rejected.

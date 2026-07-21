@@ -3,7 +3,7 @@
 Last updated: 2026-07-21
 
 This is the source of truth for how we think agent systems should work. It is
-detailed on purpose. A shorter, plainer explainer is derived from it.
+detailed on purpose. The repo README is the shorter version, derived from this.
 
 It describes a design, not a finished product. A section near the end says how
 much of it this repository has built. Read that before assuming any of it runs.
@@ -51,7 +51,7 @@ on Tuesday to still be in effect in March.
 The deeper problem is maintenance, and it is worth being blunt about it because
 it is the actual reason this design exists.
 
-Every organisation that has bought a data catalog knows the failure. The catalog
+Every organization that has bought a data catalog knows the failure. The catalog
 is accurate at onboarding. Within a quarter the pipelines have changed, the
 definitions have drifted, and a rule somebody agreed in a meeting has quietly
 replaced the one written down. Nobody updates it, because updating it is
@@ -62,7 +62,7 @@ it.
 Most agent skills will rot the same way and for the same reason — not all of
 them, but most. Businesses change, rules evolve, and new data changes what the
 rules should be. Human maintenance of knowledge does not fail because people are
-careless. It fails structurally, in every organisation that has tried it, which
+careless. It fails structurally, in every organization that has tried it, which
 is a strong enough pattern to design around rather than hope past.
 
 So the question is not how to write good instructions. It is who keeps them
@@ -73,7 +73,7 @@ The instructions-file version of this fails in a specific, measured way, and the
 specifics are why knowledge lives in rows here. Research on agentic context
 engineering measured what happens when a model repeatedly rewrites one evolving
 instructions document: rewrites preferentially drop domain-specific detail, and
-repeated re-summarisation compounds until knowledge disappears in a jump. Their
+repeated re-summarization compounds until knowledge disappears in a jump. Their
 names for these are brevity bias and context collapse. The fix is to stop
 rewriting documents and start emitting small, identified, individually versioned
 entries merged by deterministic logic.
@@ -124,7 +124,7 @@ switched on when someone suspects a problem, because you never suspect in time.
 An output is one thing an agent produced, recording which source, which skill
 version, and which run made it.
 
-A judgement is one person's assessment of one output, at whatever level the work
+A judgment is one person's assessment of one output, at whatever level the work
 was broken down to.
 
 A finding is one detected pattern with the records that evidence it. A proposal
@@ -198,11 +198,11 @@ guidance does not describe.
 
 Deterministic first, inference last. Detectors written as queries are cheap,
 repeatable and give the same answer twice, so they run continuously with no
-model in the hot path. A model is asked only for judgements a query cannot make.
+model in the hot path. A model is asked only for judgments a query cannot make.
 
 The most important of those is mechanism rather than symptom. Two failures with
 identical surface outcomes can have entirely different causes, so a finding
-should record the terminal cause, the behaviour implicated, and the mechanism
+should record the terminal cause, the behavior implicated, and the mechanism
 the evidence exposes. Findings that are diagnoses make proposals bounded.
 Findings that are counters do not.
 
@@ -349,24 +349,24 @@ Asking whether a business outcome was good produces a verdict with nowhere to
 go. You learn it was bad, not where it went wrong or why. Judging outcomes alone
 is close to useless for improvement, however satisfying it is to report.
 
-So the work is broken down as far as it goes, and judgement is captured wherever
-a person can look at one thing and answer confidently. Those judgements then
+So the work is broken down as far as it goes, and judgment is captured wherever
+a person can look at one thing and answer confidently. Those judgments then
 aggregate up to whatever level the business cares about. Interpretability
-comes from the breakdown, not from the judgement.
+comes from the breakdown, not from the judgment.
 
 Two different depths are in play and conflating them causes trouble. Breaking
 down and recording go all the way to the bottom, because you cannot aggregate
 detail you did not keep, and because the level that turns out to matter is
 rarely the one you would have guessed. Where a person is asked to look is
 separate and higher: it is set by what a business user can meaningfully judge.
-Ask too coarse and the judgement is unactionable. Ask too fine and you are
+Ask too coarse and the judgment is unactionable. Ask too fine and you are
 asking someone to review mechanics they have no opinion about.
 
 So capture depth is not a dial to tune. It goes to the bottom. Only the asking
 is tuned.
 
-Once enough human judgements exist at a given level, they become the reference
-that lets a model make the same judgements at that level. That is the only
+Once enough human judgments exist at a given level, they become the reference
+that lets a model make the same judgments at that level. That is the only
 version of automated evaluation grounded in anything, and it inherits every
 diversity requirement described below.
 
@@ -398,7 +398,7 @@ high-level skill. So there is no separate catalog of breakdowns for anyone to
 maintain, which matters, because an authored one would rot exactly like the data
 catalog above.
 
-### Feedback is a labelled overlay on immutable records
+### Feedback is a labeled overlay on immutable records
 
 An output stays as produced. Feedback about it is a separate record pointing at
 it. The original stays recoverable, several people can disagree about the same
@@ -434,12 +434,12 @@ carefully this works. Done carelessly it is the most efficient way to make a
 system confidently wrong that we know of.
 
 The precondition is diversity of the seed, not size of it. A model given human
-judgements spanning a wide range of inputs can extend them sensibly. A model
-given judgements concentrated in one slice has two ways to fail on everything
+judgments spanning a wide range of inputs can extend them sensibly. A model
+given judgments concentrated in one slice has two ways to fail on everything
 else:
 
-- it falls back on its own prior knowledge, which is not this organisation's
-  judgement, was reviewed by nobody, and cannot be audited against anything
+- it falls back on its own prior knowledge, which is not this organization's
+  judgment, was reviewed by nobody, and cannot be audited against anything
 - it stretches the feedback it does have onto material that feedback was never
   about, producing labels that are consistent, plausible and wrong
 
@@ -451,7 +451,7 @@ The controls are therefore structural. Keep the origin label on every record so
 model-derived feedback can be excluded from any measurement that matters. Hold
 back a slice judged only by people, which no model process has touched, and
 measure against it separately. Keep a floor on the proportion of human
-judgements rather than letting model volume float free. When the two disagree,
+judgments rather than letting model volume float free. When the two disagree,
 believe the people and find out why.
 
 ### Sampling is a product surface
@@ -466,8 +466,8 @@ deliberately across domains, customers, task types and difficulty, and across
 the levels the work broke into, weighted toward wherever coverage is thin.
 
 The harness can be that interface. An agent pulls the spread, presents each item
-beside its source at a level a person can judge, captures the judgement, and
-writes it back labelled — making the review surface one more thing built from
+beside its source at a level a person can judge, captures the judgment, and
+writes it back labeled — making the review surface one more thing built from
 the same data rather than an application to maintain.
 
 ### Deviation is signal in both directions
@@ -521,7 +521,7 @@ flowchart LR
   S["source registered"] --> A["agent run<br/>breaks work down as it goes"]
   A --> B["run recorded:<br/>steps, decisions, paths"]
   A --> H["sampled for review<br/>at a judgeable level"]
-  H --> C["judgement, labelled<br/>by who judged"]
+  H --> C["judgment, labeled<br/>by who judged"]
   C --> M["model-generated feedback<br/>seeded from human"]
   B --> P["prescribed vs actual<br/>compared"]
   B --> D["detectors"]
@@ -553,7 +553,7 @@ order, with what checkpoints. This is where learned breakdowns live.
 At the bottom, semantic definitions: what this field means in this business,
 which of three date columns anybody actually means by "closed", what this team
 counts as an active customer. The job here is navigating vagueness, which is
-where these systems fail in real organisations — not on reasoning, but on not
+where these systems fail in real organizations — not on reasoning, but on not
 knowing which column was meant.
 
 That bottom rung has the most direct evidence behind it of anything in this
@@ -586,7 +586,7 @@ has been validated, how it scored, whether people who got it found it useful —
 as the required core, with semantic similarity search as an optional last
 resort for large fuzzy corpora rather than the first thing reached for.
 
-And if behaviour is data, the selection logic is behaviour too. A skill should
+And if behavior is data, the selection logic is behavior too. A skill should
 carry not only its content but the rules deciding when it applies and how it
 composes, versioned and evolvable through the same flow as the content.
 Otherwise the knowledge is data-driven and the routing is hardcoded, which is
@@ -640,12 +640,12 @@ database.
 One consequence to design for from the start: knowledge and telemetry have
 different lifecycles. Runs and events are high volume, sensitive, and subject to
 retention limits. Feedback, proposals and approval history are small, precious
-and not re-derivable — nobody can reconstruct a human judgement that was
+and not re-derivable — nobody can reconstruct a human judgment that was
 deleted. If the evidence a rule cites lives on a deletion clock, the chain will
 one day point at records that no longer exist, and it will look intact until
 someone follows it.
 
-## Behaviour lives in data, so it survives the tools
+## Behavior lives in data, so it survives the tools
 
 Keeping this as governed data rather than as code in an orchestration framework
 is a bet that frameworks churn faster than schemas do. The same records can feed
@@ -671,7 +671,7 @@ like progress. The measures that separate them:
 
 - correction rate per version — are people correcting the new version less
 - recurrence after a change — did the pattern the rule targeted actually shrink
-- time to judgement — how long output waits before anyone looks at it
+- time to judgment — how long output waits before anyone looks at it
 - rejection rate — a rate near zero means the gate is not really being used
 - deviation rate and its direction — is the agent departing from guidance, and
   are those departures better or worse
@@ -700,7 +700,7 @@ which is why the signal section above is longer than every stage combined.
 | Model feedback from a thin seed | volume rises, quality does not | how the seed was sampled, and against what |
 | Knowledge goes stale | answers that were right last year | source hashes, age of each unit |
 | Approval becomes a rubber stamp | everything gets approved | rejection rate, distinct approvers |
-| Safeguards optimised away | deviations keep winning on speed | whether skipped steps guarded rare events |
+| Safeguards optimized away | deviations keep winning on speed | whether skipped steps guarded rare events |
 
 Four are counterintuitive enough to name here.
 
@@ -716,7 +716,7 @@ The knowledge base only ever grows. Every finding adds a rule and nothing
 retires one, until the always-present surface is enormous and the guidance has
 become a document nobody reads.
 
-Safeguards get optimised away. Steps that prevent rare events look like waste in
+Safeguards get optimized away. Steps that prevent rare events look like waste in
 every sample that does not contain the rare event.
 
 [How data flywheels fail](flywheel-failure-modes.md) covers these in detail.
@@ -759,7 +759,7 @@ it deserves stating precisely. Models improve by learning from inputs, outputs
 and the paths between them rather than from explicit rules — which makes the
 recorded data the valuable asset and the written guidance progressively
 redundant. If that holds, generic guidance gets absorbed, and what survives is
-what a model cannot learn from pretraining: this organisation's definitions,
+what a model cannot learn from pretraining: this organization's definitions,
 policies and business rules.
 
 That is a prediction rather than a worry, and it is testable. Over time the
@@ -772,7 +772,7 @@ ones are still carrying weight. Nobody has run it.
 
 If the review burden exceeds the measured quality gain. There is a volume at
 which human approval stops being affordable, and triage automation does not
-remove it — it moves where the judgement happens. If that point arrives before
+remove it — it moves where the judgment happens. If that point arrives before
 the loop demonstrably compounds, the pattern does not work at that scale.
 
 ## Sources

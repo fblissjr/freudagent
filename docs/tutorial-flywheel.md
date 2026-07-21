@@ -415,7 +415,7 @@ Read the footer backwards and you have the whole chain: this file came from that
 proposal, which cited that finding, which aggregated those sessions. That is what
 the governed path buys you over editing a file by hand.
 
-Three behaviours worth knowing:
+Three behaviors worth knowing:
 
 - only current, active rules for the tenant compile. Deprecated and historical
   versions are skipped

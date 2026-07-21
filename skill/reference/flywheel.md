@@ -23,7 +23,7 @@ into what the agent loads. Check it helped, against work already judged correct.
 | Stage | What it does | In this repo |
 |---|---|---|
 | Ingest | Runs, events and documents land at the lowest granularity available. Keys are computed from natural keys, so re-ingesting unchanged material writes nothing | `ingest.py`, `discovery.py`; `ingest transcripts`, `ingest events` -> `fact_*`, every row stamped with an `etl_run_id` into `meta_load_log` |
-| Analyze | Deterministic detectors scan for patterns worth acting on. Queries first, a model only for judgements a query cannot make | `couch.py`; `couch run` -> `fact_finding`. Thresholds live in `couch.py`, never in view DDL |
+| Analyze | Deterministic detectors scan for patterns worth acting on. Queries first, a model only for judgments a query cannot make | `couch.py`; `couch run` -> `fact_finding`. Thresholds live in `couch.py`, never in view DDL |
 | Propose | A finding with enough evidence becomes a written proposal linked to the records that justify it | `proposal add --evidence <finding-key>,...` -> `fact_proposal` |
 | Approve | Nothing reaches the agent's context without a person saying yes | `proposal approve` / `proposal_approve`; creates the SCD-2 version |
 | Compile | Current active knowledge renders into the artifacts the agent loads, with provenance | `materialize.py`; `compile --out .claude/rules` |
@@ -60,19 +60,19 @@ People can only judge what they can evaluate. Asking whether a whole outcome was
 good yields a verdict with nowhere to go — you learn it was bad, not where it
 broke.
 
-So work is broken down as far as it goes, judgement is captured wherever a person
-can look at one thing and answer confidently, and those judgements aggregate up
+So work is broken down as far as it goes, judgment is captured wherever a person
+can look at one thing and answer confidently, and those judgments aggregate up
 to whatever the business cares about.
 
 Two depths, and conflating them causes trouble. **Recording goes to the bottom
 regardless**, because you cannot aggregate detail you did not keep and the level
 that matters is rarely the one you would have guessed. **Only the asking is
 tuned** — set by what a person can meaningfully judge. Too coarse and the
-judgement is unactionable; too fine and you are asking about mechanics nobody has
+judgment is unactionable; too fine and you are asking about mechanics nobody has
 an opinion on.
 
-Once enough human judgements exist at a level, they become the reference that
-lets a model make the same judgements at that level.
+Once enough human judgments exist at a level, they become the reference that
+lets a model make the same judgments at that level.
 
 ### The breakdown happens during the run
 
@@ -112,20 +112,20 @@ do.
 ### Model-generated feedback amplifies; it does not substitute
 
 Human review does not scale to the volume these systems produce, so seeding a
-model from human judgements is the obvious move. It works, but the precondition
+model from human judgments is the obvious move. It works, but the precondition
 is **diversity** of the seed, not size. A seed concentrated in one slice fails two
 ways on everything else: the model falls back on its own prior knowledge, which is
-not this organisation's judgement and was reviewed by nobody, or it stretches the
+not this organization's judgment and was reviewed by nobody, or it stretches the
 feedback it has onto material that feedback was never about. Both produce labels
 that are consistent, plausible and wrong, and the errors are systematic rather
 than random, so they compound instead of averaging out.
 
 The controls are structural: keep the origin label on every record so
 model-derived feedback can be excluded from any measurement that matters, keep a
-floor on the proportion of human judgements, and when the two disagree believe the
+floor on the proportion of human judgments, and when the two disagree believe the
 people and find out why.
 
-### Feedback is a labelled overlay on immutable records
+### Feedback is a labeled overlay on immutable records
 
 An output stays as produced. Feedback about it is a separate record pointing at
 it, carrying what produced it. The original stays recoverable, several people can
@@ -164,7 +164,7 @@ live. At the bottom, semantic definitions: what this field means in this
 business, which of three date columns anybody means by "closed", what this team
 counts as an active customer. That bottom rung is the least glamorous part and
 the one with the strongest evidence behind it, because these systems fail in real
-organisations on not knowing which column was meant, not on reasoning.
+organizations on not knowing which column was meant, not on reasoning.
 
 See `reference/retrieval-thesis.md` for how only the applicable part gets loaded,
 and `reference/hierarchy.md` for the tree architecture.
@@ -188,7 +188,7 @@ the output as upstream of itself.
 
 | Step | Who does it | Stage |
 |---|---|---|
-| 1.1.1 Context assembly — load the output, its source, its skill, prior corrections | tool | (pre-judgement) |
+| 1.1.1 Context assembly — load the output, its source, its skill, prior corrections | tool | (pre-judgment) |
 | 1.1.2 Quality assessment — compare against the source at a judgeable level | human | ingest (signal) |
 | 1.1.3 Correction submission — typed correction, before/after per field | human | ingest (signal) |
 | 1.2.1 Feedback collection — query feedback grouped by `correction_type` | tool | analyze |
@@ -202,7 +202,7 @@ the output as upstream of itself.
 | 1.4.3 Metric recording — write flywheel health metrics | tool | verify |
 
 These numbers are stable and cited elsewhere in the repo. Three steps are marked
-human and all three are meant to be: 1.1.2 and 1.1.3 are judgement capture, which
+human and all three are meant to be: 1.1.2 and 1.1.3 are judgment capture, which
 is the other thing that cannot be handed to a model. What 1.3.2 uniquely marks is
 that nothing reaches the agent's context without it, which is why the codebase
 names it at `store.approve_proposal()`, `ops.py` and `mcp_server.py`. The table above is the definition of record: it is

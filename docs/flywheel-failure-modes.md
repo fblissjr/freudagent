@@ -26,7 +26,7 @@ than from bad mechanics. Six failures cause most of it.
 | Model feedback from a thin seed | volume rises, quality does not | how the seed examples were sampled |
 | Knowledge goes stale | answers were right last year | age of each knowledge unit, source hashes |
 | Approval becomes a rubber stamp | everything gets approved | rejection rate |
-| Safeguards optimised away | deviations keep winning on speed | whether skipped steps guarded rare events |
+| Safeguards optimized away | deviations keep winning on speed | whether skipped steps guarded rare events |
 
 ## Signal starvation
 
@@ -67,7 +67,7 @@ verification gate needs examples of correct output to test against, and this
 failure mode starves exactly that half.
 
 How to catch it: look at the ratio of validations to rejections. If almost every
-recorded judgement is negative, you have no positive baseline.
+recorded judgment is negative, you have no positive baseline.
 
 What to do: make confirming an answer as cheap as correcting one — ideally one
 keystroke — and treat validated-correct output as a first-class record rather
@@ -97,7 +97,7 @@ falls. Maintenance signal has to replace error signal over time.
 ### You ask people to judge at the wrong level
 
 What it looks like: reviewers are responding, but nothing actionable comes out.
-Judgements are mostly "looks fine" with no detail, or people quietly stop
+Judgments are mostly "looks fine" with no detail, or people quietly stop
 answering for certain kinds of item.
 
 Why it happens: the level you ask at is set by what a person can actually
@@ -160,7 +160,7 @@ disagreement signal to measure. The honest check is structural: count distinct
 approvers. If it is one, you have this problem by construction, whether or not
 it has bitten yet.
 
-What to do: get a second reviewer on anything that changes behaviour broadly, and
+What to do: get a second reviewer on anything that changes behavior broadly, and
 record the reasoning on rejections rather than only on approvals. Rejections with
 reasons are the only trace of what the policy is not.
 
@@ -193,15 +193,15 @@ sample of human-reviewed cases as its seed. Volume increases enormously.
 Coverage appears to be solved.
 
 What actually happens depends on a precondition almost nobody checks: whether the
-seed is diverse, not whether it is large. A model given human judgements that
-span a wide range of inputs can extend them sensibly. A model given judgements
+seed is diverse, not whether it is large. A model given human judgments that
+span a wide range of inputs can extend them sensibly. A model given judgments
 concentrated in one slice has two ways to fail on everything outside it, and both
 produce output that looks like success:
 
-- it falls back on its own prior knowledge. That is not your organisation's
-  judgement, it was not reviewed by anyone, and there is nothing to audit it
+- it falls back on its own prior knowledge. That is not your organization's
+  judgment, it was not reviewed by anyone, and there is nothing to audit it
   against — the label is confident and ungrounded.
-- it applies feedback from an unrelated slice. The judgements it does have are
+- it applies feedback from an unrelated slice. The judgments it does have are
   the only ones available, so they get stretched onto material they were never
   about, producing labels that are consistent, plausible and wrong.
 
@@ -222,14 +222,14 @@ ever disagree, believe the people and go find out why.
 What to do: treat model-generated feedback as amplification, never as substitute,
 and make the controls structural rather than advisory.
 
-Records stay immutable and feedback is a separate labelled row pointing at them,
+Records stay immutable and feedback is a separate labeled row pointing at them,
 carrying who or what produced it — a named person, a model, a usage signal. Not
 merely human or machine, but specific enough to filter on years later. That label
 is what lets model-derived feedback be excluded from any measurement that matters,
 and it is the difference between being able to answer this question and not.
 
 Then: hold a genuinely human-only slice no model process has touched and measure
-against it separately, keep a floor on the ratio of human judgements rather than
+against it separately, keep a floor on the ratio of human judgments rather than
 letting model volume float free, and when the two disagree believe the humans and
 find out why.
 
@@ -239,7 +239,7 @@ to actively choose what a person is asked to review, spread across domains,
 customers and difficulty, weighted toward thin coverage. That is a sampler with a
 user interface, and the harness itself can be that interface: pull a sample
 spread deliberately across domains, customers and difficulty, show each item
-beside its source, capture the judgement, write it back labelled.
+beside its source, capture the judgment, write it back labeled.
 
 ## Self-reference
 
@@ -254,7 +254,7 @@ is verified against the previous version's habits, so drift in a consistent
 direction is never detected — it is the standard being measured against.
 
 How to catch it: track the provenance of everything in your verification set.
-What fraction traces to a human judgement that was not itself assisted by the
+What fraction traces to a human judgment that was not itself assisted by the
 system?
 
 What to do: keep a fixed reference set that is human-authored and never
@@ -384,7 +384,7 @@ same or better result faster says the guidance was wrong, and the agent found
 out. The second is one of the most valuable signals available. It also has two
 ways of going badly.
 
-### Safeguards get optimised away
+### Safeguards get optimized away
 
 What it looks like: deviations that skip a step keep producing equal or better
 results, so the loop proposes removing the step, and a person approves it because
@@ -525,7 +525,7 @@ Honest accounting, matching the status markers in
 | Measuring too early | learned the hard way; session-denominated windows planned (M13) |
 | Metric improves, problem does not | none |
 | Cannot separate change from confounders | none; versioned knowledge makes A/B possible later |
-| Safeguards optimised away | none; deviation detection is not built, and rules do not record why they exist |
+| Safeguards optimized away | none; deviation detection is not built, and rules do not record why they exist |
 | Deviation acted on without outcome measurement | none; neither deviation detection nor the eval gate is built, so the pairing has not been designed |
 
 The pattern in that table is worth stating plainly rather than leaving implicit.
