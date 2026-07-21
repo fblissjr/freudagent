@@ -109,13 +109,16 @@ change slowly. Facts record what happened and are only ever appended to.
 A source is a registered piece of raw material — a contract, a policy page, a
 ticket, a table export — with its location, its type, and a hash of its content
 at the time it was registered. That hash is what later tells you it changed
-underneath you.
+underneath you, which argues for taking it as part of registering rather than
+leaving it an option at the call site, as it is here.
 
 A skill is guidance for the agent. It gets its own section below.
 
-A run is one execution, recorded at the lowest granularity available: the
-messages, the tool calls, and the reasoning trail — decisions, paths taken,
-paths discarded, dead ends, conclusions. Recorded by default rather than
+A run is one execution, recorded at the lowest granularity available. The
+messages and the tool calls are captured. The reasoning trail — decisions, paths
+taken, paths discarded, dead ends, conclusions — has a table waiting for it and
+nothing writing to it: ingest keeps a flag saying a turn had reasoning and
+discards the content. All of it should be recorded by default rather than
 switched on when someone suspects a problem, because you never suspect in time.
 
 An output is one thing an agent produced, recording which source, which skill
@@ -128,16 +131,22 @@ A finding is one detected pattern with the records that evidence it. A proposal
 is one suggested change with the findings that justify it. An approval turns a
 proposal into a new version.
 
-Every fact carries the identifier of the ETL run that produced it, and every run
-is a row in a load log recording what it read, wrote and skipped, when, and
-whether it succeeded. That is what makes lineage total rather than aspirational:
+Every fact carries a column for the identifier of the ETL run that produced it,
+and every run is a row in a load log recording what it read, wrote and skipped,
+when, and whether it succeeded. Ingest and analysis fill that column; writes
+that arrive one row at a time, like feedback and proposals, leave it empty.
+Filling it everywhere is what would make lineage total rather than aspirational:
 any record ties back to the run that created it, and those ties aggregate.
 
 ### Versioned and immutable, wherever it lives
 
-Records are never edited. Changes append. The previous version and the
-difference between them are always recoverable, and every version ties to the
-run that produced it and the evidence that justified it.
+Records should never be edited. Changes append, so the previous version and the
+difference between them stay recoverable, and every version ties to the run that
+produced it and the evidence that justified it. Three exceptions here are
+deliberate rather than oversights, and worth naming: a session row updates in
+place as the session progresses, validation and approval status are stamped onto
+the extraction and proposal rows rather than appended, and traces can be deleted
+outright.
 
 That holds regardless of where a thing is stored. Whether a given piece of
 knowledge belongs in files, in a warehouse, or in both is a live question with
@@ -204,8 +213,9 @@ review queue fills with re-detections and people stop opening it.
 ### 3. Propose
 
 A finding with enough evidence becomes a written proposal. What counts as enough
-is a threshold stored as data per finding type, tunable per domain without a
-code change.
+should be a threshold stored as data per finding type, tunable per domain
+without a code change. Here the detectors still carry theirs as constants in
+code.
 
 The proposal links to the findings and records that justify it, and those links
 carry a claim type — because a justification is several different kinds of claim
@@ -263,9 +273,11 @@ are a cache of it.
 
 That is not in tension with a skill's artifact living in git, described below.
 Two different things are going on. Rules and other short knowledge units are
-rendered out of rows, so the file is derived. A skill's content is authored and
-reviewed as a file, and the warehouse holds its metadata and history rather than
-its text. What both share is the invariant: versioned, never edited in place,
+rendered out of rows, so the file is derived. A skill's content should be
+authored and reviewed as a file, with the warehouse holding its metadata and
+history rather than its text — here the skill row still carries the text itself,
+and nothing compiles a skill out to a file. What both share is the invariant,
+once the split exists: versioned, never edited in place,
 always traceable to the run and the evidence behind it.
 
 Because they are a cache, something has to check they still match. A drift check
@@ -520,7 +532,7 @@ flowchart LR
   D --> E["finding<br/>with typed evidence"]
   E --> F["proposal"]
   F --> G{"a person<br/>approves"}
-  G -->|"no"| X["rejected,<br/>reason recorded"]
+  G -->|"no"| X["rejected,<br/>reviewer recorded"]
   G -->|"yes"| I["new version"]
   I --> V["checked against<br/>work already judged correct"]
   V --> J["compiled artifact<br/>with provenance"]
@@ -608,11 +620,14 @@ knowledge says what it says. Here is what that means.
 
 <img src="assets/provenance-chain.svg" alt="A chain of records: the file the agent loaded names the version it came from, which names the proposal a person approved, which names the findings it cited, which name the runs behind them. Every step is a relationship between records rather than a comment in a file." width="100%">
 
-Every compiled artifact names the row it came from. Every row names the proposal
-that created it. Every proposal names the findings that justified it, each with
-a claim type. Every finding names the runs and records that evidence it. Every
-one of those is a relationship between records, not a comment in a file, so the
-question is a query:
+Every compiled artifact names the row it came from. Every approved proposal
+names the row it created, so the link between a version and its proposal is
+there to be joined — though it is stored pointing from the proposal outward
+rather than from the row back. Every proposal names the findings that justified
+it, each of which should carry a claim type and does not yet. Every finding
+names the runs and records that evidence it. Every one of those is a
+relationship between records, not a comment in a file, so the question is a
+query:
 
 > This rule says escalate any contract with a non-standard indemnity clause.
 > Which proposal created this version, who approved it and when, which findings
@@ -714,9 +729,9 @@ It is a research repo, not a product.
 
 | Stage | State |
 |---|---|
-| Ingest | working, for agent transcripts and generic event streams |
+| Ingest | working, for agent transcripts and generic event streams; messages and tool calls are captured, the reasoning trail has a table but nothing writes to it |
 | Analyze | detection works; findings have no lifecycle, so recurrence is not tracked |
-| Propose | proposals work and carry evidence; claim types are not built |
+| Propose | proposals work and carry evidence; claim types are not built, and detector thresholds are code constants rather than data |
 | Approve | working, including the draft-only tool gate |
 | Compile | compiling and provenance footers work; scoped output and the drift check are not built |
 | Verify | not built |

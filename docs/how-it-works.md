@@ -48,9 +48,11 @@ expensive — a context window is attention rather than storage.
 
 ## Where the knowledge lives
 
-A skill lives in two places at once. The artifact goes in git, where it's
+A skill should live in two places at once. The artifact goes in git, where it's
 diffable and it's the form the agent reads best. The metadata goes in a table:
-version, identifier, which run created it, what changed and why.
+version, identifier, which run created it, what changed and why. That split
+isn't built here yet — the table still holds the skill's text along with its
+metadata, and nothing compiles a skill out to a file.
 
 That second half isn't bookkeeping. It's what lets you ask whether a skill's
 evolution moved outcomes up or down, and what a change three months ago did to
@@ -67,8 +69,9 @@ justified it.
 
 Six steps, looping.
 
-The system records everything it does — not just outputs, but the reasoning:
-what it tried, what it discarded, where it changed approach.
+The system records what it does. Outputs, messages and tool calls are captured
+today. The reasoning behind them — what it tried, what it discarded, where it
+changed approach — is meant to be recorded the same way, and isn't yet.
 
 Something scans that record for things that repeat. A field corrected the same
 way twelve times. A source document that changed since anyone read it. A step
@@ -107,8 +110,9 @@ That breakdown isn't something someone authors up front. The agent does it while
 it works, leaning on its skills and context to navigate, the same way a person
 would. A trivial request doesn't break down at all — there's nothing to break
 down, and forcing structure onto it would be invention. Recording the breakdown
-as it happens is what gives you the why rather than just the what: which path it
-chose, what it considered and discarded, where it changed its mind.
+as it happens is what would give you the why rather than just the what: which
+path it chose, what it considered and discarded, where it changed its mind.
+Nothing captures it as data here yet.
 
 **Getting a model to generate feedback is the obvious fix and the fastest way to
 break it.** Human review doesn't scale, so you seed a model with human-reviewed
