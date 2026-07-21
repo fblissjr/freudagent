@@ -1,6 +1,6 @@
 # /couch -- put the session history on the couch
 
-Last updated: 2026-07-09
+Last updated: 2026-07-21
 
 Analysis passes over the transcript warehouse that need judgment, not
 aggregation. The SQL layer (`freud-schema couch run`, no model calls)
@@ -9,8 +9,9 @@ and permission friction. This skill covers the LLM layer: findings a
 regex cannot make, chiefly `user_correction_pattern`.
 
 The library contains no model calls by design. The harness (you) is the
-intelligence: query candidates via the DuckDB MCP tools, judge them in
-scoped subagents, write conclusions back as `fact_finding` rows.
+intelligence: query candidates via the store-ops server's `query` tool,
+judge them in scoped subagents, write conclusions back as `fact_finding`
+rows.
 
 ## Workflow
 

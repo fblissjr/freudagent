@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.34.6
+
+Establishes a boundary the repo had been observing informally and violating
+quietly: `docs/` describes what should be true -- it is a design, with a status
+section saying what is built. `skill/` and `.claude/` describe what IS true,
+because an agent loads them and acts on them without checking. There is no
+aspirational mode on that side of the line.
+
+### Added
+
+- **`tests/test_docs_inventory.py`** -- nine assertions that agent-facing
+  reference docs match the code they describe. Every view, table, enum value and
+  `record_source` the code defines must appear in the docs an agent reads to find
+  it, and no doc may name a `v_*` that does not exist (the rename-and-forget case,
+  which otherwise surfaces as a query failing at runtime).
+
+  Written from the code with no access to the audit's findings, it independently
+  rediscovered the same four defects -- which is the evidence that it checks the
+  invariant rather than a fitted answer list.
+
+  This exists because the manual version has already been tried and does not
+  hold. `docs/implementation-plan.md` named this exact drift on 2026-07-09 ("the
+  couch skill's key recipe still saying md5"), fixed `couch.md`, and missed
+  `trace-capture.md`, which carried the identical problem and stayed broken for
+  twelve more days.
+
+### Fixed
+
+- **`skill/reference/schema.md` documented 6 of 10 analytical views.** The four
+  missing were the couch views -- `v_retry_loops`, `v_tool_error_clusters`,
+  `v_interruption_hotspots`, `v_permission_friction` -- which are the tooling for
+  the analyze stage. An agent asked to find retry loops read the reference, found
+  no view, and would hand-roll the aggregation against `fact_tool_use` at
+  thresholds diverging from `couch.py`, or report the data absent. The file also
+  asserted "All 6 views are unchanged in count and purpose", a completeness claim
+  that is what stops a reader checking; it is gone.
+- **`record_source` lists omitted `event_ingest`** in `schema.md`'s lineage
+  envelope and `db-query.md`'s. This is the shape of drift where nothing raises:
+  `event_ingest` is what every row from `ingest events` carries, so a lineage
+  filter built from the documented list drops the entire generic event grain and
+  returns a confident, complete-looking, wrong answer. Both files listed all five
+  correctly elsewhere in themselves.
+- **`dim_event_type` was missing from the registry-dimension list**, which states
+  a pattern -- a partial list there yields a wrong general rule about which dims
+  are SCD-2 rather than a lookup failure.
+- **The lineage envelope was titled "all fact tables + registry dimensions"** over
+  a table including `tenant_key` and `etl_run_id`. Registry dims carry only
+  `record_source` and `created_at`.
+- **`schema.md` opened by directing readers to generic `duckdb` MCP tools** as the
+  primary path, contradicting every other doc. Also `couch.md` line 12, which the
+  same file already contradicted further down.
+- **`db ddl` was called "the one CLI command that does not open a connection".**
+  Corpus and archetype commands do not either; narrowed to the `db` group.
+- **`db-query.md`'s enum table was missing `meta_load_log.status`.**
+
 ## 0.34.5
 
 Fixes from a docs claims audit: every present-tense "the system does X" statement

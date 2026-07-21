@@ -1,10 +1,11 @@
 # DuckDB Schema Reference
 
-Last updated: 2026-07-09 (M5: generic event grain)
+Last updated: 2026-07-21
 
-Full schema for the FreudAgent experiment harness (v0.17.0 meta-harness model).
-Use the `duckdb` MCP tools for ad-hoc queries. See `.claude/skills/db-query.md`
-for common query patterns and enum values.
+Full schema for the FreudAgent experiment harness (meta-harness model).
+Use the store-ops server's `query` tool for ad-hoc queries (a generic `duckdb`
+MCP server works too if that's what's connected). See
+`.claude/skills/db-query.md` for common query patterns and enum values.
 
 ## Design Principles
 
@@ -27,8 +28,8 @@ for common query patterns and enum values.
   information. Since v0.23 (M3) their natural keys lead with `tenant_id`, so two
   tenants can hold the "same" entity without collision.
 - **Registry dimensions, no SCD-2** (`dim_project`, `dim_tenant`, `dim_facet_type`,
-  `dim_finding_type`). Append-only reference data whose identity doesn't evolve
-  the way a skill's or rule's content does.
+  `dim_finding_type`, `dim_event_type`). Append-only reference data whose identity
+  doesn't evolve the way a skill's or rule's content does.
 - **Lineage envelope on every fact table**: `record_source` (CHECK-constrained
   allowlist: `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`,
   `derived`) and `etl_run_id` (joins `meta_load_log`). Every row declares where
@@ -90,14 +91,19 @@ Shared block, identical across the four core dimensions:
 Query current state with `WHERE is_current`; query history with
 `ORDER BY effective_from`.
 
-## Lineage Envelope (all fact tables + registry dimensions)
+## Lineage Envelope (fact tables)
+
+`_lineage_cols()` in db.py applies this block to fact tables only:
 
 | Column | Type | Notes |
 |--------|------|-------|
-| tenant_key | VARCHAR | Denormalized `dim_tenant` reference (fact tables only, since v0.23/M3). Resolved from the linked skill's tenant when a skill is denormalized onto the fact, else from the model's own `tenant_key` or the default tenant |
-| record_source | VARCHAR | `native`, `transcript_ingest`, `history_jsonl`, `derived` |
-| etl_run_id | VARCHAR | Joins `meta_load_log`; NULL for rows not part of a tracked run. Registry dimensions and `meta_load_log` itself have `record_source` but no `etl_run_id`. |
+| tenant_key | VARCHAR | Denormalized `dim_tenant` reference (since v0.23/M3). Resolved from the linked skill's tenant when a skill is denormalized onto the fact, else from the model's own `tenant_key` or the default tenant |
+| record_source | VARCHAR | `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`, `derived` |
+| etl_run_id | VARCHAR | Joins `meta_load_log`; NULL for rows not part of a tracked run. |
 | created_at | TIMESTAMP | Row insert time |
+
+Registry dimensions carry a narrower version of this envelope: just
+`record_source` and `created_at` -- no `tenant_key`, no `etl_run_id`.
 
 ## Dimension Tables (SCD Type 2)
 
@@ -519,10 +525,13 @@ Indexed on `(stream_key, occurred_at)` and `(event_type)`.
 | `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
 | `v_skill_feedback_patterns` | Skills with feedback above threshold |
 | `v_session_feedback_count` | Feedback count per session (for HIGH_FEEDBACK sampling) |
+| `v_retry_loops` | Same tool called with the same input repeatedly in one session (attempts + error counts, couch's retry-loop detector base) |
+| `v_tool_error_clusters` | Per-project, per-tool error rates (uses, errors, error_pct, error session keys -- couch's tool-error-cluster detector base) |
+| `v_interruption_hotspots` | Mid-turn user interruptions per project (`[Request interrupted by user...]` messages -- couch's interruption-hotspot detector base) |
+| `v_permission_friction` | Permission denials per project+tool (tool errors whose result text mentions permission/denial -- couch's permission-friction detector base) |
 
-All 6 views are unchanged in count and purpose from v0.16.1; their columns are
-re-pointed to the new key names (`skill_key`, `session_key`,
-`example_trace_key` in `v_recurring_traces`).
+The four couch views carry no thresholds in the DDL -- `couch.py`'s detectors
+own those, passed as parameters into the store's `query_*` methods.
 
 ## Enum Values (enforced by CHECK constraints)
 
@@ -625,7 +634,7 @@ FROM meta_load_log ORDER BY started_at DESC LIMIT 10;
 ## Notes
 
 - JSON columns queryable with DuckDB JSON functions: `output->>'$.raw'`, `json_extract(metadata, '$.key')`
-- For standalone DDL: `freud-schema db ddl` (the one CLI command that does NOT open a connection)
+- For standalone DDL: `freud-schema db ddl` (the one `db` subcommand that does NOT open a connection)
 - For a fresh schema: `freud-schema db reset`
 - CLI commands that take a key argument accept a full key or a unique prefix
   (git-short-hash style), resolved via `store.resolve_key()`

@@ -5,7 +5,7 @@ description: Query the experiment harness DuckDB via MCP (store-ops server's rea
 
 # db-query
 
-Last updated: 2026-07-09 (M5: generic event grain)
+Last updated: 2026-07-21
 
 Query the FreudAgent experiment harness database via MCP.
 
@@ -128,8 +128,8 @@ enum edits). `dim_event_type` validates `fact_event.event_type` the same way.
 
 Every fact table carries a lineage envelope: `tenant_key` (denormalized
 `dim_tenant` reference), `record_source` (CHECK-constrained: native,
-transcript_ingest, history_jsonl, derived) and `etl_run_id` (joins
-`meta_load_log`).
+transcript_ingest, history_jsonl, event_ingest, derived) and `etl_run_id`
+(joins `meta_load_log`).
 
 ### Analytical views (replace complex store queries)
 
@@ -181,6 +181,7 @@ views through the store's `query_*` methods, never re-derive thresholds.
 | fact_finding.scope | project, global |
 | fact_proposal.target_dimension | dim_skill, dim_rule, dim_sampling_config |
 | fact_proposal.status | pending, approved, rejected |
+| meta_load_log.status | running, completed, failed (shares `SessionStatus`) |
 | record_source (every dim_*/fact_*/meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, derived |
 
 `fact_finding.finding_type` and `fact_event.event_type` have NO CHECK
