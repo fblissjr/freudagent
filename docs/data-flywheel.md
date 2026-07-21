@@ -270,6 +270,37 @@ was checked too early to prove anything. Identical-retry sessions went from 1.5%
 before to 0 out of 64 after — directionally right, statistically meaningless.
 Measure in sessions, not days.
 
+## How this goes wrong
+
+These loops fail from lack of signal far more often than from broken mechanics.
+The mechanical half is the visible engineering problem; the signal is what
+decides whether anything compounds.
+
+The five that cause most of it:
+
+| Failure | What you see | First thing to check |
+|---|---|---|
+| Nobody corrects anything | detectors fire, no corrections arrive | corrections per week against sessions per week |
+| Signal from one corner | one domain improves, others quietly rot | corrections grouped by domain, user, task type |
+| Synthetic feedback from a biased seed | volume rises, quality does not | how the seed examples were sampled |
+| Knowledge goes stale | answers that were right last year | source hashes, age of each knowledge unit |
+| Approval becomes a rubber stamp | everything gets approved | rejection rate |
+
+Two are worth pulling out because they are counterintuitive.
+
+Success starves the loop. The fuel is errors, so removing errors removes fuel.
+Improvement flattens, correction volume falls, and it is genuinely ambiguous
+whether that means the system got good or people stopped looking.
+
+Synthetic feedback amplifies whatever bias was in its seed. Bootstrapping
+feedback from a model looks like the fix for every signal problem above, and it
+scales the seed's blind spots with a consistency no human would manage. Noise
+averages out; systematic error compounds.
+
+[How data flywheels fail](flywheel-failure-modes.md) covers eighteen of these
+in detail — what each looks like, why it happens, how to catch it, and what this
+repo does and does not defend against today.
+
 ## Where this repo actually is
 
 | Stage | Status | Notes |
@@ -306,6 +337,9 @@ Start here if you want to run it:
 
 Go deeper on the design:
 
+- [How data flywheels fail](flywheel-failure-modes.md) — the failure modes above
+  in full, generalized past this repo, with an honest table of what is defended
+  against today
 - [Roadmap](../ROADMAP.md) — what scales, what breaks, and in what order to fix it
 - [Implementation plan](implementation-plan.md) — the milestones referenced above,
   with schema changes and definitions of done

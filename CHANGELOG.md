@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.28.2
+
+Documentation only. No code, schema, or data changes.
+
+### Added
+
+- **`docs/flywheel-failure-modes.md`** -- eighteen ways a data flywheel fails,
+  in six groups (signal starvation, biased signal, self-reference, decay, gate
+  failures, measurement failures). Each entry gives what it looks like, why it
+  happens, how to catch it, and what to do. Generalized past this repo: it
+  applies to any system that improves itself from its own usage data, whether
+  the knowledge is prompts, rules, indexes or weights.
+
+  The through-line: these loops die from lack of signal far more often than from
+  broken mechanics, and the mechanical half is the visible engineering problem.
+  Three entries worth calling out because they are counterintuitive rather than
+  merely bad --
+  - *success starves the loop*: the fuel is errors, so removing errors removes
+    fuel, and falling correction volume is genuinely ambiguous between "got
+    good" and "stopped looking"
+  - *rubber-stamped validation becomes ground truth*: output waved through as
+    correct enters the verification set, so a later version that fixes the error
+    fails the gate -- verification actively blocking a real improvement
+  - *the evidence is pruned and the rule survives*: retention deletes the
+    telemetry a rule cited, the citation still renders, and the trail looks
+    intact until someone follows it (already observed here after a schema reset)
+
+  Ends with an honest table of what this repo defends against today. Most rows
+  say none.
+- `docs/data-flywheel.md` gains a "How this goes wrong" section: the five most
+  common failures as a table, the two counterintuitive ones in prose, and a link
+  through to the full document.
+
 ## 0.28.1
 
 Documentation only. No code, schema, or data changes.
