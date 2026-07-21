@@ -6,11 +6,11 @@ the governed knowledge the agent loads. Behavior comes from data — skills,
 rules, findings — not from code.
 
 Mostly a joke repo. The thesis is serious and it is not restated here:
-`docs/data-flywheel.md` is the source of truth for the design, and
-`docs/how-it-works.md` is the five-minute version. The one term worth knowing
-before reading either is the **grounding layer** — the governed data between raw
-sources and the agent, with constraints at both ends and checked knowledge
-between them. This file is conventions and a map, nothing more.
+`docs/data-flywheel.md` is the source of truth for the design, and the README is
+the shorter version of it. The one term worth knowing before reading either is
+the **grounding layer** — the governed data between raw sources and the agent,
+with constraints at both ends and checked knowledge between them. This file is
+conventions and a map, nothing more.
 
 ## Project Structure
 
@@ -96,8 +96,6 @@ scripts/
                        of generate(); run it after the generator, then rerun
                        the generator so MANIFEST re-inventories the CSV
 docs/
-  how-it-works.md              - The short explainer (~5 min). Entry point from README;
-                                 derived from data-flywheel.md, no jargon, animated SVGs
   data-flywheel.md             - The detailed source of truth for the design. Vision, not
                                  a description of the code -- the code is one reference
                                  implementation of it. Generalized past this repo
@@ -106,8 +104,9 @@ docs/
   implementation-plan.md       - Milestones, schema deltas, definitions of done
   research-agent-data-representation.md - The literature and production practice
                                  this design was checked against
-  assets/                      - Diagram SVGs for data-flywheel.md (SMIL-animated, no
-                                 <style> blocks -- they must render via <img> on GitHub)
+  assets/                      - Diagram SVGs for data-flywheel.md and the README
+                                 (SMIL-animated, no <style> blocks -- they must
+                                 render via <img> on GitHub)
   tutorial-arxiv-extraction.md - End-to-end extraction pipeline
   tutorial-rlm-provider.md     - RLM provider tutorial
   tutorial-flywheel.md         - Feedback loop end-to-end

@@ -32,7 +32,7 @@ itself was read in full from its public source.
 Weng, Lilian. "Harness Engineering for Self-Improvement." Lil'Log, Jul 2026.
 https://lilianweng.github.io/posts/2026-07-04-harness/
 
-Directly load-bearing claims for this project:
+The claims this project depends on:
 
 - **File System as Persistent Memory** (her Pattern 2): "A harness should
   not carry the entire workflow and all logs in context; instead, it should

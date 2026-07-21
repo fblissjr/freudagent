@@ -6,7 +6,7 @@ How recorded work becomes evidence, evidence becomes a governed change, and the
 change becomes something the agent loads.
 
 The full design is `docs/data-flywheel.md`; the short explainer is
-`docs/how-it-works.md`; the failure modes are `docs/flywheel-failure-modes.md`.
+the repo README; the failure modes are `docs/flywheel-failure-modes.md`.
 This reference is the working agent's view: the stages, what backs each one in
 this repo, and what is not built.
 

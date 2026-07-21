@@ -249,10 +249,9 @@ The gate belongs in the tools rather than in a policy document. Tools an agent
 can call should only ever create drafts, drafts should never compile, and
 approval should always surface a prompt to the person running the session.
 
-Being honest about the limit: a gate in one tool surface is only as strong as
-the other surfaces beside it. A command line, a database client, or a permission
-list that quietly grows can each route around it. Anything with write access is
-in the gate's threat model.
+A gate in one tool surface is only as strong as the other surfaces beside it. A
+command line, a database client, or a permission list that quietly grows can
+each route around it. Anything with write access is in the gate's threat model.
 
 Automation here reduces how much a person must look at, never how carefully they
 look. Those are different goals and only one is safe. Merging recurring findings

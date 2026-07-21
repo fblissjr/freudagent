@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.34.8
+
+### Changed
+
+- **`docs/how-it-works.md` is merged into the README and deleted.** The two were
+  doing the same job -- get a first-time reader up to speed, then hand off to
+  `docs/data-flywheel.md` for the detail -- and splitting that across two files
+  meant the README was a table of contents pointing at the page that actually
+  explained anything. The README now carries the explanation and links to the
+  full design in its third paragraph. `CLAUDE.md` and
+  `skill/reference/flywheel.md` follow.
+
+### Fixed
+
+- **Phrasings that read as filler rather than content.** "Being honest about the
+  limit" in `data-flywheel.md` and "directly load-bearing claims" in the research
+  review, plus "the honest version" and "fair question" carried over from the
+  merged file. The sentences underneath were doing the work; the preambles were
+  announcing it.
+- **British spellings** that crept back into the merged prose: organisations,
+  judgement, cancelling.
+
 ## 0.34.7
 
 ### Fixed
