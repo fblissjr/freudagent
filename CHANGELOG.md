@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.33.1
+
+Alignment pass on the explainer and README after a review against the stated
+design vision.
+
+### Fixed
+
+- **`how-it-works.md` claimed an experience that did not happen.** A section was
+  headed "The thing that surprised us" and then described deviation-as-signal,
+  which is unbuilt and has never been observed. Renamed to "Deviation cuts both
+  ways", which is what it actually is: design reasoning.
+- **The explainer resolved a question the design leaves open.** Its central
+  paragraph said to keep instructions in a database and build files from rows.
+  The design says a skill lives in both — artifact in git, metadata in a table —
+  and that what lives where is genuinely open, with versioned-and-immutable as
+  the only non-negotiable. Rewritten as "Where the knowledge lives".
+- Five named parts of the design were missing from the explainer entirely:
+  constraints on both sides, the grounding layer, what a skill is, that the
+  breakdown happens during the run and is where interpretability comes from, and
+  cold start. All added. The word "skill" appeared zero times in a document about
+  maintaining skills.
+- "Every set of agent instructions goes stale" restored to "most" in both the
+  explainer and README. The detailed doc had the hedge; both derived documents
+  had dropped it.
+- Build state now disclosed in the opening of the explainer and the README
+  rather than only near the bottom. The mechanics were written in the present
+  indicative, so a skimmer read them as shipped.
+- Author-claimed research is hedged in the explainer, matching the parent's own
+  sourcing caveat.
+- Cut "Most teams build them, and most of those systems still don't improve" —
+  a population claim about the industry with nothing behind it.
+- Headings that read as hubris are gone: "The move", "The part everyone gets
+  wrong", "The thing that surprised us", "What we can't tell you yet".
+- Restored that the harness itself can be the sampling interface, which connects
+  to the inside-the-harness thesis and had been cut to a vague "something".
+
+### Changed
+
+- `data-flywheel.md` reconciled an apparent contradiction: "the warehouse is the
+  source of truth, the files are a cache" versus "the artifact belongs in git".
+  Both are true of different things — compiled rules are rendered from rows,
+  skill content is authored as a file with the warehouse holding its history —
+  and the doc now says so.
+- "altitude" replaced with "level"; the process-mining reference no longer
+  asserts scholarly standing it was not given a source for.
+- README glosses "harness" on first use and says what the repo physically is.
+
 ## 0.33.0
 
 ### Changed

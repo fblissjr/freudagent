@@ -6,13 +6,17 @@
   </a>
 </p>
 
-Agent instructions go stale. Someone writes a good CLAUDE.md, it's accurate for
-a quarter, then the business changes and nobody updates it.
+Most agent instructions go stale. Someone writes a good CLAUDE.md, it's accurate
+for a quarter, then the business changes and nobody updates it.
 
 This is a design for making the system keep them current from evidence about
 what actually happened, with a person approving every change. It runs inside
-your harness rather than wrapping it: the harness orchestrates, this handles the
-data.
+your agent harness — Claude Code, the Agent SDK — rather than wrapping it: the
+harness orchestrates, this handles the data.
+
+It is a design, not a finished product. The mechanical half of the loop is
+built; the half that decides whether it actually improves mostly is not. The
+[flywheel doc](docs/data-flywheel.md) says exactly what runs today.
 
 Mostly a joke repo. But the thesis is serious.
 
@@ -30,6 +34,8 @@ Last updated: 2026-07-21
   goes wrong and how to catch each one
 
 ## Setup
+
+A Python package with a command line interface and a DuckDB warehouse.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh

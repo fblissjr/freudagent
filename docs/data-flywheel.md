@@ -188,7 +188,7 @@ is close to useless for improvement, however satisfying it is to report.
 
 So the work is broken down as far as it goes, and judgement is captured wherever
 a person can look at one thing and answer confidently. Those judgements then
-aggregate up to whatever altitude the business cares about. Interpretability
+aggregate up to whatever level the business cares about. Interpretability
 comes from the breakdown, not from the judgement.
 
 Two different depths are in play and conflating them causes trouble. Breaking
@@ -311,8 +311,9 @@ the same data rather than an application to maintain.
 
 If the prescribed process is recorded and the actual process is recorded, the
 gap between them is information. Comparing them is conformance checking, and the
-discipline around it — reconstructing the real process from the event log and
-comparing it to the model — is process mining, which predates all of this.
+broader practice of reconstructing a real process from its event log and
+comparing it against the intended one is process mining. Neither idea is new
+here.
 
 Deviation runs two ways, and most systems look for only one.
 
@@ -467,8 +468,16 @@ undoing a change means selecting an earlier row.
 
 Current, active knowledge compiles into the artifacts the agent loads. Those
 artifacts are build output: a do-not-edit header, a line naming the row they
-came from, and a footer naming the proposal and evidence behind them. The
-warehouse is the source of truth; the files are a cache of it.
+came from, and a footer naming the proposal and evidence behind them. For
+anything compiled this way, the warehouse is the source of truth and the files
+are a cache of it.
+
+That is not in tension with a skill's artifact living in git, described below.
+Two different things are going on. Rules and other short knowledge units are
+rendered out of rows, so the file is derived. A skill's content is authored and
+reviewed as a file, and the warehouse holds its metadata and history rather than
+its text. What both share is the invariant: versioned, never edited in place,
+always traceable to the run and the evidence behind it.
 
 Because they are a cache, something has to check they still match. A drift check
 comparing compiled output against current rows belongs in continuous
@@ -514,7 +523,7 @@ references, other skills — of variable depth. Ragged rather than balanced: one
 branch goes four levels, its sibling goes one, and forcing them to match would
 misrepresent the work.
 
-They span the full range of altitude.
+They span the full range of levels.
 
 At the top, orchestration guidance: how work of this kind breaks down, in what
 order, with what checkpoints. This is where learned breakdowns live.
