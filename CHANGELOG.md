@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.31.0
+
+Documentation only. `docs/data-flywheel.md` restructured and rewritten, not
+reordered — the jargon changes touched the argument, so a reorg would have been
+pretending.
+
+### Changed
+
+- **Signal now comes before mechanics.** The doc argues that these loops fail
+  from lack of signal far more often than from broken mechanics, then spent its
+  middle on mechanics and put signal near the end. The structure enacted the
+  error the content warns about. Signal is now one continuous section ahead of
+  the six stages.
+- **Signal was one subject split across two distant sections.** Constraints,
+  granularity and the breakdown sat early; feedback grains, model feedback and
+  sampling sat late; deviation was buried between them. Merged.
+- **The grounding layer moved early.** It is the organising concept and the one
+  term we coined, and it previously arrived 400 lines after first being used.
+- **The storage principle came out from under skills.** Versioned-and-immutable
+  regardless of location is a general claim and now sits with the data model;
+  the skills-specific application stays in the skills section.
+- **Deviation promoted** out of a third-level subsection.
+- The end-to-end diagram moved to the head of the stages it depicts rather than
+  sitting below them.
+
+### Removed
+
+Jargon that was never explained, replaced rather than glossed: held-out,
+fail-closed, stratified sample, statistical power, and the L1/L2/L3 labels,
+which the doc introduced without ever saying what was in each level. Each is now
+said plainly — "work already reviewed and marked correct, kept aside", "refuses
+rather than degrades", "spread deliberately across", "enough observations to
+detect the effect".
+
+### Sharpened
+
+- **The competing explanation.** Previously "base model improvement dominates,
+  making the grounding layer neutral at best". Now stated precisely: models
+  improve by learning from inputs, outputs and paths rather than from explicit
+  rules, which makes the recorded data the valuable asset and generic written
+  guidance progressively redundant. What survives is what a model cannot learn
+  from pretraining — this organisation's definitions, policies and business
+  rules. That yields a testable prediction rather than a worry: the surviving
+  corpus should skew toward business-specific rules and away from technique, and
+  if it does not, you are writing down things the model would have done anyway.
+- **Verification cost.** Previously stated as a universal tension between rigour
+  and speed. It is a property of the use case: a daily batch can afford thorough
+  verification, an event-triggered path answering in seconds cannot. How
+  rigorous the gate is is a deployment decision, not a fixed design point.
+
+### Diagrams
+
+- `progressive-disclosure.svg` asserted three balanced levels as the model while
+  sitting beside text calling that a simplification of a ragged hierarchy. Now
+  says so, and its panel carries the actual ranking claim rather than a vaguer
+  restatement.
+
 ## 0.30.1
 
 Documentation only. An alignment pass after six independent reviews of the core

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" role="img" aria-labelledby="t d">
-  <title id="t">Three levels of loading</title>
-  <desc id="d">Level one is small and always loaded. Level two is loaded when it matches the task. Level three is large and only opened when the agent asks for it.</desc>
+  <title id="t">Loading only what applies</title>
+  <desc id="d">Drawn as three levels for clarity, though the real hierarchy is ragged and of arbitrary depth. A small surface is always loaded, guidance loads when it matches the task, and reference material is opened only when asked for.</desc>
 
   <rect x="0" y="0" width="960" height="440" rx="16" fill="#0b1220"/>
 
   <g font-family="ui-sans-serif, -apple-system, Segoe UI, Helvetica, Arial, sans-serif">
     <text x="40" y="46" font-size="21" font-weight="600" fill="#e6edf7">Skills are something you look up, not something you switch on</text>
-    <text x="40" y="72" font-size="13.5" fill="#8fa2c0">The bar width is how much material exists at each level. Only the shaded part is in front of the model.</text>
+    <text x="40" y="72" font-size="13.5" fill="#8fa2c0">Drawn as three levels for clarity — the real hierarchy is ragged, arbitrary depth. Only the shaded part is loaded.</text>
 
     <!-- L1 -->
     <text x="40" y="128" font-size="15" font-weight="700" fill="#4f8ef7">L1</text>
@@ -40,7 +40,7 @@
     <text x="825" y="248" font-size="12.5" fill="#94a6c4" text-anchor="middle">that does not apply</text>
     <text x="825" y="266" font-size="12.5" fill="#94a6c4" text-anchor="middle">makes answers worse,</text>
     <text x="825" y="284" font-size="12.5" fill="#94a6c4" text-anchor="middle">not just pricier.</text>
-    <text x="825" y="318" font-size="12.5" fill="#7f92b0" text-anchor="middle">So the routing decision</text>
-    <text x="825" y="336" font-size="12.5" fill="#7f92b0" text-anchor="middle">is the hard part.</text>
+    <text x="825" y="318" font-size="12.5" fill="#7f92b0" text-anchor="middle">So routing is the product:</text>
+    <text x="825" y="336" font-size="12.5" fill="#7f92b0" text-anchor="middle">text search + ranking first.</text>
   </g>
 </svg>
