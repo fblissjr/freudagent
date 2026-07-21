@@ -1,6 +1,6 @@
 # Implementation Plan: Executing the Roadmap
 
-Last updated: 2026-07-09
+Last updated: 2026-07-21
 
 This is the concrete build plan for [ROADMAP.md](../ROADMAP.md). The roadmap
 says *what* and *why*; this document says *how*, against this codebase as it
@@ -676,7 +676,7 @@ holdout inputs — that's where model calls live.
 - CLI: `eval holdout --skill <key>` (emits the holdout spec as JSON for the
   harness to execute), `eval record` (ingests the harness's candidate
   outputs and scores them), `eval show <key>`, `policy set require-eval on`.
-- Docs: `skill/reference/flywheel.md` Phase 4 steps marked implemented, with
+- Docs: `skill/reference/flywheel.md` verify-stage steps marked implemented, with
   the harness-side execution documented as a project skill recipe;
   `docs/tutorial-flywheel.md` extended with the gated approve.
 

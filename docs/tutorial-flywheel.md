@@ -188,7 +188,8 @@ and the result. Compare the v1 and v2 sessions to see how the context assembly c
 
 ## 8. What's manual vs automated
 
-The flywheel has 12 steps across 4 phases (see `skill/reference/flywheel.md`):
+The flywheel has six stages, broken into twelve steps (see
+`skill/reference/flywheel.md`). Grouped by what each demands of you:
 
 **Phase 1 (Human Review & Correction):** Partially automated. Context assembly is a
 tool operation. Quality assessment and correction submission are irreducibly human --

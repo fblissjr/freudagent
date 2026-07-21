@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.34.0
+version: 0.34.1
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -37,7 +37,7 @@ scope:
 
 # FreudAgent Data Layer
 
-Last updated: 2026-07-09 (M5: generic event grain + ingest adapters)
+Last updated: 2026-07-21
 
 FreudAgent is a pure data layer for declarative agent orchestration. It provides schema,
 context assembly, archetypes, and prompt composition that get loaded INTO whichever harness
@@ -179,7 +179,7 @@ since their baseline -- a hybrid detector that reads the filesystem, so
 (user-correction patterns) runs inside Claude Code -- see the `/couch`
 project skill.
 
-### Evolve and Materialize
+### Propose, approve and compile
 
 ```bash
 freud-schema proposal add --target dim_rule \

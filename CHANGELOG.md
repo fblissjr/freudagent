@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.34.1
+
+Acting on a review of the preceding fifteen commits.
+
+### Fixed
+
+- **`docs/data-flywheel.md` claimed the compile-time privacy check blocks
+  credentials and customer identifiers.** It detects a home-directory path and
+  the machine's username. Nothing else. `skill/skill.md` and `CLAUDE.md` both
+  described the gate correctly, so the document with the most authority was the
+  one that was wrong, and it was wrong about a protection. Corrected, and it now
+  says plainly that this is not a secret scanner.
+- **`docs/assets/verify-gate.svg`'s junction never connected.** Both checks
+  dead-ended twenty pixels short of the fork and the red path overpainted the
+  blue, so it read as "fixed the target, ships / broke something, fails" — the
+  exact misreading its subtitle exists to prevent. One continuous spine now, with
+  a junction dot and each outgoing arrow on its own path.
+- **`docs/assets/storage-split.svg` lost its bridge**, leaving two unconnected
+  panels while the alt text still promised one. Restored as a labelled connector.
+  The bridge is the element an earlier review identified as the thing that makes
+  the split a hierarchy rather than two peers; removing it on later advice about
+  visual clutter undid that.
+- **The animated loop rendered as an empty panel wherever SMIL is not run.**
+  Every group was authored `opacity="0"` with only the animation raising it. The
+  two stage-one groups are now authored visible, so a non-animating renderer
+  shows stage one at rest.
+- **"The loop has run end to end once"** appeared in three documents while the
+  sixth stage does not exist. Now says it has run once through every stage that
+  exists.
+- A sourcing caveat outlived its claim: Sources still qualified an
+  Anthropic vector-search statement that a rewrite had deleted. Replaced with the
+  caveat that was missing — the semantic-layer result the document calls its
+  strongest evidence is a vendor benchmarking its own product on queries it
+  covers. That claim is now stated with both qualifiers.
+- `skill/reference/flywheel.md` contradicted its own table twice: it called one
+  step the only human one where three are marked human, and claimed no ingest
+  step where two rows are staged ingest.
+- `docs/how-it-works.md` told readers "the last section says what's actually
+  built". The last section is a list of links.
+
+### Changed
+
+- **Reconciled the four dependents of `skill/reference/flywheel.md`'s rewrite.**
+  `ROADMAP.md` still taught Sense / Evolve / Materialize and collapsed propose
+  and approve into one stage; `docs/tutorial-flywheel.md` described four phases
+  that no longer exist; `skill/reference/hierarchy.md` listed step names from the
+  old decomposition; `docs/implementation-plan.md` cited a Phase 4 heading. All
+  four now match the six stages. Where "evolve" or "materialize" name a module or
+  work as ordinary verbs, they are left alone.
+- Stale "Last updated" dates on three documents this change set had edited.
+
 ## 0.34.0
 
 ### Added

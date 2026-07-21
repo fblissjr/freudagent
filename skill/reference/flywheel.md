@@ -181,7 +181,7 @@ Two things to hold onto so this does not read as a competing model.
 
 **Scope.** The decomposition covers one pass over a single reviewed output — from
 an output arriving for review through to a verified new version. It is a zoom-in,
-not a rival account. It has no ingest step because it treats the run that produced
+not a rival account. It has no step for ingesting *runs* because it treats the run that produced
 the output as upstream of itself.
 
 **Alignment.** Every step sits inside a stage:
@@ -201,9 +201,11 @@ the output as upstream of itself.
 | 1.4.2 Regression detection — compare against the previous version | agent | verify |
 | 1.4.3 Metric recording — write flywheel health metrics | tool | verify |
 
-These numbers are stable and cited elsewhere in the repo. `1.3.2` is the one
-step only a person can do, and the codebase says so at `store.approve_proposal()`,
-`ops.py` and `mcp_server.py`. The table above is the definition of record: it is
+These numbers are stable and cited elsewhere in the repo. Three steps are marked
+human and all three are meant to be: 1.1.2 and 1.1.3 are judgement capture, which
+is the other thing that cannot be handed to a model. What 1.3.2 uniquely marks is
+that nothing reaches the agent's context without it, which is why the codebase
+names it at `store.approve_proposal()`, `ops.py` and `mcp_server.py`. The table above is the definition of record: it is
 committed, and the numbers are cited from committed code, so they cannot depend on
 anything that is not.
 
@@ -257,7 +259,7 @@ identity and permissions, unit-level feedback, and consolidation passes.
 The mechanical half of the loop exists; the signal-quality half mostly does not.
 That is the normal order these get built in, and it is also why so many plateau.
 
-The loop has run end to end once, in July 2026: detectors found patterns, a model
+The loop has run once through every stage that exists, in July 2026: detectors found patterns, a model
 judged them, three evidence-linked proposals were written, the owner approved
 them, and they compiled with provenance footers. Three approvals and zero
 rejections is also what a rubber stamp looks like — it is proof the machinery

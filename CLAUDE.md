@@ -97,7 +97,7 @@ docs/
   data-flywheel.md             - The detailed source of truth for the design. Vision, not
                                  a description of the code -- the code is one reference
                                  implementation of it. Generalized past this repo
-  flywheel-failure-modes.md    - Twenty ways a data flywheel fails, with what this repo
+  flywheel-failure-modes.md    - How a data flywheel fails, with what this repo
                                  does and does not defend against
   assets/                      - Diagram SVGs for data-flywheel.md (SMIL-animated, no
                                  <style> blocks -- they must render via <img> on GitHub)
@@ -308,4 +308,4 @@ All in `internal/` (gitignored). Read before proposing new work.
 
 - `BACKLOG.md` -- known gaps, deferred work. Check here before suggesting features. Mark items DONE with version when resolved.
 - `log/` -- session logs
-- `flywheel_decomposition.json` -- 12-step decomposition mapping to Agent SDK primitives
+- `flywheel_decomposition.json` -- twelve-step decomposition mapping to Agent SDK primitives

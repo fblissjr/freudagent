@@ -59,7 +59,7 @@ The twelve flywheel steps (see `reference/flywheel.md`) map to Agent SDK primiti
 
 | SDK Primitive | Flywheel Step | Example |
 |---------------|---------------|---------|
-| Agent | Pattern Detector, Skill Updater, Holdout Tester | Autonomous reasoning tasks |
+| Agent | Pattern detection, update synthesis, reference-set testing | Autonomous reasoning tasks |
 | Tool | Context Assembly, Feedback Collection, Version Activation | Deterministic operations |
 | Handoff | Phase transitions (Review -> Aggregation -> Evolution) | Controlled delegation |
 | Human-in-the-loop | Quality Assessment, Correction Submission, Approval | Irreducibly human steps |

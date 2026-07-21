@@ -9,8 +9,8 @@ updates it. Exactly what happens to every data catalog anyone has ever bought.
 This is a design for making the system keep them current, from evidence about
 what actually happened, with a person approving every change.
 
-It's a design, not a finished product. The last section says what's actually
-built — read it before assuming any of this runs.
+It's a design, not a finished product. "What isn't built yet", near the end,
+says which parts actually run — read it before assuming any of this does.
 
 <img src="assets/flywheel-tldr.svg" alt="An animated loop of six stages: ingest, analyze, propose, approve, compile, verify. A pulse travels the loop and each stage is explained in turn. Approve is marked as done by a person." width="100%">
 
@@ -220,7 +220,8 @@ treating what comes out of it as truth just because the system produced it.
 ## What isn't built yet
 
 The honest version: the mechanical half of this exists and the signal half
-mostly doesn't. Verification doesn't exist. The loop has run end to end once.
+mostly doesn't. Verification doesn't exist, so the loop has never run all six stages. It has
+run once through the five that do exist.
 
 There's also a real chance a chunk of this gets absorbed by better models.
 Models improve by learning from inputs, outputs and the paths between them, not

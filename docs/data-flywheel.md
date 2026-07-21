@@ -486,9 +486,11 @@ file has silently forked the system, and the next compile reverts their work
 without warning.
 
 A privacy check runs before anything is written, and it refuses rather than
-degrades: if rendered output would leak a credential, a home directory path or a
-customer identifier, that file is not written and the previous version stays in
-place. The stronger version is to redact on the way in rather than on the way
+degrades: if rendered output would leak a home directory path or the machine's
+username, that file is not written and the previous version stays in place.
+Those two are what the check actually detects today — it is not a secret
+scanner, and treating it as one is how a credential ends up in a compiled
+artifact. The stronger version is to redact on the way in rather than on the way
 out, because blocking leaks at compile while accepting a dirty warehouse means
 the warehouse itself becomes the exposure, and retention, deletion requests and
 audit all land on it.
@@ -536,10 +538,12 @@ counts as an active customer. The job here is navigating vagueness, which is
 where these systems fail in real organisations — not on reasoning, but on not
 knowing which column was meant.
 
-That bottom rung has the strongest evidence behind it of anything in this
-design. Governed metric and entity definitions beat raw text-to-SQL decisively,
-with schema cards carrying column descriptions and sample values as data. It is
-the least glamorous part and the most reliably valuable.
+That bottom rung has the most direct evidence behind it of anything in this
+design, with the caveat that the evidence is a vendor's own: dbt benchmarking
+its semantic layer against raw text-to-SQL, on queries the layer covers, and
+reporting large gains. Schema cards carrying column descriptions and sample
+values as data are the shape it takes. It is the least glamorous part and, on
+that evidence, the most reliably valuable.
 
 ### Loading only what applies
 
@@ -720,7 +724,7 @@ The honest summary is that the mechanical half of the loop exists and the
 signal-quality half mostly does not. That is the normal order these get built
 in, and it is also why so many plateau.
 
-The loop has run end to end once, in July 2026: detectors found patterns, a
+The loop has run once through every stage that exists, in July 2026: detectors found patterns, a
 model judged them, three evidence-linked proposals were written, the owner
 approved them, and they compiled with provenance footers. Three proposals and
 three approvals is also a zero rejection rate, which is what a rubber stamp
@@ -768,8 +772,9 @@ which carries full citations and its own caveats. Two worth repeating: several
 cited papers were reachable only as abstracts and author summaries, so their
 results are author-claimed rather than independently verified — this applies to
 the self-editing failure modes in stage 4 and the evidence-chain study in stage
-3. The Anthropic vector-search decision is a directly attributed practice
-report, not a paper result.
+3. And the semantic-layer result in the skills section, which this document
+calls its strongest evidence, is a vendor's benchmark of its own product,
+scoped to queries that product covers.
 
 ## Learn more
 

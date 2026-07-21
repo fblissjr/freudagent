@@ -35,25 +35,27 @@ production practice (and amending the plan in six places) is in
 ## The Generalized Target
 
 Any enterprise instance of this pattern has the same shape, regardless of
-domain:
+domain — a cold start, then the six stages that repeat:
 
 1. **Cold start**: seed the knowledge base from whatever exists — documents,
    telemetry, historical records, human expertise. Nothing is trustworthy yet;
    everything is versioned from day one.
-2. **Sense**: continuously ingest operational data (agent transcripts today;
+2. **Ingest**: continuously record operational data (agent transcripts today;
    any event stream tomorrow) into a warehouse with deterministic keys, so
    re-ingestion is idempotent and lineage is total.
 3. **Analyze**: deterministic detectors mine the warehouse for recurring
    patterns and produce typed, evidence-linked findings. Inference is reserved
    for judgment calls only.
-4. **Evolve**: findings become proposals; humans approve; approvals create new
-   SCD-2 versions of skills and rules. Approval is the one irreducibly human
-   step — nothing auto-applies.
-5. **Materialize**: current, active knowledge compiles into the artifacts the
+4. **Propose**: a finding with enough evidence becomes a written proposal
+   carrying the records that justify it.
+5. **Approve**: a person reads it and decides. Approval creates a new SCD-2
+   version of the skill or rule. Nothing auto-applies, and this is the one
+   step that cannot be delegated.
+6. **Compile**: current, active knowledge builds into the artifacts the
    harness (and eventually human consumers) actually load, each carrying
    provenance back to the proposal and findings that justified it.
-6. **Verify**: new knowledge versions are tested against held-out validated
-   history before they ship. Regressions block; improvements compound.
+7. **Verify**: new versions are tested against work already judged correct
+   before they ship. Regressions block; improvements compound.
 
 Each turn of the loop makes the next turn better. Human corrections are the
 training signal. Skills are retrieval, not configuration — loaded by relevance
@@ -109,7 +111,7 @@ is discovered, not designed.
 The warehouse is the source of truth; loaded artifacts are build output with
 do-not-edit headers, source lines, and provenance footers. Fail-closed gates
 block bad output while preserving the last good compile. This generalizes
-beautifully: the same materialize stage can emit agent context today and
+beautifully: the same compile stage can emit agent context today and
 human-readable knowledge artifacts tomorrow, with identical provenance.
 
 ### 6. Progressive disclosure as the context economics

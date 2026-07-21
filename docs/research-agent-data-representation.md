@@ -1,6 +1,6 @@
 # Research Review: Data Representation for Agent Consumption
 
-Last updated: 2026-07-08
+Last updated: 2026-07-21
 
 Before starting execution of [the implementation plan](implementation-plan.md),
 we ran a research pass to answer two questions: (1) does the architecture —
