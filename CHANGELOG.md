@@ -24,6 +24,15 @@
   process owner correcting it, which is also where reconciliation builds the
   cross-system edges. The adoption path gained a stage for that cycle.
 
+  Expanded through: change-data edge cases in the hub (late and out-of-order
+  arrival, restatement, deletes without tombstones, backfilled columns);
+  hierarchies, weighted bridges, edge grain, crosswalk-before-golden-record and
+  standing re-resolution in the relationships section; scored sets, calibration
+  and drift for model steps; scoped definitions so two teams can both be right;
+  and new sections on the agent-facing surface, access and the audit trail,
+  mapping onto an existing warehouse, who chooses what gets reviewed, what to
+  measure, what breaks as it grows, and a glossary.
+
 ## 0.41.0
 
 Group 4 (reasoning capture) closed on the library-and-skill side.

@@ -72,11 +72,13 @@ flowchart LR
   versioned, and it compiles into the skills agents load. It is not
   rebuildable from anything.
 
-The hub, the context layer and the knowledge plane together are what the
-flywheel document calls the grounding layer: governed data between raw sources
-and the agent. It has constraints on one side (what the agent may and must do),
-checked knowledge in the middle, and verifiers and feedback on the other (what
-good means, and whether it happened).
+The context layer and the knowledge plane together are what the flywheel
+document calls the grounding layer: governed data between raw sources and the
+agent, with constraints on one side (what the agent may and must do), checked
+knowledge in the middle, and verifiers and feedback on the other (what good
+means, and whether it happened). The hub is the governed source that layer is
+built from rather than part of it, which is why the hub may stay siloed by
+source and the context layer may not.
 
 A few principles carry the whole design:
 
@@ -277,6 +279,42 @@ Where a source only offers full dumps, snapshot it on a schedule and derive the
 effective-dated history by comparing snapshots. Prefer effective dating as the
 stored form, with "as of" snapshots as views over it.
 
+### Change data has sharp edges
+
+These are worth naming because they cause most of the silent wrongness in
+practice, and every one of them is invisible until someone reconciles a number
+by hand.
+
+- **Late and out-of-order arrival.** Order changes by the source's own sequence
+  where it has one, never by arrival time. An update that arrives out of order
+  is inserted into history at its proper position, not appended to the end,
+  which means the loader must be able to split an existing effective-dated row.
+- **Restatement.** Some sources rewrite the past: a corrected invoice, an
+  amended journal entry, a termination backdated two weeks. The valid-time and
+  recorded-time axes are what let you answer both "what is true now about last
+  month" and "what did we believe last month", and a layer that keeps only one
+  of them cannot explain why a closed period moved.
+- **Hard deletes with no tombstone.** A source that simply stops returning a
+  record tells you nothing. Detect it by reconciling the full key set on a
+  schedule, write a derived deletion, and mark it derived so nobody mistakes it
+  for something the source said.
+- **Replays and overlapping windows.** Normal, and harmless when keys are
+  deterministic. The load log is what makes them visible rather than
+  mysterious.
+- **Backfilled columns.** A new field arrives populated from today forward and
+  empty before. Record the date each column became trustworthy, because a
+  metric computed across that boundary changes meaning without changing
+  definition.
+- **Schema drift.** A renamed field is a new field plus a dead one until
+  somebody says otherwise. That is a mapping decision with an owner, not
+  something a pipeline should infer.
+- **Soft deletes in the source.** Every system means something slightly
+  different by its own deleted flag. The contract records which, because
+  filtering it wrongly silently drops or resurrects rows.
+- **Time.** Store UTC plus the original offset. A "day" in a report is a
+  business day in a business calendar, which is a context-layer decision, not a
+  hub one.
+
 ### Keys
 
 Surrogate keys are deterministic hashes of the natural key, never values from a
@@ -450,9 +488,9 @@ boundary.
 
 Edges come in a few kinds, and they are built differently:
 
-- **Identity**: the same real thing represented in several systems. One
-  company, five identifiers. One person as an employee record, a git account, a
-  chat handle and a badge number.
+- **Identity**: the same real thing represented in several systems. One company
+  wearing a different identifier in each of them. One person as an employee
+  record, a git account, a chat handle and a badge number.
 - **Reference**: one record names another. A commit message carrying an issue
   key, an invoice carrying a purchase-order number, a journal entry carrying a
   source-document identifier.
@@ -479,6 +517,14 @@ wrong answer gets built on. Edges are effective-dated like everything else:
 accounts get reassigned, subsidiaries get merged, employees change cost centre,
 and a link that was right last year is not a link that is right today.
 
+Those methods have different lifecycles, which matters when something gets
+rebuilt. A parsed reference is fully derivable from the hub and costs nothing
+to recompute. A model-scored match is persisted like source data, because
+recomputing it costs money and returns a slightly different answer. A link a
+person asserted is a judgment and lives in the knowledge plane, where nothing
+is ever regenerated. The table under "what can be rebuilt and what cannot" is
+the same distinction applied to everything else in the design.
+
 Conform to a spine rather than mapping pairwise. Every source maps into the
 shared dimensions once, and is then related to every source already there.
 Point-to-point mappings between systems multiply with each addition, and each
@@ -491,6 +537,84 @@ next to any answer that traversed it. An invoice with no opportunity, a commit
 with no issue, a payment matched to nothing: each is either a data problem or a
 business reality, and finding out which is exactly the knowledge this layer
 exists to capture. Orphans are findings, not noise.
+
+#### Hierarchies are relationships with depth
+
+Customers have parents. Accounts have trees. Teams roll into org units,
+products into families, cost centres into departments, subsidiaries into a
+group. All of these are edges with depth, and all of them change.
+
+Store the edges (child, parent, effective dates) and derive the flattened path,
+rather than storing the flattening, which is a cache with a shelf life. Expect
+ragged hierarchies, where one branch runs four levels deep and its sibling
+stops at one, because balanced hierarchies are the exception in every real
+organization and forcing them to match misrepresents the business.
+
+The decision nobody makes deliberately and everybody lives with: when a reorg
+lands, does last year's number move? Rolling up through the current hierarchy
+restates history. Rolling up through the hierarchy in force at the time
+preserves it and makes year-on-year comparison harder to explain. Both are
+defensible, neither is a default, and the one thing that is indefensible is
+different metrics quietly choosing differently. Record which convention each
+metric uses, next to its definition.
+
+#### Some edges need weights
+
+Not every link is one-to-one, and when the many side has to be shared out, the
+sharing is a business rule. A payment covering several invoices. A commit
+touching several issues. An engineer splitting a sprint across three
+initiatives. A bundled contract covering several products. A marketing campaign
+credited for a deal that six touches contributed to.
+
+A bridge table with an allocation factor handles the mechanics. The factor
+itself is the interesting part: how development effort splits between
+capitalizable and non-capitalizable work is exactly the kind of judgment the
+finance team makes every quarter and rarely writes down, and attribution
+weights are a standing argument between marketing and sales. Give the factor an
+owner and a definition like any other rule.
+
+Then check it. The factors under one parent sum to one, or the remainder is
+unallocated and that is a finding rather than a rounding difference.
+
+#### An edge has a grain
+
+State it in a sentence, the same way a fact's grain gets stated. "This ticket
+relates to this account" is one grain. "This ticket relates to the subscription
+this account held when the ticket was opened" is a different one, and only the
+second survives a customer changing plan mid-quarter.
+
+Getting this wrong is the most common way a relationship model produces
+confidently wrong answers, because the join works, the row count looks right,
+and the number is attached to the wrong version of the thing.
+
+#### Crosswalk first, golden record later
+
+There are two ways to resolve identity, and the order matters.
+
+A crosswalk keeps every source record and records that they refer to the same
+entity. A golden record picks or synthesizes a winning value per attribute,
+which the trade calls survivorship.
+
+Start with the crosswalk. It is reversible, it destroys no source value, and it
+is enough to join on, which is what most questions need. Survivorship rules are
+the same shape as the system-of-record registry described below (which system
+wins for which attribute) and belong there, declared and owned, rather than
+buried in matching code. A golden record assembled before those rules are
+written down is a wrong answer wearing a confident name.
+
+#### Re-resolution is a standing job, not a project
+
+Matching never finishes. Records arrive, companies rename and merge, systems
+get migrated, and an acquisition arrives with its own customer master.
+
+So the resolver runs on a cadence, and the human decisions it has been given
+(this pair is the same company, that pair is not) are kept as data so they
+survive every re-run and double as the scored set the matcher is measured
+against. When re-resolution changes an answer, that is an event consumers can
+see rather than a silent restatement, because changing what a customer means
+changes every number attached to it.
+
+#### Traversal
 
 Traversal stays relational: joins along conformed keys, recursive queries for
 hierarchies like org charts and account trees. The relationships are
@@ -644,6 +768,29 @@ free of raw personal content, and fail closed when a check flags it.
 Order within the step matters too: compute everything a query can compute
 first, and spend inference only on what is left.
 
+The scored set deserves more care than it usually gets. Draw it across the
+range the step will actually see, not from whatever was easy to label, and
+over-sample the hard band, because a set drawn from the easy middle reports a
+number that has nothing to do with production. Keep a slice that no prompt was
+ever tuned against, or the score measures how well the prompt was fitted to its
+own test. Label it with people, at the level a person can judge confidently.
+
+Confidence has to mean something before it can route anything. A step that
+emits a number nobody has calibrated will happily say it is sure of things it
+gets wrong, so check the claimed confidence against the observed hit rate on
+the scored set before wiring thresholds to it, and re-check when the model
+changes.
+
+Score the step again on a fresh sample periodically, because the inputs drift
+even when nothing in the step changes: new products, new vendors, a source
+system reformatting a field. A step that was measured once, years ago, is an
+assumption.
+
+Cost is a design input rather than an afterthought. Batch where the work
+allows, cache on the input hash so re-runs and rebuilds are free, set a ceiling
+per run, and expect the bill to fall over time as the clear cases harden into
+SQL and only the genuinely ambiguous remainder still needs a model.
+
 ### Agent runs over the data
 
 For work that requires exploring, cross-referencing, or deciding what to do.
@@ -750,6 +897,18 @@ gets clearer.
 
 ### Month-end close, worked through
 
+The data underneath is the same three layers as anywhere else. Raw lands the
+ledger, sub-ledger and bank exports, the vendor master, the purchase orders and
+the receipts, each extract kept as it arrived. The hub holds
+`erp.gl_journal_line`, `erp.gl_account`, `erp.vendor`, `erp.purchase_order`,
+`ap.invoice`, `bank.transaction` and `billing.invoice`, source-shaped and
+effective-dated.
+The context layer holds a journal-line fact at one row per line, conformed
+vendor, account and cost-centre dimensions, a bridge matching bank transactions
+to journal lines that carries the matching method and the tolerance it was
+matched under, and a bridge from bookings to recognized revenue. Close runs on
+that, and every rule the close teaches is a rule about those objects.
+
 The mechanical half is what an agent is already good at. Pull this period's
 trial balance and last period's. List the accounts that moved by more than the
 materiality threshold. Match bank lines against ledger entries. Find the open
@@ -812,6 +971,33 @@ between two systems, created by a rule with a tolerance, by the person who
 knows which tolerance is right. The tacit process knowledge and the
 relationship model are the same asset seen from two sides, which is why
 capturing one builds the other.
+
+### Somebody has to choose what gets reviewed
+
+Left alone, review concentrates on whatever is quickest to check, which is
+exactly the material the system already handles well. The result is a layer
+that gets steadily better at what it was already good at while the hard cases
+stay untouched, and a set of measurements that look fine because they were
+taken where the system is strong.
+
+So sampling is a design problem rather than a matter of diligence. Something
+has to actively choose what a person is asked to look at, spread across
+domains, customers, task types and difficulty, weighted toward wherever
+coverage is thin, and biased toward the boundary of the system's competence
+rather than its comfortable middle.
+
+The harness can be that interface. An agent pulls the spread, shows each item
+beside its source at a level the reviewer can judge confidently, captures the
+judgment with its reason, and writes it back labeled with who made it. The
+review surface becomes one more thing built from the same data rather than an
+application somebody has to maintain, and it lives where the reviewers already
+work rather than in a tool they have to remember to open.
+
+Two numbers keep this honest. The ratio of confirmations to corrections, since
+a loop that only ever hears about failures has no positive baseline to verify
+against. And the coverage of review across slices, compared against where the
+work actually happens, since a reference set drawn from the same narrow corner
+as the feedback will confirm a bias rather than catch it.
 
 ### It generalizes
 
@@ -892,6 +1078,28 @@ embeddings as an optional last step for large, fuzzy corpora. The selection
 logic is behavior too, so it should be versioned data that evolves through the
 same loop as the content.
 
+### Two teams can both be right
+
+Finance and product will not agree on what an active customer is, and neither
+of them is wrong. Forcing one definition on both produces a number nobody
+trusts and a shadow spreadsheet within the month.
+
+So definitions carry a scope, and the same name can exist in more than one.
+The surface says which one an answer used, every time. Where the organization
+genuinely needs one number, the one that goes in the board pack, name it the
+organization-wide definition and make it the system of record for that figure,
+so the others are visibly local rather than quietly competing.
+
+The same mechanism covers group structures: subsidiaries with their own charts
+of accounts, regions with their own fiscal calendars, business units with their
+own quota rules. Scope the rule rather than fork the layer.
+
+Conflicting rules in the same scope are a different matter and they are a
+failure, not a feature. Check every new proposal against what is already active
+in its scope at approval time, because each rule is otherwise reviewed only
+against the evidence that motivated it and never against the rest of the
+corpus.
+
 ### The loop that keeps it current
 
 The knowledge plane changes through one governed loop: record what happened,
@@ -927,6 +1135,7 @@ This asymmetry is the most important operational fact about the whole design.
 | data hub | raw | rebuild when the pipeline changes |
 | context layer | hub plus the knowledge plane | rebuild when rules change |
 | model-step outputs | nothing reproducible | persisted like source data; reused on rebuild |
+| cross-system edges | whichever row the method belongs to: parsed references from the hub, model-scored matches persisted, asserted links never | rebuilt, reused or preserved per method |
 | knowledge plane: rules, judgments, approvals, reviewer history | nothing | backed up, migrated forward, never reset, kept longer than telemetry |
 
 Rebuild freely what can be rebuilt. Migrate carefully what cannot. A prototype
@@ -979,6 +1188,86 @@ changed hash produce a finding proposing re-derivation. A calendar review date
 says only that time passed. A changed hash says what moved. Its blind spot
 deserves stating: knowledge that came from a conversation, or from a source
 nobody registered, has nothing to compare against.
+
+## The agent-facing surface
+
+How the layer is exposed decides how much of it gets used. A bare SQL endpoint
+over a well-modeled warehouse is better than nothing and worse than it should
+be.
+
+Give the agent a small set of purpose-built tools, and keep real SQL among
+them rather than instead of them:
+
+- a read-only query tool, so the agent can write its own aggregation instead of
+  pulling rows back to count them
+- a definition lookup: what does this metric mean, who owns it, what scope is
+  this, what SQL implements it
+- a catalog search over the reader's guide and schema cards, so the first move
+  on an unfamiliar question is finding the right object rather than guessing a
+  table name
+- a provenance lookup: where did this number come from, through which rule
+  version, approved by whom, on what evidence
+- a write-back path for corrections and judgments, because a surface that can
+  only be read cannot feed the loop
+
+Shape results for a reader with a context budget. Compact tabular text rather
+than deeply nested JSON. Explicit row limits with a stated total, so truncation
+is visible rather than silently changing the answer. Cursors for the rare case
+that genuinely needs the next page. A refusal that explains how to narrow beats
+a truncated result that looks complete, because the second one gets summarized
+into a decision.
+
+Every result carries three things beyond the data: its certification tier, its
+freshness (as of when), and the definitions it used. An answer whose freshness
+is unknown is a guess with a timestamp.
+
+Guardrails are part of the surface, not a deployment detail. Row and byte caps,
+query timeouts, cost accounting per caller, and scoping by the caller's own
+identity rather than by a shared service account that can see everything. A
+scheduled agent gets its own principal with its own scope, so what a
+maintenance run may read is a decision somebody made rather than an accident of
+which credential was handy.
+
+One failure is worth designing for specifically. When the context layer lacks
+a column, an agent will quietly reach past it to the hub, or to raw, and
+answer anyway. That answer bypasses every rule the layer encodes. Make the
+reach-past explicit and record it: it is a finding, and it is the single best
+signal you have about what to model next.
+
+## Access, privacy and the audit trail
+
+An enterprise layer holds payroll, health data, customer records and
+commercially sensitive figures, and the agents reading it are a new kind of
+caller with a broad reach.
+
+Scope at the surface, by identity, rather than producing broadly and scrubbing
+afterwards. The agent inherits the caller's permissions and never exceeds them.
+Row-level scoping (a rep sees their own accounts) belongs in the layer, where
+it is defined once, rather than in each consumer, where it is defined
+differently each time and forgotten in the newest one.
+
+Classify at ingest, not at the point of use. Secret scanning and
+sensitive-content classification run before rows land, so the store is clean by
+construction, and the classification stays on the column as data the surface
+can enforce. A store that was ever dirty stays a liability, because retention,
+deletion requests and audit all land on it.
+
+Deletion has to be executable. A request to remove a person's data must be
+answerable across raw, hub and context, which is another reason the extract
+envelope carries source record identifiers and why derived rows name the source
+rows they came from.
+
+The provenance chain doubles as audit evidence: which rule version produced
+this number, who approved that version, on what evidence, in which run, over
+which rows. Most governance work is a cost that pays back slowly. This one
+pays back the first time an auditor asks a question that would otherwise have
+taken a week.
+
+Two habits keep it honest. Knowledge and telemetry get different retention,
+with the evidence behind an approved rule copied into knowledge-side storage
+rather than cited where it will be deleted on a schedule. And no agent holds a
+credential that widens its own scope, because an agent that can grant itself
+access is an agent that will, eventually, be asked to.
 
 ## Why agents succeed more on this
 
@@ -1054,6 +1343,51 @@ guide and the query skills. A few conditions make it safe:
 The caution: an answer engine over ungoverned data spreads wrong numbers faster
 than any dashboard backlog ever did. The governance is what makes the speed
 safe, not an obstacle to it.
+
+## If you already have a warehouse
+
+Most organizations reading this are not starting from nothing. There is a
+lakehouse or warehouse, a transformation tool, an orchestrator, a catalog,
+perhaps a semantic layer, and a backlog. The right move is not a migration.
+
+The three layers usually map onto what exists, with one condition each:
+
+- The landing or bronze zone is the raw layer, if it is genuinely immutable and
+  every record carries an extract envelope. Usually the immutability is there
+  and the envelope is not, so nobody can say what was extracted when, by which
+  connector version, covering which window.
+- The integration or silver zone is the hub, if it keeps history rather than
+  overwriting current state. Frequently it does not, and that single gap is why
+  "what did this look like at quarter end" turns into an archaeology project.
+- The mart or gold zone is the context layer, if it is modeled by business
+  process and shared across consumers. Often it is a pile of per-dashboard
+  marts that each re-implement the same rules slightly differently, which is
+  the silo problem again one level up.
+
+Three gaps are typical, and they are what to build rather than replace: history
+in the middle, relationships as first-class governed objects carrying method
+and coverage, and the knowledge plane. The transformation tool's descriptions
+and tests are not a knowledge plane. A description is prose nothing verifies
+against the data, and a scheduled test suite is not a definition with an owner,
+a version history and an approval behind it.
+
+Reuse what you have. The transformation tool and orchestrator run the
+deterministic pipelines. The storage stays. The catalog keeps doing
+column-level lineage. If a semantic layer exists, its definitions become
+governed rows and it stays the place they are published from, rather than a
+second copy competing with the first.
+
+Be careful with two things. A catalog that auto-describes columns with a model
+and nobody reviews is documentation rot with a faster clock. And certification
+tiers mean nothing unless the query surface reports them at answer time, where
+the consumer is, rather than in a catalog page nobody opens.
+
+One piece of free inventory before you start: read the SQL behind the most-used
+dashboards and the spreadsheets finance actually runs on. Those queries encode
+the organization's real business rules, exceptions included, and the people who
+wrote them are still around to confirm what they meant. It is the cheapest
+first draft of the rule set you will ever get, and it is evidence rather than
+recollection.
 
 ## Getting started: small, and one question at a time
 
@@ -1164,8 +1498,10 @@ whole thesis, tested on your own data.
 Take a process that runs on the data now in the layer and run one real cycle of
 it with the agent doing the mechanical half and its owner judging. Record every
 correction with its reason, at the level the owner can judge confidently: this
-match, this classification, this line. Do not try to automate anything during
-this cycle; the output of the cycle is the corrections, not the time saved.
+match, this classification, this line. Do not promote any correction into a
+rule during the cycle. The agent is doing the mechanical work, which is the
+point, but the output of this cycle is the corrections rather than the time
+saved.
 
 This is the stage that captures what nobody wrote down, and it is the one most
 likely to be skipped, because it looks like a detour. It is where the rules
@@ -1202,6 +1538,8 @@ cheaper than the last, because the onboarding itself is a skill that has been
 through the loop.
 Each new source is also worth more than the last, because it maps into the
 existing dimensions and is immediately related to everything already there.
+Grow the twin from stage 1 alongside it, one arc per new chain, so the
+regression suite keeps up with what the layer claims to answer.
 Materialize the views that got hot. Open the query surface to the organization's
 assistants. Add identity-scoped access, a real review workflow (merging
 recurring findings into single cases, routing by risk, batching related
@@ -1263,6 +1601,103 @@ Rule changes pass a two-sided gate: the new version must fix what its evidence
 says it targets, and must not break other work already judged correct. An empty
 test set fails rather than passing by default. When the gate fails, the last
 good version keeps serving.
+
+## Measuring whether it works
+
+Keep these as rows in the same warehouse, so "how is the layer doing" is a
+query rather than a report somebody maintains by hand.
+
+**Does it answer correctly.** Accuracy against the answer keys, per question
+family, with the control from stage 5 rerun when the layer changes: the same
+agent, the same questions, against the hub alone. That difference is the
+layer's whole case for existing and it should be re-measured, not remembered.
+
+**Do the relationships hold.** Link coverage and orphan rate per edge type.
+Match precision and recall against the human-labeled pairs. Coverage that
+falls after a new source arrives is the normal early warning that the new
+source resolves worse than it looks.
+
+**Is it current.** Extract lag per source, and open staleness findings by age.
+Freshness is the number most often assumed and least often measured.
+
+**Are the rules healthy.** Corrections per rule version, which should fall.
+Proposal rejection rate, which should not be near zero. Distinct approvers,
+which should not be one. Rules retired, which should not be zero. Active rule
+count and the size of the always-loaded surface, which should be roughly flat.
+
+**Is it being used as intended.** How often answers cite a governed definition
+versus hand-written SQL. Which skills fire and which never do. The
+reach-past-the-layer rate from the agent surface, which doubles as the backlog
+of what to model next.
+
+**What it costs.** Cost per model step and per answer, and the trend as rules
+harden into SQL, which should be downward. Time and cost to onboard each new
+source, which is the clearest single indicator of whether the spine is
+actually paying off.
+
+Three disciplines about measurement itself, each learned by getting it wrong:
+
+- Denominate windows in volume, not in days. Days say nothing about whether
+  enough observations have accumulated to see the effect, and declaring victory
+  on an underpowered sample is the most common self-inflicted wound here.
+- Pair every detector with an outcome measure that is harder to game. A rule
+  that suppresses a symptom drives its own metric to zero whether or not the
+  underlying problem moved.
+- Record the confounders next to the measurement. The model changed, the
+  workload shifted, a big customer onboarded. With one timeline and no control,
+  attribution is guesswork, and versioned rules at least make a held-back slice
+  cheap enough to be worth running.
+
+## What breaks as this grows
+
+The early version of this runs on one database, one scheduler and a couple of
+people. The things that break are predictable enough to design against, and
+cheap to plan for while the layer is small.
+
+**Single-writer storage.** A file-backed database is fine for one operator and
+disqualifying the moment concurrent pipelines, agents and reviewers all want
+it. Keep every access behind a store interface from the start so the engine
+underneath can change without touching callers, and expect to split the
+transactional side (rules, proposals, judgments) from the analytical side
+(events, history, aggregates) eventually, because they have different access
+patterns, backup needs and retention.
+
+**Full-scan detection.** Detectors that scan everything and aggregate unbounded
+evidence work beautifully on a small warehouse and die on a large one. Run them
+from watermarks over new data, which is also the only way to distinguish a new
+finding from one you have already seen.
+
+**Findings without a lifecycle.** Append-only findings re-detect the same
+problem every run, and the review queue fills with noise until people stop
+opening it. Findings need states (open, triaged, addressed by this version,
+verified shrunk, closed), deduplication against prior runs, and a default view
+of what is new since last time.
+
+**The approval bottleneck.** One reviewer works until volume arrives, then
+becomes either a rubber stamp or a blocker, and both are failures. Reduce what
+needs looking at rather than speeding up the looking: merge recurring findings
+into cases, batch related proposals, route by risk, and let low-blast-radius
+changes ride on sampled audit. Approval itself stays a person's job.
+
+**Skill routing by exact match.** Picking among a handful of skills by domain
+and task type works until there are hundreds, at which point selection becomes
+retrieval: text search plus ranking on structured attributes, with the
+always-loaded surface kept bounded no matter how large the corpus grows.
+
+**Identity and scope.** Free-text reviewer and owner names are fine until
+somebody asks who is allowed to approve what. Principals, scopes and
+permissioned approval are much cheaper to add before the history is full of
+strings that meant something to whoever typed them.
+
+**Retention colliding with provenance.** Telemetry ages out on a schedule the
+knowledge citing it does not share. Copy evidence into knowledge-side storage
+at approval time, or discover years later that every rule cites rows that no
+longer exist.
+
+**Tenancy in the keys.** If keys are not scoped by tenant and source from the
+beginning, the first acquisition or second business unit means rekeying
+everything. This one is nearly free on day one and brutal later, which is why
+it appears in the stage 2 decisions as well.
 
 ## How this goes wrong
 
@@ -1345,6 +1780,40 @@ done anyway.
   wants one.
 - Not a single mega-table of events. Generic event grain is for the unmodeled
   long tail only.
+
+## Glossary
+
+Terms used here that mean something specific, in the order they first matter.
+
+| Term | Meaning |
+|---|---|
+| raw layer | immutable files holding what each source said, plus an extract envelope |
+| extract envelope | the metadata added at extraction: run, time, method, window, operation, hashes, connector version |
+| tombstone | a record saying the source deleted something, kept rather than expressed by absence |
+| data hub | relational, source-shaped tables with full history, keys and lineage |
+| effective dating | keeping every version of a record with valid-from and valid-to, rather than overwriting |
+| valid time / recorded time | when something was true in the business, versus when the organization knew it |
+| deterministic key | a surrogate key derived by hashing the natural key, computable without coordination |
+| source contract | the written, tested assumptions a pipeline makes about a source |
+| canary | a test that goes red when a contract assumption stops holding |
+| schema card | per-table documentation of column meaning, samples, null rates and traps |
+| context layer | the business's own model: facts, conformed dimensions, business rules applied |
+| grain | what one row represents, stated as a sentence before anything is built |
+| conformed dimension | an entity shared across processes, and where cross-system identity is resolved |
+| bridge | a table holding many-to-many links, with an allocation factor when the link needs weighting |
+| crosswalk | a record that two source records refer to the same entity, without picking a winner |
+| survivorship | rules for which source wins for which attribute when assembling a golden record |
+| edge coverage | the fraction of records on one side of a relationship that actually link |
+| certification tier | certified, provisional or exploratory, carried as data and reported with answers |
+| knowledge plane | the versioned rules, mappings, definitions, judgments and approvals governing the layers |
+| grounding layer | the context layer and knowledge plane together: constraints, checked knowledge, verifiers |
+| skill | a composition of rules, references and code that an agent loads when it applies |
+| progressive disclosure | loading a small always-present surface, then what matches, then what is asked for by name |
+| model step | a bounded, scored, per-record inference inside a pipeline, versioned by prompt |
+| agent run | an open-ended, tool-using pass over the data that produces proposals, not mutations |
+| system of record | the registry saying which source is canonical for which kind of fact |
+| answer key | correct answers to real instances, written by the people who answer them today |
+| synthetic twin | a fictional, deterministic version of the organization used to build and score against |
 
 ## Where these patterns come from
 
