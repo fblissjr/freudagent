@@ -137,8 +137,11 @@ ROADMAP.md           - What scales, what breaks, in what order
 VISION.md            - The generalized enterprise pattern around the flywheel:
                        raw layer -> data hub -> dimensional context layer, the
                        knowledge plane, and the three kinds of work (pipelines,
-                       model steps, agent runs). Org-facing and repo-agnostic --
-                       no CLI or code from this repo belongs in it
+                       model steps, agent runs). Its two load-bearing claims are
+                       cross-system relationships as the context layer's whole
+                       point, and tacit business rules captured by running real
+                       processes with their owners. Org-facing and repo-agnostic
+                       -- no CLI or code from this repo belongs in it
 CHANGELOG.md         - Semver, no dates. Historical entries are a record; do not
                        edit them to match current conventions
 LICENSE

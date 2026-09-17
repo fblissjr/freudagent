@@ -20,6 +20,12 @@ is not the one in the general ledger. Giving an agent raw access to every
 system does not fix that. It turns every question into a fresh
 reverse-engineering exercise, answered a little differently each time.
 
+And the questions worth asking cross systems. Which customers are affected by
+this bug. Which bookings turned into recognized revenue and which are stuck.
+What did this initiative actually cost. Who has access they should have lost.
+No single system answers any of those, which is why, in most organizations,
+nobody does.
+
 The fix is mostly old. Data engineering has spent decades on it: land the raw
 data, integrate it with history, model it the way the business thinks about
 itself. Two things are new.
@@ -41,7 +47,7 @@ flowchart LR
   SRC["Source systems<br/>CRM, billing, git host,<br/>issue tracker, docs, chat"]
   RAW["Raw layer<br/>what the source said,<br/>when we asked"]
   HUB["Data hub<br/>source-shaped tables,<br/>full history, keys, lineage"]
-  CTX["Context layer<br/>the business's own model,<br/>business rules applied"]
+  CTX["Context layer<br/>one connected model,<br/>systems tied together"]
   KP["Knowledge plane<br/>rules, mappings, definitions,<br/>judgments, approvals"]
   USE["Agents, answer engines,<br/>BI, notebooks"]
   SRC --> RAW --> HUB --> CTX --> USE
@@ -56,10 +62,11 @@ flowchart LR
 - **Data hub.** The same data in relational tables, still shaped like the
   source, with every version kept, deterministic keys, and lineage on every
   row. Rebuildable from raw.
-- **Context layer.** A dimensional model of how the business sees itself.
-  Most business-rule transformation happens between the hub and here, and
-  this is what agents consume. Rebuildable from the hub plus the knowledge
-  plane.
+- **Context layer.** One connected model of how the business sees itself,
+  organized by business process and entity rather than by source system. This
+  is where the systems are tied together and where most business-rule
+  transformation happens, and it is what agents consume. Rebuildable from the
+  hub plus the knowledge plane.
 - **Knowledge plane.** The rules, mappings, definitions, source contracts,
   findings, human judgments and approvals that govern the other layers. It is
   versioned, and it compiles into the skills agents load. It is not
@@ -85,6 +92,10 @@ A few principles carry the whole design:
   clear.
 - A person approves a rule once. The pipeline applies it at machine scale.
 - Model what the business means once, in the place every consumer will look.
+- The relationships between systems are the product. A layer that leaves each
+  source in its own lane has done the easy half and skipped the valuable half.
+- The most valuable rules are not written down anywhere. They get captured by
+  doing the work alongside the people who hold them, not by interviewing them.
 - Load only what applies. A context window is attention, not storage.
 - A check that cannot fail is not a check.
 
@@ -110,6 +121,20 @@ this. It is accurate at onboarding and describes a company that no longer
 exists within a few quarters, because keeping it current is work with no owner.
 Agent instructions written by hand rot the same way, for the same structural
 reason.
+
+Nothing owns the space between systems. Each system has an owner, a budget and
+an administrator. The relationships between them (this account is that
+customer, this commit implemented that request, this invoice settles that
+order) have none of those, so they get rebuilt by hand inside each report,
+spreadsheet and integration, and every copy drifts separately.
+
+The rules that matter most were never written down. How the accounting team
+classifies a journal entry the chart of accounts does not obviously cover,
+which reconciling items are timing differences to leave alone and which are
+errors to chase, what the month-end close checklist really is as opposed to the
+version in the wiki: that knowledge lives in the heads of people who have done
+the job for years. It is the difference between an agent that can query the
+ledger and one that is useful in finance.
 
 Questions outrun the people who answer them. By the time a dashboard ships, the
 question that motivated it has often moved on.
@@ -365,6 +390,14 @@ The context layer is the organization's data modeled the way the organization
 thinks about itself. It is the layer agents consume, and the layer where most of
 the business-rule transformation happens.
 
+It is also where the silos end, and that is the main reason it exists. The hub
+is deliberately organized by source system, faithful to each one. The context
+layer is organized by business process and entity, and its objects are named
+for the business (customer, order, invoice, issue, release, employee), never
+for a system. Which systems fed a row is a lineage column, not a table prefix.
+A context layer whose tables still read like a copy of the CRM has not been
+built yet.
+
 ### Why dimensional
 
 A star schema was designed so that people who do not know the plumbing can
@@ -405,6 +438,81 @@ A few structural rules keep it sane:
 - Facts carry the dimension attributes they were produced under, stamped at
   load time, so "accuracy by version" or "revenue by the territory at the time"
   is a filter rather than a reconstruction.
+
+### The relationships are the point
+
+A customer dimension is not valuable because it is a tidy list of customers. It
+is valuable because it is the place where the CRM account, the ERP customer,
+the billing subscription, the support organization and the product tenant are
+declared to be one company, so a question can start in one system and end in
+another. Everything an organization actually wants to know crosses that
+boundary.
+
+Edges come in a few kinds, and they are built differently:
+
+- **Identity**: the same real thing represented in several systems. One
+  company, five identifiers. One person as an employee record, a git account, a
+  chat handle and a badge number.
+- **Reference**: one record names another. A commit message carrying an issue
+  key, an invoice carrying a purchase-order number, a journal entry carrying a
+  source-document identifier.
+- **Process chains**: one business event causes the next. An opportunity
+  becomes a quote, an order, an invoice, a payment, a journal entry, a revenue
+  schedule.
+- **Attribution**: which change produced which outcome. Which release contained
+  the fix, which deploy preceded the incident, which campaign produced the lead,
+  which work is capitalizable.
+
+Build each edge by the cheapest reliable method available, in this order: an
+identifier one system already stores about the other (getting the ERP customer
+number recorded on the CRM account is often the highest-return integration work
+available, and it is a conversation, not a pipeline); a parsed reference, like
+issue keys in branch names; deterministic matching on normalized attributes
+(legal name, domain, tax identifier); model-scored candidate matching for the
+ambiguous remainder; and a person asserting the link, which is a judgment and
+belongs in the knowledge plane with the rest of them.
+
+Every edge records how it was made, its confidence, the evidence behind it, and
+the period it applies to. An edge a person asserted and an edge a model guessed
+must never look the same in a query, because the second is what a confidently
+wrong answer gets built on. Edges are effective-dated like everything else:
+accounts get reassigned, subsidiaries get merged, employees change cost centre,
+and a link that was right last year is not a link that is right today.
+
+Conform to a spine rather than mapping pairwise. Every source maps into the
+shared dimensions once, and is then related to every source already there.
+Point-to-point mappings between systems multiply with each addition, and each
+one decays on its own schedule. This is why the next source costs less than the
+last one, and it is the entire economic argument for the layer.
+
+Coverage is a measured property, not an assumption. For each edge type, report
+what fraction of records link and how many are orphans, and put that number
+next to any answer that traversed it. An invoice with no opportunity, a commit
+with no issue, a payment matched to nothing: each is either a data problem or a
+business reality, and finding out which is exactly the knowledge this layer
+exists to capture. Orphans are findings, not noise.
+
+Traversal stays relational: joins along conformed keys, recursive queries for
+hierarchies like org charts and account trees. The relationships are
+graph-shaped in meaning and relational in storage, and a graph view can be
+derived for any consumer that wants one.
+
+Each chain worth walking gets documented as a skill: the hops, which ones are
+lossy, where coverage is thin, and the traps. Some chains that earn their keep
+in most organizations:
+
+| Chain | Systems it crosses | What it unlocks |
+|---|---|---|
+| lead to cash | CRM, quoting, ERP, billing, ledger | which bookings became recognized revenue, and which are stuck where |
+| idea to production | roadmap, issue tracker, git host, CI, deploy, support | which customers asked for what shipped, and whether it reached them |
+| procure to pay | procurement, vendor master, accounts payable, ledger, bank | what was committed, received, and actually paid |
+| hire to retire | HR system, identity, service desk, payroll, ledger | who has access they should have lost, and what a team costs |
+| effort to cost | issue tracker, git host, HR system, payroll, ledger | which product work is capitalizable, and what an initiative cost |
+
+That last row is the shape people find surprising: capitalizing development
+effort requires linking engineering work to people to payroll to the ledger,
+which no single system can do and which finance currently reconstructs by
+survey. It is a relationship problem wearing an accounting hat.
 
 ### Business rules live here
 
@@ -553,6 +661,8 @@ This is where an agent harness earns its place:
   relationships as dimensions evolve, retiring what nothing uses
 - enriching: classifying accounts by industry with cited evidence, linking
   documents to the entities they discuss
+- working a real business process alongside the person who owns it, so the
+  rules behind it can be captured (the next section)
 
 These runs are shaped like trees, not chains. An orchestrator decomposes the
 job, gives each subagent only the slice it needs (one source, one table, one
@@ -605,6 +715,111 @@ change. The last row is not negotiable. The tools an agent can call create
 drafts, drafts never compile into anything that loads, and approval surfaces to
 a person. Anything else with write access (a command line, a database client, a
 permission list that quietly grew) is inside that gate's threat model.
+
+## Capturing the rules nobody wrote down
+
+The rules with the most value in them are not in any system, and they are not
+in the wiki either. How the accounting team classifies a journal entry the
+chart of accounts does not obviously cover. Which reconciling items are timing
+differences to be left alone and which are errors to be chased. What the close
+checklist really is, including the step everyone knows to do and nobody
+recorded. When an accrual is estimated rather than computed, and on what basis.
+Which contract terms force a manual revenue adjustment. That knowledge belongs
+to the people who have done the job for years.
+
+There are two ways to get it out of their heads, and only one of them works.
+
+Interviewing people and writing down what they say produces the authored
+catalog, and it fails the way authored catalogs always fail. People describe
+the normal path, because the normal path is what comes to mind, and the
+exceptions are where the knowledge actually is. The document is idealized on
+the day it is written, and nobody owns keeping it true.
+
+The other way is to do the work with them. An agent performs the mechanical
+half of a real process while the person who owns it judges, corrects and
+explains. Everything is recorded: what the agent did, what it proposed, what
+was corrected, and why. Nobody authors the breakdown of the process in advance,
+because it emerges from running it, and that is also the only way the
+exceptions get captured, since exceptions show up when they show up.
+
+Then the loop takes over. What repeats across cycles becomes a finding, a
+finding with enough evidence becomes a proposal, the person who owns the
+process approves it, and next cycle the agent applies it and the person reviews
+less. The rule hardens from a judgment into a prompt into a line of SQL as it
+gets clearer.
+
+### Month-end close, worked through
+
+The mechanical half is what an agent is already good at. Pull this period's
+trial balance and last period's. List the accounts that moved by more than the
+materiality threshold. Match bank lines against ledger entries. Find the open
+purchase orders with receipts and no invoice. Draft the accrual entries. Gather
+the support each reviewer usually asks for. Assemble variance commentary from
+the underlying documents rather than from memory.
+
+The judgment half stays with the accountant. That variance is the reclass we
+did in March. That bank line is one customer paying two invoices at once. This
+vendor invoice is capital rather than expense, because of what the statement of
+work says. This accrual is estimated from the vendor's run rate, because their
+invoice always arrives after close.
+
+Each correction is a record pointing at what it corrects, carrying who made it
+and, above all, why. The reason is the part that becomes a rule. The corrected
+value on its own only fixes one month.
+
+After a few cycles the repeats are visible: the same vendor classified the same
+way every month, the same matching tolerance applied to the same bank feed, the
+same checklist step always waiting on the same upstream one. Those become
+proposals, the controller approves them, and they compile into what the agent
+loads at the next close: classification rules, matching rules and their
+tolerances, the checklist with its real dependencies, materiality thresholds,
+accrual methods, and the treatment of non-standard contract terms.
+
+Close is a good first candidate for reasons worth checking against whatever
+process you pick instead:
+
+- It recurs on a fixed cadence, so repeated observations arrive without anyone
+  arranging them.
+- It has ground truth. The books tie or they do not, reconciliations balance or
+  they do not, and auditors look later.
+- It already has a declared process, which means deviation from it can be
+  measured rather than guessed at.
+- It already runs on maker-checker controls, so the approval gate this design
+  insists on is not a new imposition. It is the control the finance function
+  already has.
+- It is expensive and nobody enjoys it, so the people who own it will engage.
+
+What must not happen is equally clear. The agent drafts entries; a person posts
+them. The agent never approves its own work and never both prepares and
+reviews, because segregation of duties is not a preference here. The provenance
+chain (which rule, which version, whose approval, on what evidence) doubles as
+audit evidence, which is one of the few places where governance pays for itself
+in the first quarter. Payroll and other sensitive data is scoped to the people
+who may see it at query time, rather than produced broadly and scrubbed after.
+
+And the failure to avoid: the agent's first pass is not truth just because the
+system produced it. Cold-start output is training signal. A first close that
+gets rubber-stamped captures the model's prior with a controller's name on it.
+Some steps exist to catch something rare, and skipping them looks free every
+month until the month it is not, so a rule that guards a rare event has to say
+so in its own text.
+
+### Reconciliation is relationship building
+
+Notice what close actually produces. Matching a bank line to a ledger entry, an
+invoice to a payment, a booking to recognized revenue: every match is an edge
+between two systems, created by a rule with a tolerance, by the person who
+knows which tolerance is right. The tacit process knowledge and the
+relationship model are the same asset seen from two sides, which is why
+capturing one builds the other.
+
+### It generalizes
+
+The same shape fits any recurring process with a checkable outcome and an owner
+who feels the pain: quota and commission calculation, revenue recognition,
+renewal risk review, access reviews, ticket triage and routing, release notes,
+inventory counts, capitalization decisions, incident review. Start with one,
+run it beside its owner, and let the rules fall out of the corrections.
 
 ## The knowledge plane: business rules as skills
 
@@ -769,8 +984,15 @@ nobody registered, has nothing to compare against.
 
 The claims here are meant to be tested; the section on falsification says how.
 
-Joins are done once, correctly. Cross-system identity is resolved in the model,
-with evidence and review, instead of being guessed again in every session.
+Questions can cross systems at all. The links between the CRM, the ledger, the
+issue tracker and the git host are resolved once, with evidence and review,
+instead of being guessed again in every session. Most questions that matter are
+relationship questions, and without the layer an agent cannot answer them at
+any quality.
+
+Tacit rules become loadable. Knowledge that existed only in the heads of the
+people who do the work is captured where an agent can apply it, with the reason
+attached, and stays correctable when the business changes.
 
 Meaning is written down where the agent will look. Schema cards, definition
 skills and the reader's guide answer "which column did they mean" before the
@@ -842,10 +1064,17 @@ platform, and every stage has a gate that must pass before the next begins.
 ### Stage 0: pick the question and write its answer key
 
 Choose one question people currently answer by hand, that crosses two or three
-systems, and that someone senior cares about. The worked example above is a good
-shape. Then have the people who answer it today write down the correct answers
-for a set of real instances. That set is the reference everything later is
-measured against.
+systems, and that someone senior cares about. The worked example above is a
+good shape.
+
+A recurring process works as well as a question, and often better, because it
+brings its own cadence and its own owner: a close, a commission run, a
+quarterly access review. Its answer key usually exists already, in last
+quarter's working papers.
+
+Either way, have the people who do it today write down the correct answers for
+a set of real instances. That set is the reference everything later is measured
+against.
 
 Gate: the answer key exists, and the people who wrote it agree on it.
 
@@ -861,6 +1090,9 @@ where it hurts:
 - one storyline threaded through every source (an incident that shows up in
   logs, tickets, chat, invoices and a postmortem), so cross-source reasoning has
   ground truth
+- shared identifiers where systems really share them, and no shared identifier
+  where they do not, so the matching problem in the twin is the matching
+  problem you actually have
 - grain mismatches and imperfect keys: weekly metrics against event-level
   tickets, accounts that join to web traffic only through email domains, aging
   reports keyed by messy company names
@@ -914,8 +1146,8 @@ savings. Author rules thin; corrections are evidence and extra prose is
 guesswork.
 
 Gate: grain tests pass, each business rule has an owner, a definition, SQL and a
-test binding them, and cross-system identity resolves with measured match
-quality.
+test binding them, cross-system identity resolves with measured match quality,
+and every edge type reports its link coverage and its orphans.
 
 ### Stage 5: put an agent on it, and build the control
 
@@ -927,17 +1159,32 @@ Gate: the context layer beats the raw baseline by a margin worth its cost. If it
 does not, stop and find out why before building more. That comparison is the
 whole thesis, tested on your own data.
 
-### Stage 6: turn the loop once, by hand
+### Stage 6: work one real cycle beside the process owner
 
-Capture every correction from stage 5 as labeled feedback. Run the detectors,
-write a proposal citing the evidence, approve it, produce a new rule version,
-recompile the skill, and re-score against the answer key. If one revolution does
-not work by hand, automating it only makes it fail faster.
+Take a process that runs on the data now in the layer and run one real cycle of
+it with the agent doing the mechanical half and its owner judging. Record every
+correction with its reason, at the level the owner can judge confidently: this
+match, this classification, this line. Do not try to automate anything during
+this cycle; the output of the cycle is the corrections, not the time saved.
+
+This is the stage that captures what nobody wrote down, and it is the one most
+likely to be skipped, because it looks like a detour. It is where the rules
+that make every later stage worth anything come from.
+
+Gate: a cycle completed with its owner, corrections recorded with reasons, and
+at least one rule proposed that nobody would have thought to write down.
+
+### Stage 7: turn the loop once, by hand
+
+Capture every correction from stages 5 and 6 as labeled feedback. Run the
+detectors, write a proposal citing the evidence, approve it, produce a new rule
+version, recompile the skill, and re-score against the answer key. If one
+revolution does not work by hand, automating it only makes it fail faster.
 
 Gate: one complete revolution, from correction to a re-verified new version,
 with its provenance chain intact.
 
-### Stage 7: add model steps and maintenance runs
+### Stage 8: add model steps and maintenance runs
 
 Now add inference where rules cannot reach: standardization, classification,
 match scoring, each with a registry entry, a scored set and sampled review. Then
@@ -948,10 +1195,13 @@ schedules and all producing proposals.
 Gate: every model step has a score, and maintenance proposals sometimes get
 rejected. A rejection rate near zero means the gate is not being used.
 
-### Stage 8: widen
+### Stage 9: widen
 
-The next question, the next source. Each new source should be cheaper than the
-last, because the onboarding itself is a skill that has been through the loop.
+The next question, the next process, the next source. Each new source should be
+cheaper than the last, because the onboarding itself is a skill that has been
+through the loop.
+Each new source is also worth more than the last, because it maps into the
+existing dimensions and is immediately related to everything already there.
 Materialize the views that got hot. Open the query surface to the organization's
 assistants. Add identity-scoped access, a real review workflow (merging
 recurring findings into single cases, routing by risk, batching related
@@ -1025,6 +1275,17 @@ covers the loop's failure modes in full. The ones specific to this architecture:
 - Convenience views multiply until an agent has to choose among near-identical
   names, and chooses differently each time.
 - Rule prose and rule SQL diverge because nothing binds them.
+- A chain that links most records gets used as though it linked all of them.
+  Partial coverage plus a confident answer is worse than no answer, so coverage
+  travels with the result.
+- Inferred links and asserted links blur together. The method column exists,
+  and no query filters on it.
+- Identity resolution is treated as a one-time project. An acquisition, a
+  rebrand or a system migration lands, nothing re-resolves, and the model
+  quietly describes a company that no longer exists.
+- Process capture becomes process invention. The agent's first pass is
+  rubber-stamped, and what gets recorded as institutional knowledge is the
+  model's prior with someone's approval on it.
 - An answer engine goes live over provisional data, and a wrong number spreads
   through a dozen decks before anyone checks it.
 - A source adds a field that carries real meaning, nothing registered it, and

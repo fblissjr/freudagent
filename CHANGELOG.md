@@ -14,6 +14,16 @@
   staged adoption path that starts from one question and its answer key.
   `docs/data-flywheel.md` remains the detailed design of the loop itself.
 
+  Two claims carry the argument. The context layer's value is the relationships
+  between source systems -- identity, reference, process chains, attribution --
+  each edge carrying how it was made, its confidence and the period it applies
+  to, conformed to a shared spine rather than mapped pairwise, with link
+  coverage reported beside any answer that traversed it. And the business rules
+  worth the most are tacit: they come out of running a real process (month-end
+  close is the worked example) with an agent doing the mechanical half and the
+  process owner correcting it, which is also where reconciliation builds the
+  cross-system edges. The adoption path gained a stage for that cycle.
+
 ## 0.41.0
 
 Group 4 (reasoning capture) closed on the library-and-skill side.
