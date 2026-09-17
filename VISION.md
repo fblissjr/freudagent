@@ -1060,7 +1060,7 @@ Corrections concentrated in one team improve that team's slice and let
 everything else rot, and the measurements look fine because they were taken
 where the feedback was.
 
-Two checks catch it. Compare where feedback comes from against where the work
+Catching it is cheap. Compare where feedback comes from against where the work
 actually happens, by domain, customer segment and task type. And keep a floor
 on the share of judgments that come from people rather than from models, so
 model-generated volume cannot drown the human signal it was supposed to
@@ -1169,7 +1169,7 @@ So a rule moves through states rather than getting edited in place:
 |---|---|---|
 | draft | exists, never loads, never applies | anyone, agents included |
 | candidate | passes its tests and its eval, visible to reviewers, may run in parallel | anyone, once the tests pass |
-| active | approved, compiled, loaded, applied | only a person with standing in that domain |
+| active | approved, compiled, loaded, applied | a person with standing in that domain, or every owner when the rule crosses domains |
 | superseded | closed with a date, still queryable, still what rollback selects | the approval of its replacement |
 
 Three things belong between candidate and active, and the first is the one most
@@ -1191,19 +1191,27 @@ difference nobody can explain is a stop, not a rounding note.
 region, and watch the measures that the rule was supposed to move, along with
 the ones it was not.
 
-Then the two-sided eval gate described under verification: the new version must
-fix what its evidence targets and must not regress work already judged correct.
-Both, or the last good version keeps serving.
+Then the gate itself, which is two-sided. The candidate must fix what its own
+evidence targets, tested against the work that evidence points at, and must not
+regress other work already judged correct. Both, or it stays a candidate and
+the last good version keeps serving. The set used to test the fix is derived
+from the proposal's evidence chain rather than assembled by hand, which is what
+makes the gate computable at all, and an empty set fails rather than passing by
+default.
 
 Rollback stays cheap because versions are rows, so reverting is selecting an
-earlier one and recompiling. What is not cheap is the restatement that follows,
-since numbers computed under the bad version are now wrong in the other
-direction. A rollback is an event consumers can see, not a quiet fix.
+earlier one and recompiling. What is not cheap is everything already derived
+under the bad version. Those rows are rebuilt, not patched, which the layer can
+do because the context layer is rebuildable from the hub and the knowledge
+plane by construction. Rows a rebuild cannot reach, answers already given,
+decks already built, a period already closed, are the real cost, which is why
+a rollback is announced as an event rather than applied as a quiet fix.
 
-One consequence worth designing for: every derived row and every answer records
-the rule version that produced it. Without that stamp, a series computed under
-two versions is an artifact of the change rather than a measurement, and nobody
-can tell which part of a trend is the business and which part is the rule.
+Version stamps are what make that tractable. Every derived row and every answer
+records the rule version that produced it, so the blast radius of a bad version
+is a query rather than an investigation, and a series spanning two versions is
+visible as an artifact of the change rather than mistaken for a movement in the
+business.
 
 ### Loading only what applies
 
@@ -1786,10 +1794,9 @@ executing the query whose output is that claim, not by reading it and nodding.
 The newest prose is the most likely to be wrong about a change, because it was
 written closest to it.
 
-Rule changes pass a two-sided gate: the new version must fix what its evidence
-says it targets, and must not break other work already judged correct. An empty
-test set fails rather than passing by default. When the gate fails, the last
-good version keeps serving.
+Rule changes pass the two-sided gate described under promotion, which is the
+candidate-to-active transition: fix what the evidence targets, regress nothing
+already judged correct, and fail closed when the test set is empty.
 
 ## Measuring whether it works
 
