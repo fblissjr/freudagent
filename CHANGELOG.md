@@ -33,6 +33,21 @@
   mapping onto an existing warehouse, who chooses what gets reviewed, what to
   measure, what breaks as it grows, and a glossary.
 
+  Then the governance half the first passes left thin. Rules are promoted
+  through draft, candidate and active rather than edited, because a process
+  captured wrongly applies everywhere with the layer's authority behind it:
+  candidates carry an impact preview (what this version would change, on real
+  periods), a parallel run diffed against the old version, and a staged
+  rollout, with rollback treated as a visible restatement. Feedback gained its
+  own section: capture broadly, weight by standing, approve narrowly; a
+  feedback-authority registry beside the system-of-record one; co-approval for
+  cross-domain objects with a named arbiter and the org-authority-versus-
+  system-of-record distinction deciding what an arbiter may settle; diversity
+  and contribution concentration as measured properties; disagreement kept
+  rather than resolved by overwrite. And the access section now separates three
+  permission surfaces over one identity system -- read, judge, approve -- with
+  row-level security and column masking applied to humans and agents alike.
+
 ## 0.41.0
 
 Group 4 (reasoning capture) closed on the library-and-skill side.

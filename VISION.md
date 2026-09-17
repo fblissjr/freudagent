@@ -93,6 +93,8 @@ A few principles carry the whole design:
   starts as something an agent noticed and hardens into plain code once it is
   clear.
 - A person approves a rule once. The pipeline applies it at machine scale.
+- Capture judgment broadly, weight it by standing, approve narrowly. Reading a
+  number and having authority over what it means are different permissions.
 - Model what the business means once, in the place every consumer will look.
 - The relationships between systems are the product. A layer that leaves each
   source in its own lane has done the easy half and skipped the valuable half.
@@ -1007,6 +1009,104 @@ renewal risk review, access reviews, ticket triage and routing, release notes,
 inventory counts, capitalization decisions, incident review. Start with one,
 run it beside its owner, and let the rules fall out of the corrections.
 
+## Whose feedback counts, and on what
+
+The loop runs on human judgment, and human judgment is not uniform. It can be
+wrong, it can be thin, and it can be loud. A layer that treats every correction
+as equally true will faithfully encode whoever shows up most often, and will
+look well-governed the whole time it does so.
+
+### Capture broadly, weight by standing, approve narrowly
+
+The instinct is to restrict who may give feedback. Resist it at the capture
+end. Silence is the failure that kills these loops most often, and a person
+told their correction was out of their lane does not offer a second one.
+
+Capture every judgment. Label it with who gave it and what standing they have
+in that domain. Weight it at aggregation, where the decision actually gets
+made. Permission to speak stays broad; permission to decide stays narrow. A
+support rep noticing that a revenue figure looks wrong is evidence, not an
+overreach, even though the rep has no authority over revenue definitions.
+
+### A feedback-authority registry
+
+Same shape as the system-of-record registry, and usually the same conversation:
+per fact domain, who owns it, who may judge it, and who may approve rules about
+it. Accounting owns ledger facts, sales operations owns pipeline, HR owns
+people data, engineering owns delivery. Ownership is a role rather than a
+person, or it leaves with the person.
+
+### Cross-functional data needs more than one owner
+
+This is where it gets genuinely hard, and it is also where the value is. An
+edge between a booking and recognized revenue belongs to neither sales
+operations nor accounting alone. The effort-to-cost chain crosses engineering,
+HR and finance, and no single owner can judge whether it is right.
+
+The default for a cross-domain object is co-approval: every domain it touches
+signs, or it stays a candidate. When the owners disagree, the escalation is a
+decision rather than an argument, made by a named arbiter and recorded in the
+decision log.
+
+The distinction from the authority section applies exactly here. Organizational
+authority settles which definition the organization adopts. The system of
+record still settles what the number is. An arbiter can decide that the company
+will define pipeline coverage the way sales operations proposes, and cannot
+decide that recognized revenue is something other than what the ledger says.
+
+### Diversity of feedback is a precondition, not a nicety
+
+Corrections concentrated in one team improve that team's slice and let
+everything else rot, and the measurements look fine because they were taken
+where the feedback was.
+
+Two checks catch it. Compare where feedback comes from against where the work
+actually happens, by domain, customer segment and task type. And keep a floor
+on the share of judgments that come from people rather than from models, so
+model-generated volume cannot drown the human signal it was supposed to
+extend.
+
+### The loudest voice becomes the policy
+
+Measure contribution concentration: the share of accepted feedback and
+approvals coming from one person or one team. Concentration is rarely
+misconduct. It is usually one conscientious person who answers everything,
+whose preferences then compound into the definitions with nobody ever deciding
+that they should.
+
+The check is structural rather than behavioral, because there is no
+disagreement signal to detect when only one person participates. Count distinct
+contributors and distinct approvers per domain. One of either is a finding
+about the process, whatever the quality of the individual.
+
+### Disagreement is data
+
+Two reviewers, the same item, different answers: keep both. Feedback is a
+labeled record pointing at what it judges, never an edit to it, so
+disagreement is representable rather than a race between writers.
+
+Low agreement across a class of items is a finding about the definition, not
+about the reviewers. It usually means the question is ambiguous, or the
+definition everyone assumed exists does not. That is more useful than either
+answer.
+
+### Feedback can be wrong, including approved feedback
+
+Judgments get the same treatment as everything else: a record that can be
+superseded, with the correction to a correction as another row and both
+recoverable.
+
+Track how often judgments in a domain are later overturned, and use it to
+decide which definitions need work and which classes of item need a second
+reviewer. Resist turning it into a per-person score. The moment feedback
+affects someone's standing you get less of it and what you get is defensive,
+which trades the signal for a metric. Measure the definition, not the person.
+
+And keep the levels straight, because they are not equally strong evidence: a
+usage signal is weak, an explicit judgment is stronger, an approval by the
+domain owner is strongest, and a rule promoted without any of the three is a
+guess with provenance.
+
 ## The knowledge plane: business rules as skills
 
 ### What a skill is here
@@ -1053,6 +1153,57 @@ Files and tables are each bad at the other's job. Files are what models
 navigate best and what people review best, and they diff cleanly. Tables are
 what aggregation, lineage, concurrent writes and temporal questions need. Put
 each kind of data where its consumers are.
+
+### Versions get promoted, never edited
+
+A rule that captures a process wrongly is worse than a rule that is missing. A
+missing rule produces a question, or an answer visibly bad enough that someone
+checks. A wrong rule is applied consistently, everywhere, by every consumer,
+and it carries the layer's authority while it does so. Its errors look like the
+organization's position, and everything derived downstream inherits them
+quietly.
+
+So a rule moves through states rather than getting edited in place:
+
+| State | What it means | Who creates it |
+|---|---|---|
+| draft | exists, never loads, never applies | anyone, agents included |
+| candidate | passes its tests and its eval, visible to reviewers, may run in parallel | anyone, once the tests pass |
+| active | approved, compiled, loaded, applied | only a person with standing in that domain |
+| superseded | closed with a date, still queryable, still what rollback selects | the approval of its replacement |
+
+Three things belong between candidate and active, and the first is the one most
+often skipped.
+
+**An impact preview, not just evidence.** Evidence says why the change is
+proposed. Impact says what it will do: which objects, metrics and recent
+answers move, and by how much, computed on real periods before anyone approves
+it. A rule change can be entirely justified by its evidence and still restate a
+closed quarter, and the reviewer has no way to know that from the evidence
+alone.
+
+**A parallel run.** Compute the new version beside the old over recent periods
+and diff them. Finance has done this for decades when changing a payroll system
+or a close process, for exactly this reason. Differences are expected; a
+difference nobody can explain is a stop, not a rounding note.
+
+**A staged rollout.** Promote into one scope first, a team, an entity, a
+region, and watch the measures that the rule was supposed to move, along with
+the ones it was not.
+
+Then the two-sided eval gate described under verification: the new version must
+fix what its evidence targets and must not regress work already judged correct.
+Both, or the last good version keeps serving.
+
+Rollback stays cheap because versions are rows, so reverting is selecting an
+earlier one and recompiling. What is not cheap is the restatement that follows,
+since numbers computed under the bad version are now wrong in the other
+direction. A rollback is an event consumers can see, not a quiet fix.
+
+One consequence worth designing for: every derived row and every answer records
+the rule version that produced it. Without that stamp, a series computed under
+two versions is an artifact of the change rather than a measurement, and nobody
+can tell which part of a trend is the business and which part is the rule.
 
 ### Loading only what applies
 
@@ -1245,6 +1396,42 @@ afterwards. The agent inherits the caller's permissions and never exceeds them.
 Row-level scoping (a rep sees their own accounts) belongs in the layer, where
 it is defined once, rather than in each consumer, where it is defined
 differently each time and forgotten in the newest one.
+
+### Three permission surfaces, one identity system
+
+The mechanisms are the ones data platforms have always had, and there is no
+reason to invent new ones: roles, row-level security, column masking, policies
+defined once and enforced at the surface. What changes is that they now apply
+to three different questions, and to a new kind of principal.
+
+| Surface | Question | Shape |
+|---|---|---|
+| data | who may read this row, this column | roles plus row-level security, masking on sensitive attributes |
+| judgment | who may judge this kind of fact | broad, by domain, every judgment labeled with the giver's standing |
+| governance | who may approve a rule or definition here | narrow, by domain ownership, co-approval across domains |
+
+Conflating the first two is the most common mistake. Reading is not authority
+and authority is not reading. A support rep may be the only person who can
+judge whether a ticket was classified correctly while having no access to
+revenue at all. A finance analyst may read the entire pipeline and have no
+standing to correct how a stage is defined. Permission systems that model only
+the read question end up either blocking the judgments they need or granting
+authority they meant to withhold.
+
+Joined data is where policy gets decided rather than inherited. A cross-domain
+object takes the most restrictive read policy of its sources, and the union of
+judging authorities, and that combination has to be a deliberate decision
+recorded with the object rather than whatever the query engine happens to do.
+Watch aggregates specifically: a masked column reappears in a group that has
+one member, so small-group thresholds are part of the policy, not a nicety.
+
+Agents make all of this sharper, because traversal is what they are for. An
+agent that runs interactively holds the caller's scope and nothing more. An
+agent that runs on a schedule is its own principal with its own narrow scope,
+granted deliberately. What no agent gets is a shared service account that can
+see everything, because an agent with union-of-everyone access is an inference
+channel with a chat interface, and the fact that each individual query was
+authorized is no comfort at all.
 
 Classify at ingest, not at the point of use. Secret scanning and
 sensitive-content classification run before rows land, so the store is clean by
@@ -1478,9 +1665,11 @@ and every output is reviewed. The first pass produces a reference set, not time
 savings. Author rules thin; corrections are evidence and extra prose is
 guesswork.
 
-Gate: grain tests pass, each business rule has an owner, a definition, SQL and a
-test binding them, cross-system identity resolves with measured match quality,
-and every edge type reports its link coverage and its orphans.
+Gate: grain tests pass, each business rule has a named owner in the domain it
+belongs to, a definition, SQL and a test binding them, cross-system identity
+resolves with measured match quality, and every edge type reports its link
+coverage and its orphans. Anything crossing two domains has both owners on it
+before it counts as done.
 
 ### Stage 5: put an agent on it, and build the control
 
@@ -1517,7 +1706,9 @@ version, recompile the skill, and re-score against the answer key. If one
 revolution does not work by hand, automating it only makes it fail faster.
 
 Gate: one complete revolution, from correction to a re-verified new version,
-with its provenance chain intact.
+with its provenance chain intact, and the promotion path walked as it will be
+walked later: draft, candidate with an impact preview and a parallel run
+against the last few periods, then active.
 
 ### Stage 8: add model steps and maintenance runs
 
@@ -1619,9 +1810,19 @@ source resolves worse than it looks.
 Freshness is the number most often assumed and least often measured.
 
 **Are the rules healthy.** Corrections per rule version, which should fall.
-Proposal rejection rate, which should not be near zero. Distinct approvers,
-which should not be one. Rules retired, which should not be zero. Active rule
-count and the size of the always-loaded surface, which should be roughly flat.
+Proposal rejection rate, which should not be near zero. Rules retired, which
+should not be zero. Active rule count and the size of the always-loaded
+surface, which should be roughly flat. Promotions that were later rolled back,
+which is the measure of whether the impact preview and parallel run are doing
+their job.
+
+**Is the judgment broad enough.** Distinct contributors and distinct approvers
+per domain, neither of which should be one. Contribution concentration, the
+share of accepted feedback coming from one person or team. Feedback coverage by
+domain, customer segment and task type, compared against where the work
+actually happens. Inter-rater agreement where more than one person judges the
+same items, and the overturn rate per domain, read as a statement about the
+definitions rather than about the people.
 
 **Is it being used as intended.** How often answers cite a governed definition
 versus hand-written SQL. Which skills fire and which never do. The
@@ -1685,7 +1886,9 @@ always-loaded surface kept bounded no matter how large the corpus grows.
 **Identity and scope.** Free-text reviewer and owner names are fine until
 somebody asks who is allowed to approve what. Principals, scopes and
 permissioned approval are much cheaper to add before the history is full of
-strings that meant something to whoever typed them.
+strings that meant something to whoever typed them, and the three surfaces
+(read, judge, approve) need to be separable from the moment more than one
+department is in the layer.
 
 **Retention colliding with provenance.** Telemetry ages out on a schedule the
 knowledge citing it does not share. Copy evidence into knowledge-side storage
@@ -1708,6 +1911,19 @@ covers the loop's failure modes in full. The ones specific to this architecture:
 - Convenience views multiply until an agent has to choose among near-identical
   names, and chooses differently each time.
 - Rule prose and rule SQL diverge because nothing binds them.
+- A process is captured wrongly and promoted. It then applies everywhere,
+  consistently, with the layer's authority behind it, and every number derived
+  from it is wrong in the same direction. This is the failure with the widest
+  blast radius in the whole design, and impact previews, parallel runs and
+  staged rollout exist for it.
+- Feedback gets restricted to the people with formal authority, the rest stop
+  offering any, and the loop starves while looking well-governed.
+- One team supplies most of the corrections, so the definitions drift toward
+  how that team sees the business, and the measurements agree because they were
+  taken where the feedback was.
+- Cross-domain objects get approved by whichever owner was asked first.
+- An agent runs on a shared service account that can read everything, and
+  every individual query is authorized while the aggregate is a leak.
 - A chain that links most records gets used as though it linked all of them.
   Partial coverage plus a confident answer is worse than no answer, so coverage
   travels with the result.
@@ -1808,6 +2024,12 @@ Terms used here that mean something specific, in the order they first matter.
 | model step | a bounded, scored, per-record inference inside a pipeline, versioned by prompt |
 | agent run | an open-ended, tool-using pass over the data that produces proposals, not mutations |
 | system of record | the registry saying which source is canonical for which kind of fact |
+| feedback authority | the registry saying who may judge, and who may approve rules about, each fact domain |
+| co-approval | the rule that a cross-domain object needs a signature from every domain it touches |
+| promotion | moving a rule from draft to candidate to active, each state with its own gate |
+| impact preview | what a candidate version would change, computed on real periods before approval |
+| parallel run | computing the new version beside the old over recent periods and diffing them |
+| row-level security | read policy expressed as rows a principal may see, enforced in the layer for humans and agents alike |
 | answer key | correct answers to real instances, written by the people who answer them today |
 | synthetic twin | a fictional, deterministic version of the organization used to build and score against |
 
