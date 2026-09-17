@@ -134,6 +134,11 @@ internal/            - Analysis docs, backlog, session logs (gitignored)
 README.md            - The explainer and entry point; the short version of
                        docs/data-flywheel.md
 ROADMAP.md           - What scales, what breaks, in what order
+VISION.md            - The generalized enterprise pattern around the flywheel:
+                       raw layer -> data hub -> dimensional context layer, the
+                       knowledge plane, and the three kinds of work (pipelines,
+                       model steps, agent runs). Org-facing and repo-agnostic --
+                       no CLI or code from this repo belongs in it
 CHANGELOG.md         - Semver, no dates. Historical entries are a record; do not
                        edit them to match current conventions
 LICENSE

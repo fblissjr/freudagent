@@ -1,5 +1,5 @@
 # freudagent
-README Last updated: 2026-07-21
+README Last updated: 2026-09-17
 
 <p align="center">
   <a href="assets/theman-medium.png">
@@ -299,6 +299,9 @@ uv sync --extra dev
 - [Archetypes and presets](skill/reference/archetypes.md)
 - [Progressive disclosure](skill/reference/retrieval-thesis.md) — why skills are
   something you look up rather than switch on
+- [Vision](VISION.md) — the enterprise pattern this design sits inside: raw
+  data, a historical data hub, a dimensional context layer, and the governed
+  knowledge that keeps them meaningful
 - [Roadmap](ROADMAP.md) — what scales, what breaks, in what order
 - [Implementation plan](docs/implementation-plan.md) — milestones and definitions
   of done

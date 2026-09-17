@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.41.1
+
+### Added
+
+- **`VISION.md`** -- the generalized pattern this repo's flywheel sits inside,
+  written for any organization rather than about this code: a raw landing
+  layer, a source-shaped historical data hub, and a dimensional context layer
+  agents consume, governed by a versioned knowledge plane. Covers where
+  deterministic pipelines, model steps inside pipelines, and agent maintenance
+  runs each belong; why a rule is approved once and applied at scale; what can
+  be rebuilt and what cannot; authority and conflict resolution as data; and a
+  staged adoption path that starts from one question and its answer key.
+  `docs/data-flywheel.md` remains the detailed design of the loop itself.
+
 ## 0.41.0
 
 Group 4 (reasoning capture) closed on the library-and-skill side.
