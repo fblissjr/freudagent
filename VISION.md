@@ -1326,19 +1326,17 @@ question the day it is asked, and build the throwaway dashboard, report or
 small app that goes with it. The alternative is a ticket to a data team, and by
 the time it is done the question has often moved on.
 
-The connection is a governed query surface, for example an MCP server, exposing
-read-only SQL over the context layer, the semantic definitions, the reader's
-guide and the query skills. A few conditions make it safe:
+The connection is the surface described two sections above, exposed through
+whatever protocol those assistants speak, an MCP server being the current
+answer. Nothing about it changes for this audience: the same scoping by
+identity, the same certification tier and freshness on every answer, the same
+guardrails.
 
-- Read-only, scoped by the caller's identity. A shared artifact is scoped to
-  what its audience may see. It is not produced broadly and scrubbed afterwards.
-- Every answer says which certification tier it came from and cites the
-  definitions it used.
-- Usage and feedback flow back as a source. The answer engine is also the
-  cheapest signal collector the organization has, because people give feedback
-  where they already work and not in a separate review tool.
-- The surface is measured by whether an agent answers a cross-source question
-  correctly without anyone hand-writing SQL.
+What does change is who is asking, and that makes this the most valuable
+feedback channel the organization has. People asking questions in the tool they
+already work in will tell you a number looks wrong, which is a correction
+nobody would have filed in a review queue. Capture it where they said it, label
+it with who said it, and it feeds the same loop as everything else.
 
 The caution: an answer engine over ungoverned data spreads wrong numbers faster
 than any dashboard backlog ever did. The governance is what makes the speed
@@ -1540,11 +1538,10 @@ Each new source is also worth more than the last, because it maps into the
 existing dimensions and is immediately related to everything already there.
 Grow the twin from stage 1 alongside it, one arc per new chain, so the
 regression suite keeps up with what the layer claims to answer.
-Materialize the views that got hot. Open the query surface to the organization's
-assistants. Add identity-scoped access, a real review workflow (merging
-recurring findings into single cases, routing by risk, batching related
-proposals), ranked retrieval over skills, and a verification gate that tests
-every rule change against held-back correct work before it ships.
+Materialize the views that got hot. Open the query surface to the
+organization's assistants. This is also where the scaling work starts to pay
+for itself rather than looking like overhead, and "what breaks as this grows"
+below is the order it tends to arrive in.
 
 The measure of this stage is trend, not state: time to onboard a source,
 corrections per rule version, and agent accuracy on the answer keys should all
