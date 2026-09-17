@@ -993,7 +993,7 @@ review surface becomes one more thing built from the same data rather than an
 application somebody has to maintain, and it lives where the reviewers already
 work rather than in a tool they have to remember to open.
 
-Two numbers keep this honest. The ratio of confirmations to corrections, since
+Watch two numbers. The ratio of confirmations to corrections, since
 a loop that only ever hears about failures has no positive baseline to verify
 against. And the coverage of review across slices, compared against where the
 work actually happens, since a reference set drawn from the same narrow corner
@@ -1263,7 +1263,8 @@ which rows. Most governance work is a cost that pays back slowly. This one
 pays back the first time an auditor asks a question that would otherwise have
 taken a week.
 
-Two habits keep it honest. Knowledge and telemetry get different retention,
+Two habits carry most of the weight here. Knowledge and telemetry get different
+retention,
 with the evidence behind an approved rule copied into knowledge-side storage
 rather than cited where it will be deleted on a schedule. And no agent holds a
 credential that widens its own scope, because an agent that can grant itself
@@ -1362,12 +1363,12 @@ The three layers usually map onto what exists, with one condition each:
   marts that each re-implement the same rules slightly differently, which is
   the silo problem again one level up.
 
-Three gaps are typical, and they are what to build rather than replace: history
-in the middle, relationships as first-class governed objects carrying method
-and coverage, and the knowledge plane. The transformation tool's descriptions
-and tests are not a knowledge plane. A description is prose nothing verifies
-against the data, and a scheduled test suite is not a definition with an owner,
-a version history and an approval behind it.
+The gaps are consistent, and they are what to build rather than replace:
+history in the middle, relationships as first-class governed objects carrying
+method and coverage, and the knowledge plane. The transformation tool's
+descriptions and tests are not a knowledge plane. A description is prose
+nothing verifies against the data, and a scheduled test suite is not a
+definition with an owner, a version history and an approval behind it.
 
 Reuse what you have. The transformation tool and orchestrator run the
 deterministic pipelines. The storage stays. The catalog keeps doing
@@ -1727,8 +1728,6 @@ covers the loop's failure modes in full. The ones specific to this architecture:
   confidently extends that slice's opinions to everything else. Keep a
   human-only slice, keep the origin label on every record, and believe the
   people when the two disagree.
-- One reviewer approves everything and their taste becomes the policy. Count
-  distinct approvers, and record the reasons on rejections.
 - The knowledge base only grows. Count active rules and the size of the
   always-loaded surface over time; both should be roughly flat.
 - Telemetry retention deletes the evidence a rule cites, and the rule survives
@@ -1819,8 +1818,9 @@ agent-session transcripts (tiered landing and staging, lineage envelopes,
 source contracts with canaries, coverage layers, tiered SQL and model-derived
 attributes), a toolkit for maintaining agent skills (retrieval-first skill
 design, change-triggered staleness, audits that re-derive claims by execution,
-dimensional modeling for agent state), the governed flywheel in this
-repository, and a synthetic company corpus built to exercise all of them.
+dimensional modeling for agent state), the governed flywheel in this repository
+and its account of what breaks first when a single-operator version of that
+loop scales, and a synthetic company corpus built to exercise all of them.
 
 ## Further reading
 
