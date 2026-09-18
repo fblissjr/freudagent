@@ -3,13 +3,13 @@
 Dimensional model (Kimball-style):
 - 4 SCD Type 2 dimensions: dim_skill, dim_source, dim_rule,
   dim_sampling_config (effective_from/effective_to/is_current/hash_diff).
-- 5 registry dimensions (append-only, no SCD-2): dim_project, dim_tenant,
-  dim_facet_type, dim_finding_type, dim_event_type.
-- 11 fact tables: fact_session (accumulating snapshot), fact_trace,
+- 6 registry dimensions (append-only, no SCD-2): dim_project, dim_tenant,
+  dim_facet_type, dim_feedback_origin, dim_finding_type, dim_event_type.
+- 12 fact tables: fact_session (accumulating snapshot), fact_trace,
   fact_extraction, fact_feedback, fact_trace_feedback, fact_message,
-  fact_tool_use, fact_session_facets, fact_finding, fact_proposal,
-  fact_event.
-- 10 analytical views, meta_schema_version, meta_load_log, meta_key_algorithm.
+  fact_tool_use, fact_session_facets, fact_message_facets, fact_finding,
+  fact_proposal, fact_event.
+- 11 analytical views, meta_schema_version, meta_load_log, meta_key_algorithm.
 
 Key scheme: sha256/32 hash surrogate keys (keys.dimension_key), no
 sequences. Deterministic keys make transcript re-ingestion idempotent.
@@ -53,6 +53,8 @@ from freud_schema.tables import (
     FacetMethod,
     FacetOutputType,
     FindingScope,
+    LabelerKind,
+    LabelUnit,
     MessageRole,
     ProposalStatus,
     RecordSource,
@@ -402,6 +404,36 @@ def _build_tables_ddl() -> list[str]:
     extraction_metadata JSON,
 {_lineage_cols()}
 )""",
+        # One label on one message from one labeler (model, person, rule
+        # or planted key). Values are typed; choice values are slugs, so
+        # no transcript text reaches this table through a label.
+        f"""CREATE TABLE IF NOT EXISTS fact_message_facets (
+    facet_row_key VARCHAR NOT NULL,
+    unit_type VARCHAR NOT NULL,
+    session_key VARCHAR NOT NULL,
+    project_key VARCHAR,
+    message_key VARCHAR NOT NULL,
+    context_message_key VARCHAR,
+    facet_type_key VARCHAR NOT NULL,
+    facet_id VARCHAR NOT NULL,
+    prompt_version INTEGER NOT NULL DEFAULT 1,
+    options_hash VARCHAR,
+    labeler_kind VARCHAR NOT NULL,
+    labeler VARCHAR NOT NULL,
+    labeler_version VARCHAR,
+    value_text VARCHAR,
+    value_numeric DOUBLE,
+    probability DOUBLE,
+    probabilities JSON,
+    confidence DOUBLE,
+    input_content_hash VARCHAR,
+    state_truncated BOOLEAN NOT NULL DEFAULT FALSE,
+    labeled_at TIMESTAMP,
+    label_source VARCHAR,
+{_lineage_cols()},
+    {_check_in('unit_type', LabelUnit)},
+    {_check_in('labeler_kind', LabelerKind)}
+)""",
         f"""CREATE TABLE IF NOT EXISTS fact_finding (
     finding_key VARCHAR NOT NULL,
     finding_type VARCHAR NOT NULL,
@@ -545,6 +577,37 @@ WHERE is_error
        OR result_text ILIKE '%doesn''t want to proceed%'
        OR result_text ILIKE '%user rejected%')
 GROUP BY project_key, tool_name""",
+    # --- Label views: one row per labeled reply per labeler ---
+    # Pivots the exchange question set (user_response, correction_kind,
+    # rule_violated, frustration) so detectors and calibration read one
+    # row per reply per labeler. The latest question version per labeler
+    # wins. Questions outside this set are read from
+    # fact_message_facets directly.
+    f"""CREATE OR REPLACE VIEW v_labeled_exchanges AS
+WITH latest AS (
+    SELECT *,
+           ROW_NUMBER() OVER (
+               PARTITION BY message_key, facet_id, labeler_kind, labeler,
+                            labeler_version
+               ORDER BY prompt_version DESC, labeled_at DESC NULLS LAST,
+                        created_at DESC) AS rn
+    FROM fact_message_facets
+    WHERE unit_type = '{LabelUnit.EXCHANGE.value}'
+)
+SELECT
+    message_key, session_key, project_key, context_message_key,
+    labeler_kind, labeler, labeler_version,
+    MAX(value_text) FILTER (WHERE facet_id = 'user_response') AS user_response,
+    MAX(probability) FILTER (WHERE facet_id = 'user_response') AS user_response_p,
+    MAX(value_text) FILTER (WHERE facet_id = 'correction_kind') AS correction_kind,
+    MAX(probability) FILTER (WHERE facet_id = 'correction_kind') AS correction_kind_p,
+    MAX(value_text) FILTER (WHERE facet_id = 'rule_violated') AS rule_violated,
+    MAX(probability) FILTER (WHERE facet_id = 'rule_violated') AS rule_violated_p,
+    MAX(value_numeric) FILTER (WHERE facet_id = 'frustration') AS frustration
+FROM latest
+WHERE rn = 1
+GROUP BY message_key, session_key, project_key, context_message_key,
+         labeler_kind, labeler, labeler_version""",
 ]
 
 _INDEXES: list[str] = [
@@ -594,6 +657,10 @@ _INDEXES: list[str] = [
     # fact_session_facets
     "CREATE INDEX IF NOT EXISTS idx_fact_session_facets_session ON fact_session_facets(session_key)",
     "CREATE INDEX IF NOT EXISTS idx_fact_session_facets_facet ON fact_session_facets(facet_id, prompt_version)",
+    # fact_message_facets
+    "CREATE INDEX IF NOT EXISTS idx_fact_message_facets_message ON fact_message_facets(message_key)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_message_facets_facet ON fact_message_facets(facet_id, prompt_version, labeler_kind)",
+    "CREATE INDEX IF NOT EXISTS idx_fact_message_facets_key ON fact_message_facets(facet_row_key)",
     # fact_finding / fact_proposal
     "CREATE INDEX IF NOT EXISTS idx_fact_finding_type ON fact_finding(finding_type)",
     "CREATE INDEX IF NOT EXISTS idx_fact_finding_project ON fact_finding(project_key)",
@@ -624,6 +691,8 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (9, "v0.37: feedback origin -- dim_feedback_origin registry, fact_feedback.feedback_origin_key + denormalized origin_kind"),
     (10, "v0.39: fact_message.thinking_text -- the reasoning trail is kept rather than reduced to a boolean"),
     (11, "v0.40: fact_trace.source_message_key -- typed traces are derived from captured reasoning and name the message they came from"),
+    (12, "v0.42: fact_message_facets -- labels on messages from models, people, rules and planted keys; "
+         "FacetMethod typed_model; label_ingest record_source; v_labeled_exchanges"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it
@@ -632,7 +701,8 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
 # own hand-maintained copy.
 ALL_TABLES: tuple[str, ...] = (
     "fact_event",
-    "fact_proposal", "fact_finding", "fact_session_facets",
+    "fact_proposal", "fact_finding", "fact_message_facets",
+    "fact_session_facets",
     "fact_tool_use", "fact_message",
     "fact_trace_feedback", "fact_feedback", "fact_trace",
     "fact_extraction", "fact_session",
@@ -648,6 +718,7 @@ ALL_VIEWS: tuple[str, ...] = (
     "v_skill_feedback_patterns", "v_session_feedback_count",
     "v_retry_loops", "v_tool_error_clusters",
     "v_interruption_hotspots", "v_permission_friction",
+    "v_labeled_exchanges",
 )
 
 _ALL_DDL: list[str] = _TABLES_DDL + _VIEWS + _INDEXES

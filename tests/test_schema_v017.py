@@ -42,7 +42,8 @@ REGISTRIES = {
 FACTS = {
     "fact_session", "fact_trace", "fact_extraction", "fact_feedback",
     "fact_trace_feedback", "fact_message", "fact_tool_use",
-    "fact_session_facets", "fact_finding", "fact_proposal", "fact_event",
+    "fact_session_facets", "fact_message_facets", "fact_finding",
+    "fact_proposal", "fact_event",
 }
 META = {"meta_schema_version", "meta_load_log", "meta_key_algorithm"}
 

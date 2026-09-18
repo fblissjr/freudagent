@@ -1,0 +1,9 @@
+{"project_dir":"-work-acme-ledgerline","rule_id":"run-tests-before-commit","statement":"Run the full test suite before every commit.","effective_from":"2026-04-01","effective_to":null}
+{"project_dir":"-work-acme-ledgerline","rule_id":"no-emojis","statement":"No emojis in any output.","effective_from":"2026-04-01","effective_to":null}
+{"project_dir":"-work-acme-ledgerline","rule_id":"ask-before-push","statement":"Never push to a remote without explicit approval.","effective_from":"2026-05-15","effective_to":null}
+{"project_dir":"-work-acme-metering-api","rule_id":"verify-before-claiming","statement":"Do not say a change works until a command has shown it.","effective_from":"2026-04-01","effective_to":"2026-05-20"}
+{"project_dir":"-work-acme-metering-api","rule_id":"verify-before-claiming","statement":"Do not say a change works until a command run in this session has shown it, and name the command.","effective_from":"2026-05-20","effective_to":null}
+{"project_dir":"-work-acme-metering-api","rule_id":"read-tool-over-cat","statement":"Use the Read tool to view files, never cat or head.","effective_from":"2026-04-01","effective_to":null}
+{"project_dir":"-work-acme-docs-site","rule_id":"plain-language","statement":"Write in plain language: active voice, no filler.","effective_from":"2026-04-01","effective_to":null}
+{"project_dir":"-work-acme-docs-site","rule_id":"tables-for-comparisons","statement":"Present comparisons as tables, not prose.","effective_from":"2026-04-01","effective_to":"2026-05-10"}
+{"project_dir":"-work-acme-docs-site","rule_id":"no-scope-creep","statement":"Change only what was asked; propose anything else instead of doing it.","effective_from":"2026-05-01","effective_to":null}

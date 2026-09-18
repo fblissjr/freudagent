@@ -32,11 +32,11 @@ MCP server works too if that's what's connected). See
   doesn't evolve the way a skill's or rule's content does.
 - **Lineage envelope on every fact table**: `record_source` (CHECK-constrained
   allowlist: `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`,
-  `derived`) and `etl_run_id` (joins `meta_load_log`). Every row declares where
+  `label_ingest`, `derived`) and `etl_run_id` (joins `meta_load_log`). Every row declares where
   it came from.
 - **Denormalized fact tables.** Fact tables carry dimension attributes
   (`skill_domain`, `source_path`, etc.) at insert time. Eliminates fact-to-fact joins.
-- **Analytical views.** 10 views replace complex aggregation queries and N+1 patterns.
+- **Analytical views.** 11 views replace complex aggregation queries and N+1 patterns.
 
 ## Key Scheme
 
@@ -66,6 +66,7 @@ M3) -- a tenant scopes identity, so `dim_skill` for `("team-a", "x", "y")` and
 | `fact_message` | `(session_key, entry_uuid)` | Falls back to a random uuid if `entry_uuid` is absent |
 | `fact_tool_use` | `(session_key, tool_use_id)` | Falls back to a random uuid if `tool_use_id` is absent |
 | `fact_session_facets` | `(session_key, facet_id, prompt_version)` | |
+| `fact_message_facets` | `(unit_type, message_key, facet_id, prompt_version, options_hash, labeler, labeler_version, input_content_hash)` | Via `message_facet_key_for()`. A relabel under a new model version, option set or input is a new row, not a skip |
 | `fact_finding` | `(finding_type, scope, project_key, summary, etl_run_id)` | |
 | `fact_proposal` | `(target_dimension, target_key, uuid4())` | uuid-salted |
 | `fact_event` | `(stream_key, native_event_id)` | `stream_key = dimension_key(record_source, native_stream_id)`, the generalization of `session_key` |
@@ -98,7 +99,7 @@ Query current state with `WHERE is_current`; query history with
 | Column | Type | Notes |
 |--------|------|-------|
 | tenant_key | VARCHAR | Denormalized `dim_tenant` reference (since v0.23/M3). Resolved from the linked skill's tenant when a skill is denormalized onto the fact, else from the model's own `tenant_key` or the default tenant |
-| record_source | VARCHAR | `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`, `derived` |
+| record_source | VARCHAR | `native`, `transcript_ingest`, `history_jsonl`, `event_ingest`, `label_ingest`, `derived` |
 | etl_run_id | VARCHAR | Joins `meta_load_log`; NULL for rows not part of a tracked run. |
 | created_at | TIMESTAMP | Row insert time |
 
@@ -220,15 +221,19 @@ Registry row for a behavioral facet. Entity key: `(facet_id, prompt_version)`.
 | facet_type_key | VARCHAR | `dimension_key(facet_id, prompt_version)` |
 | facet_id | VARCHAR NOT NULL | e.g., "verbosity", "hedging_rate" |
 | tier | INTEGER DEFAULT 1 | Facet grouping tier |
-| method | VARCHAR | computed, regex, llm, cluster |
+| method | VARCHAR | computed, regex, llm, typed_model, cluster. `typed_model` is a non-generative model answering typed questions with probabilities (the exchange label questions) |
 | output_type | VARCHAR | text, numeric, bool, json |
-| prompt_text | VARCHAR | LLM prompt used to derive the facet, if `method = llm` |
+| prompt_text | VARCHAR | LLM prompt used to derive the facet, if `method = llm`; for label questions, the full definition (type, text, options) as JSON |
 | prompt_version | INTEGER DEFAULT 1 | Bumping this adds a new registry row |
 | description | VARCHAR | |
 | record_source | VARCHAR | Lineage |
 | created_at | TIMESTAMP | |
 
-Adding a facet is a row plus a populator, not a schema migration.
+Adding a facet is a row plus a populator, not a schema migration. Label
+questions (`fact_message_facets`) register here too: `facet_id` is the
+question id and `prompt_version` the question version (`"v1"` stores 1). A
+question whose definition changes under the same version is refused -- bump
+the version instead.
 
 ### dim_feedback_origin
 Registry row for one producer of feedback: a named person, a specific model
@@ -474,6 +479,47 @@ EAV fact: one value of one facet for one session. Registry-validated -- the
 | extraction_metadata | JSON | Populator-specific detail |
 | *lineage columns* | | See above -- defaults to `record_source = derived` |
 
+### fact_message_facets
+One label on one message: a typed answer to a registered question, from one
+labeler. Grain: one row per (unit, labeled user message, question, question
+version, option set, labeler, labeler version, input). Several labelers can
+answer the same question about the same message -- that is how a model is
+scored against people or a planted answer key, and how disagreement stays
+representable. Loaded by `freud-schema ingest labels` (`ingest.ingest_labels`),
+which rejects and counts by reason any row that fails validation or names a
+message not in `fact_message`, so nothing is written partially. Choice values,
+question ids and labeler names must be slugs, so no transcript text can reach
+this table through a label.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| facet_row_key | VARCHAR | See Key Scheme |
+| unit_type | VARCHAR NOT NULL | exchange (a typed user reply, judged against the assistant turn before it), interrupt (an interruption marker, labeled by code) |
+| session_key | VARCHAR NOT NULL | Denormalized from the labeled message |
+| project_key | VARCHAR | Denormalized from the labeled message |
+| message_key | VARCHAR NOT NULL | The labeled user message: `message_key_for(session_key_for('transcript_ingest', native_session_id), user_entry_uuid)` |
+| context_message_key | VARCHAR | The last assistant message before it |
+| facet_type_key | VARCHAR NOT NULL | `dim_facet_type` reference (the question) |
+| facet_id | VARCHAR NOT NULL | Question id |
+| prompt_version | INTEGER DEFAULT 1 | Question version |
+| options_hash | VARCHAR | sha256 of the ordered `[label, description]` option pairs sent (compact JSON, UTF-8); `ingest.options_hash()` is the recipe. NULL for score questions |
+| labeler_kind | VARCHAR NOT NULL | model, human, rule, key. `key` is planted truth from a synthetic generator -- never a person's judgment |
+| labeler | VARCHAR NOT NULL | Open identity: jev, claude, owner, keyword, synthetic |
+| labeler_version | VARCHAR | Versioned model id as returned, never an alias |
+| value_text | VARCHAR | Choice answer (a slug) |
+| value_numeric | DOUBLE | Score answer |
+| probability | DOUBLE | Probability of the chosen option; model labels only |
+| probabilities | JSON | Option -> probability, when returned |
+| confidence | DOUBLE | The labeler's own confidence value, when returned |
+| input_content_hash | VARCHAR | sha256 of the exact state sent; NULL for key and human labels |
+| state_truncated | BOOLEAN DEFAULT FALSE | The state was cut at the labeler's input cap -- exclude from calibration |
+| labeled_at | TIMESTAMP | |
+| label_source | VARCHAR | The warehouse build or corpus the labeler read |
+| *lineage columns* | | See above -- defaults to `record_source = label_ingest` |
+
+Model labels are prioritization, not evidence, until their probabilities are
+shown to be calibrated against human or key labels on the same messages.
+
 ### fact_finding
 A couch output: one detected pattern with its evidence. Append-only --
 re-running Analyze produces new rows, so trends work for free.
@@ -555,8 +601,9 @@ Indexed on `(stream_key, occurred_at)` and `(event_type)`.
 | `v_tool_error_clusters` | Per-project, per-tool error rates (uses, errors, error_pct, error session keys -- couch's tool-error-cluster detector base) |
 | `v_interruption_hotspots` | Mid-turn user interruptions per project (`[Request interrupted by user...]` messages -- couch's interruption-hotspot detector base) |
 | `v_permission_friction` | Permission denials per project+tool (tool errors whose result text mentions permission/denial -- couch's permission-friction detector base) |
+| `v_labeled_exchanges` | One row per labeled reply per labeler (`labeler_kind`, `labeler`, `labeler_version`), pivoting the exchange questions: `user_response`, `correction_kind`, `rule_violated` (each with its `_p` probability) and `frustration`. Latest question version wins. Base for couch's two label detectors and for calibration joins (model rows against key or human rows on `message_key`) |
 
-The four couch views carry no thresholds in the DDL -- `couch.py`'s detectors
+The couch views carry no thresholds in the DDL -- `couch.py`'s detectors
 own those, passed as parameters into the store's `query_*` methods.
 
 ## Enum Values (enforced by CHECK constraints)
@@ -572,7 +619,7 @@ own those, passed as parameters into the store's `query_*` methods.
 | dim_rule.status | active, inactive |
 | dim_sampling_config.strategy | recent, random, stratified_outcome, stratified_feedback, high_feedback |
 | dim_sampling_config.status | active, inactive |
-| dim_facet_type.method | computed, regex, llm, cluster |
+| dim_facet_type.method | computed, regex, llm, typed_model, cluster |
 | dim_facet_type.output_type | text, numeric, bool, json |
 | dim_finding_type.detection_method | sql, llm, hybrid |
 | fact_session.agent_role | orchestrator, subagent |
@@ -582,11 +629,13 @@ own those, passed as parameters into the store's `query_*` methods.
 | fact_feedback.correction_type | field_mapping, wrong_value, missing_field, false_positive |
 | fact_trace_feedback.feedback_type | path_correction, positive_signal, dead_end_confirmation, reasoning_error |
 | fact_message.role | user, assistant |
+| fact_message_facets.unit_type | exchange, interrupt |
+| fact_message_facets.labeler_kind | model, human, rule, key |
 | fact_finding.scope | project, global |
 | fact_proposal.target_dimension | dim_skill, dim_rule, dim_sampling_config |
 | fact_proposal.status | pending, approved, rejected |
 | meta_load_log.status | running, completed, failed (shares `SessionStatus`) |
-| **record_source** (every dim_*, fact_*, and meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, derived |
+| **record_source** (every dim_*, fact_*, and meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, label_ingest, derived |
 
 **`fact_finding.finding_type` and `fact_event.event_type` are deliberately absent
 from this table.** Neither has a CHECK constraint -- see the "Registry
@@ -596,7 +645,7 @@ Dimensions" section above for why.
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Schema version tracking (version, description). Seeded on `db init`. Currently version 7. |
+| `meta_schema_version` | Schema version tracking (version, description). Seeded on `db init`. Currently version 12. |
 | `meta_load_log` | One row per ingest/compile run. `start_load_run()` opens a row and returns `etl_run_id`; `complete_load_run()` closes it with row counts and an optional error. |
 | `meta_key_algorithm` | Single-row self-description of the active key scheme (`algorithm`, `recorded_at`). Seeded with `keys.KEY_ALGORITHM` (`sha256/32`) on `db init`. |
 

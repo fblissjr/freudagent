@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.41.1
+version: 0.42.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -178,6 +178,25 @@ types auto-register in `dim_event_type` (open vocabulary, same pattern as
 selection. In-session, use the store-ops `ingest_events` tool instead of the
 CLI (same lock rule as `ingest_transcripts`).
 
+### Labels on Messages
+
+```bash
+freud-schema ingest labels --file labels.jsonl --questions questions.jsonl
+```
+
+Loads typed labels about already-ingested user messages into
+`fact_message_facets`: one row per unit, question and labeler, where the
+labeler is a model (`jev`, `claude`), a person (`owner`), a rule (`keyword`)
+or a synthetic answer key (`labeler_kind` = model, human, rule, key). Each
+row keys on `native_session_id` + `user_entry_uuid`, the same recipe
+transcript ingest uses, so the transcripts must be ingested first.
+`--questions` registers each question's full definition in `dim_facet_type`
+first; a question whose definition changed under the same version is
+refused. Rows that fail validation or name messages not in the warehouse are
+rejected and counted by reason, never written. Choice values must be slugs,
+so reply text cannot enter through a label. Re-running the same file writes
+nothing. In-session, use the store-ops `ingest_labels` tool.
+
 ### The Couch (analyze)
 
 ```bash
@@ -187,7 +206,11 @@ freud-schema couch list [--type retry_loop]
 ```
 
 Detects retry loops, tool error clusters, interruption hotspots, and
-permission friction, with evidence session keys attached; plus stale
+permission friction, with evidence session keys attached; recurring
+correction kinds and recurring rule violations from message labels
+(`labeled_correction_recurring`, `labeled_rule_violation_recurring`, one
+finding per labeler, model labels counted only at or above the probability
+floor); plus stale
 sources (registered via `source add --hash`) whose file content changed
 since their baseline -- a hybrid detector that reads the filesystem, so
 `--warehouse-only` skips it where the corpus is absent. The LLM layer

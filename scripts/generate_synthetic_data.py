@@ -19,6 +19,11 @@ so re-running the script reproduces the corpus byte-for-byte. Anchor
 entities (the 2026-03-11 ingestion incident, key tickets/issues) are
 pinned explicitly so documents can reference stable IDs.
 
+It also writes synthetic coding-agent session transcripts
+(agent_sessions/) with a planted answer key for the exchange label
+questions (eval/exchange_labels.jsonl), so a labeler can be scored before
+any real session text is used.
+
 Usage:
     uv run python scripts/generate_synthetic_data.py [--out DIR]
 """
@@ -27,7 +32,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
 import random
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -2786,6 +2794,521 @@ def write_temporal(out: Path, employees: list[dict]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Agent sessions -- synthetic coding-agent transcripts with a planted
+# answer key, for scoring exchange labelers before any real session text
+# leaves the machine
+# ---------------------------------------------------------------------------
+#
+# Layout matches Claude Code's projects directory, so both warehouses read
+# it unchanged: agent_sessions/<encoded-project>/<session-uuid>.jsonl, with
+# subagent transcripts at <session-uuid>/subagents/agent-<id>.jsonl plus a
+# .meta.json sidecar. Every typed reply carries a planted answer for the v1
+# exchange questions (user_response, correction_kind, rule_violated,
+# frustration); eval/exchange_labels.jsonl is that key, one row per unit and
+# question, labeler_kind "key".
+#
+# The sessions also carry the entries a "typed reply" filter must skip:
+# tool-result carriers, meta entries, slash-command output, hook
+# system-reminder injections, compact summaries, interruption markers and
+# subagent transcripts. None of those get key rows.
+#
+# rules_history.jsonl is the rule set in force per project over time. Some
+# rules start, change or retire mid-period, so the same correction points at
+# a rule in one session and at "none" in an earlier one.
+
+SESSIONS_SEED = 20260918
+SESSIONS_KEY_VERSION = "synthetic-sessions-1"
+SESSIONS_SOURCE = "data/synthetic/agent_sessions"
+SESSIONS_LABELED_AT = "2026-07-01T00:00:00Z"
+SESSIONS_CLIENT_VERSION = "2.5.0"
+SESSIONS_MODEL = "claude-fable-5"
+
+# The v1 exchange question set. Option labels and descriptions are the
+# label contract's exact strings: options_hash is computed from them, so a
+# drift here is a hash mismatch against the labeler.
+USER_RESPONSE_OPTIONS = [
+    ["approve", "accepts or confirms what the assistant did or proposed"],
+    ["correct", "says something the assistant did or said is wrong and must change"],
+    ["redirect_scope", "keeps the task but changes its scope, priority or direction"],
+    ["question", "asks something without judging the work"],
+    ["new_task", "starts unrelated work"],
+    ["continue", "tells the assistant to proceed, with no judgment"],
+    ["other", "none of the above"],
+]
+CORRECTION_KIND_OPTIONS = [
+    ["process", "how the work was done (steps, order, workflow)"],
+    ["fact", "something stated was untrue"],
+    ["style", "wording, formatting or tone"],
+    ["scope", "did too much, too little, or the wrong thing"],
+    ["verification", "claimed something without checking it"],
+    ["tool_use", "used the wrong tool or misused one"],
+    ["other", "none of the above"],
+]
+FRUSTRATION_LEVELS = [
+    [0, "calm, matter-of-fact"],
+    [1, "frustrated but civil"],
+    [2, "very angry"],
+]
+NO_RULE_OPTION = ["none", "the reply points at no listed rule"]
+
+EXCHANGE_QUESTIONS = [
+    {"question_id": "user_response", "question_version": "v1", "type": "choice",
+     "text": "How does the user's reply respond to the assistant's turn?",
+     "options": USER_RESPONSE_OPTIONS},
+    {"question_id": "correction_kind", "question_version": "v1", "type": "choice",
+     "text": "If the reply corrects the assistant, what kind of correction is it?",
+     "options": CORRECTION_KIND_OPTIONS},
+    {"question_id": "rule_violated", "question_version": "v1", "type": "choice",
+     "text": "Which of the listed rules, if any, does the reply say the "
+             "assistant broke?",
+     "options": None},
+    {"question_id": "frustration", "question_version": "v1", "type": "score",
+     "text": "How frustrated does the user sound?",
+     "options": FRUSTRATION_LEVELS},
+]
+
+# (project dir name, cwd). The cwd is fictional; the directory name is
+# Claude Code's encoding of it (every "/" becomes "-").
+AGENT_PROJECTS = {
+    "ledgerline": "/work/acme/ledgerline",
+    "metering-api": "/work/acme/metering-api",
+    "docs-site": "/work/acme/docs-site",
+}
+
+# One row per rule version: (project, rule_id, statement, effective_from,
+# effective_to). effective_to None means still in force.
+AGENT_RULES = [
+    ("ledgerline", "run-tests-before-commit",
+     "Run the full test suite before every commit.", "2026-04-01", None),
+    ("ledgerline", "no-emojis", "No emojis in any output.", "2026-04-01", None),
+    ("ledgerline", "ask-before-push",
+     "Never push to a remote without explicit approval.", "2026-05-15", None),
+    ("metering-api", "verify-before-claiming",
+     "Do not say a change works until a command has shown it.",
+     "2026-04-01", "2026-05-20"),
+    ("metering-api", "verify-before-claiming",
+     "Do not say a change works until a command run in this session has "
+     "shown it, and name the command.", "2026-05-20", None),
+    ("metering-api", "read-tool-over-cat",
+     "Use the Read tool to view files, never cat or head.", "2026-04-01", None),
+    ("docs-site", "plain-language",
+     "Write in plain language: active voice, no filler.", "2026-04-01", None),
+    ("docs-site", "tables-for-comparisons",
+     "Present comparisons as tables, not prose.", "2026-04-01", "2026-05-10"),
+    ("docs-site", "no-scope-creep",
+     "Change only what was asked; propose anything else instead of doing it.",
+     "2026-05-01", None),
+]
+
+# Planted exchange scenarios: what the assistant did, how the person
+# replied, and the true answers. rule is the rule id the reply points at,
+# or None; whether it is in force is decided per project and date, so the
+# key says "none" where the rule does not apply.
+#   (id, assistant_text, tool, reply, user_response, correction_kind, rule,
+#    frustration)
+# tool is (name, input, result_text) or None.
+_S = [
+    ("commit_untested",
+     "Committed the fix to the matching tolerance.",
+     ("Bash", {"command": "git commit -am 'Widen matching tolerance'"},
+      "[main 4c1e2a9] Widen matching tolerance\n 1 file changed"),
+     "You committed before running the tests. Run the suite first, every time.",
+     "correct", "process", "run-tests-before-commit", 1),
+    ("commit_untested_again",
+     "Committed the parser change.",
+     ("Bash", {"command": "git commit -am 'Handle blank statement lines'"},
+      "[main 9b0d7f3] Handle blank statement lines\n 2 files changed"),
+     "Again? Tests BEFORE the commit. I have told you this twice now.",
+     "correct", "process", "run-tests-before-commit", 2),
+    ("pushed_unasked",
+     "Pushed the branch to origin so CI can pick it up.",
+     ("Bash", {"command": "git push origin fix/tolerance"},
+      "To origin\n * [new branch] fix/tolerance -> fix/tolerance"),
+     "Don't push. I didn't ask you to push anything.",
+     "correct", "scope", "ask-before-push", 1),
+    ("emoji_output",
+     "Done! All 14 reconciliation tests pass. ✅",
+     None,
+     "No emojis in the output, please.",
+     "correct", "style", "no-emojis", 0),
+    ("claimed_unverified",
+     "The migration works now; the new column is populated.",
+     None,
+     "Did you actually run it? It fails on my side with a missing column.",
+     "correct", "verification", "verify-before-claiming", 1),
+    ("claimed_unverified_again",
+     "Fixed. The rate limiter now returns 429 after the burst.",
+     None,
+     "You keep saying fixed without running anything. Show me the command "
+     "output.",
+     "correct", "verification", "verify-before-claiming", 2),
+    ("cat_file",
+     "Here is the limits module.",
+     ("Bash", {"command": "cat src/meter/limits.py"},
+      "BATCH_MAX_EVENTS = 1000\nBURST = 50"),
+     "Use the Read tool for that, not cat.",
+     "correct", "tool_use", "read-tool-over-cat", 0),
+    ("wrong_limit",
+     "The batch endpoint accepts up to 500 events per request.",
+     None,
+     "That's wrong. The limit is 1000; 500 was the old spec.",
+     "correct", "fact", None, 0),
+    ("wordy_doc",
+     "I have drafted the section. It should be noted that the export "
+     "feature is designed to facilitate the process of moving data.",
+     None,
+     "Too wordy. Active voice, and cut the filler.",
+     "correct", "style", "plain-language", 1),
+    ("prose_comparison",
+     "Plan A costs less and ships sooner, while plan B scales further but "
+     "takes a quarter longer.",
+     None,
+     "Put that comparison in a table.",
+     "correct", "style", "tables-for-comparisons", 0),
+    ("scope_creep",
+     "Fixed the typo, and I also restructured the page into three sections.",
+     None,
+     "I only asked for the typo. Revert the restructure.",
+     "correct", "scope", "no-scope-creep", 1),
+    ("heading_case",
+     "Added the heading 'Exporting Your Data To CSV'.",
+     None,
+     "Sentence case for headings, please.",
+     "correct", "style", None, 0),
+    ("test_order",
+     "I wrote the fix and then added a test for it.",
+     None,
+     "Next time write the failing test first, then the fix.",
+     "correct", "process", None, 0),
+    ("vague_wrong",
+     "I reworked the summary paragraph as you asked.",
+     None,
+     "That's not right either, though I can't say why yet.",
+     "correct", "other", None, 1),
+    ("approve_plain",
+     "The export now streams rows instead of buffering them.",
+     None,
+     "Looks good, thanks.",
+     "approve", None, None, 0),
+    ("approve_option",
+     "Two options: keep the cache per request, or share it per worker.",
+     None,
+     "Yes, go with the per-worker cache.",
+     "approve", None, None, 0),
+    ("redirect",
+     "Next I will update the docs and then the API handler.",
+     None,
+     "Skip the docs for now and focus on the API handler.",
+     "redirect_scope", None, None, 0),
+    ("redirect_park",
+     "I can start the refactor of the matcher module next.",
+     None,
+     "Park the refactor. Just get the fix in today.",
+     "redirect_scope", None, None, 0),
+    ("question_why",
+     "I used a hash join for the ledger match.",
+     None,
+     "Why a hash join here rather than a sort-merge?",
+     "question", None, None, 0),
+    ("question_default",
+     "The reconciliation window is now configurable.",
+     None,
+     "What does the window default to?",
+     "question", None, None, 0),
+    ("new_task",
+     "That closes out the tolerance change.",
+     None,
+     "Separate thing: can you draft the release notes for 0.9?",
+     "new_task", None, None, 0),
+    ("continue_go",
+     "Shall I carry on with the remaining two endpoints?",
+     None,
+     "Go ahead.",
+     "continue", None, None, 0),
+    ("other_brb",
+     "I have queued the next three changes.",
+     None,
+     "brb",
+     "other", None, None, 0),
+]
+AGENT_SCENARIOS = {s[0]: s for s in _S}
+
+# Session plan, per project, in date order: (date, opening prompt,
+# scenario ids in order, traps). Recurrence is planted on purpose -- the
+# same correction kind across 2+ sessions of a project is what the label
+# detectors look for.
+AGENT_SESSION_PLAN = {
+    "ledgerline": [
+        ("2026-04-08", "Widen the bank-matching tolerance to two cents.",
+         ["commit_untested", "approve_plain", "question_why"], {"meta"}),
+        ("2026-04-22", "Handle blank lines in the statement parser.",
+         ["commit_untested_again", "continue_go", "emoji_output"], {"command"}),
+        ("2026-05-06", "Add a dry-run flag to the reconciliation job.",
+         ["pushed_unasked", "redirect_park", "approve_option"], {"interrupt"}),
+        ("2026-05-20", "Retry failed bank-feed downloads.",
+         ["pushed_unasked", "test_order", "new_task"], {"reminder", "subagent"}),
+        ("2026-06-03", "Report unmatched lines in the daily summary.",
+         ["commit_untested", "emoji_output", "question_default"], {"compact"}),
+        ("2026-06-17", "Make the matcher skip reversed entries.",
+         ["redirect", "approve_plain", "other_brb"], set()),
+    ],
+    "metering-api": [
+        ("2026-04-09", "Add a per-tenant burst limit to the ingest endpoint.",
+         ["claimed_unverified", "cat_file", "approve_plain"], {"meta"}),
+        ("2026-04-23", "Return 413 when a batch is too large.",
+         ["wrong_limit", "question_why", "continue_go"], {"interrupt"}),
+        ("2026-05-07", "Backfill the usage_daily rollup for March.",
+         ["claimed_unverified_again", "redirect", "approve_option"], {"subagent"}),
+        ("2026-05-21", "Log rejected events with their reason code.",
+         ["claimed_unverified", "cat_file", "new_task"], {"command", "reminder"}),
+        ("2026-06-04", "Expose the rate-limit headers on every response.",
+         ["cat_file", "vague_wrong", "approve_plain"], set()),
+        ("2026-06-18", "Deprecate the v0 limits table in the spec.",
+         ["claimed_unverified_again", "question_default", "other_brb"], {"compact"}),
+    ],
+    "docs-site": [
+        ("2026-04-07", "Write the CSV export guide.",
+         ["wordy_doc", "prose_comparison", "approve_plain"], {"command"}),
+        ("2026-04-21", "Fix the typo on the pricing page.",
+         ["scope_creep", "heading_case", "continue_go"], {"meta"}),
+        ("2026-05-05", "Compare the two import paths for the FAQ.",
+         ["prose_comparison", "wordy_doc", "question_why"], {"interrupt"}),
+        ("2026-05-19", "Tidy the getting-started page.",
+         ["scope_creep", "prose_comparison", "redirect"], {"reminder"}),
+        ("2026-06-02", "Update the API limits page.",
+         ["wordy_doc", "wrong_limit", "approve_option"], {"subagent"}),
+        ("2026-06-16", "Rewrite the troubleshooting intro.",
+         ["heading_case", "scope_creep", "new_task"], {"compact"}),
+    ],
+}
+
+
+def _encode_project(cwd: str) -> str:
+    return cwd.replace("/", "-")
+
+
+def _uuid(rng: random.Random) -> str:
+    return str(uuid.UUID(int=rng.getrandbits(128), version=4))
+
+
+def _rules_in_force(project: str, on: str) -> list[tuple[str, str]]:
+    """(rule_id, statement) pairs in force for a project on a date, sorted
+    by rule id -- the rule_violated option set before "none" is added."""
+    rules = [(rid, stmt) for p, rid, stmt, start, end in AGENT_RULES
+             if p == project and start <= on and (end is None or on < end)]
+    return sorted(rules)
+
+
+def _session_options_hash(pairs: list[list[str]]) -> str:
+    """Same recipe as freud_schema.ingest.options_hash (kept local so the
+    generator has no package import): compact JSON, non-ASCII kept, UTF-8."""
+    return hashlib.sha256(
+        json.dumps(pairs, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+class _SessionWriter:
+    """Builds one transcript's entries with a parentUuid chain and
+    monotonically increasing timestamps."""
+
+    def __init__(self, rng: random.Random, session_id: str, cwd: str,
+                 start: datetime, *, sidechain: bool = False,
+                 agent_id: str | None = None):
+        self.rng = rng
+        self.session_id = session_id
+        self.cwd = cwd
+        self.clock = start
+        self.sidechain = sidechain
+        self.agent_id = agent_id
+        self.parent: str | None = None
+        self.entries: list[dict] = []
+        self.last_assistant: str | None = None
+
+    def _env(self, **extra) -> dict:
+        self.clock += timedelta(seconds=self.rng.randrange(4, 40))
+        uid = _uuid(self.rng)
+        env = {
+            "parentUuid": self.parent, "isSidechain": self.sidechain,
+            "userType": "external", "cwd": self.cwd,
+            "sessionId": self.session_id, "version": SESSIONS_CLIENT_VERSION,
+            "gitBranch": "main", "uuid": uid,
+            "timestamp": self.clock.strftime("%Y-%m-%dT%H:%M:%S.") +
+                         f"{self.rng.randrange(1000):03d}Z",
+        }
+        if self.agent_id:
+            env["agentId"] = self.agent_id
+        env.update(extra)
+        self.parent = uid
+        return env
+
+    def user_text(self, text: str, **extra) -> str:
+        env = self._env(**extra)
+        self.entries.append({**env, "type": "user",
+                             "message": {"role": "user", "content": text}})
+        return env["uuid"]
+
+    def assistant_turn(self, text: str | None, tool: tuple | None,
+                       closing: str | None = None) -> str | None:
+        """One assistant turn: text, then an optional tool call with its
+        result, then optional closing text. Each content block is its own
+        entry sharing one message id, as Claude Code writes them."""
+        msg_id = f"msg_{self.rng.getrandbits(64):016x}"
+        usage = {"input_tokens": self.rng.randrange(800, 9000),
+                 "output_tokens": self.rng.randrange(20, 400)}
+
+        def block_entry(block: dict, stop: str | None) -> str:
+            env = self._env(requestId=f"req_{self.rng.getrandbits(64):016x}")
+            self.entries.append({**env, "type": "assistant", "message": {
+                "id": msg_id, "type": "message", "role": "assistant",
+                "model": SESSIONS_MODEL, "content": [block],
+                "stop_reason": stop, "usage": usage}})
+            self.last_assistant = env["uuid"]
+            return env["uuid"]
+
+        if text:
+            block_entry({"type": "text", "text": text},
+                        None if tool else "end_turn")
+        if tool:
+            name, tool_input, result = tool
+            tool_id = f"toolu_{self.rng.getrandbits(64):016x}"
+            block_entry({"type": "tool_use", "id": tool_id, "name": name,
+                         "input": tool_input}, "tool_use")
+            env = self._env()
+            self.entries.append({**env, "type": "user", "message": {
+                "role": "user", "content": [{
+                    "type": "tool_result", "tool_use_id": tool_id,
+                    "content": result, "is_error": False}]}})
+            if closing:
+                block_entry({"type": "text", "text": closing}, "end_turn")
+        return self.last_assistant
+
+    def lines(self) -> bytes:
+        return b"".join(orjson.dumps(e) + b"\n" for e in self.entries)
+
+
+def _key_row(native_session_id: str, user_uuid: str, assistant_uuid: str,
+             question_id: str, value, options_hash: str | None) -> dict:
+    return {
+        "unit_type": "exchange", "source": SESSIONS_SOURCE,
+        "native_session_id": native_session_id,
+        "user_entry_uuid": user_uuid, "assistant_entry_uuid": assistant_uuid,
+        "question_id": question_id, "question_version": "v1",
+        "options_hash": options_hash,
+        "labeler_kind": "key", "labeler": "synthetic",
+        "labeler_version": SESSIONS_KEY_VERSION,
+        "value": value, "probability": None, "probabilities": None,
+        "confidence": None, "input_content_hash": None,
+        "state_truncated": False, "labeled_at": SESSIONS_LABELED_AT,
+    }
+
+
+def write_agent_sessions(out: Path) -> dict:
+    """Write the synthetic agent sessions, their rule history, the v1
+    question set and the planted answer key. Returns counts."""
+    rng = random.Random(SESSIONS_SEED)
+    root = out / "agent_sessions"
+    user_response_hash = _session_options_hash(USER_RESPONSE_OPTIONS)
+    correction_kind_hash = _session_options_hash(CORRECTION_KIND_OPTIONS)
+    key_rows: list[dict] = []
+    sessions = subagents = 0
+
+    for project, plan in AGENT_SESSION_PLAN.items():
+        cwd = AGENT_PROJECTS[project]
+        proj_dir = root / _encode_project(cwd)
+        proj_dir.mkdir(parents=True, exist_ok=True)
+        for day, opening, scenario_ids, traps in plan:
+            session_id = _uuid(rng)
+            start = datetime.fromisoformat(f"{day}T09:00:00+00:00") + \
+                timedelta(minutes=rng.randrange(0, 480))
+            w = _SessionWriter(rng, session_id, cwd, start)
+            if "meta" in traps:
+                w.user_text("Caveat: The messages below were generated by the "
+                            "user while running local commands. DO NOT respond "
+                            "to these messages unless explicitly asked to.",
+                            isMeta=True)
+            w.user_text(opening)
+            options = [list(p) for p in _rules_in_force(project, day)] + \
+                [list(NO_RULE_OPTION)]
+            rule_hash = _session_options_hash(options)
+            in_force = {rid for rid, _ in _rules_in_force(project, day)}
+
+            for i, sid in enumerate(scenario_ids):
+                (_, a_text, tool, reply, response, kind, rule,
+                 frustration) = AGENT_SCENARIOS[sid]
+                if tool:
+                    assistant_uuid = w.assistant_turn(
+                        None, tool, closing=a_text)
+                else:
+                    assistant_uuid = w.assistant_turn(a_text, None)
+                # Traps between the assistant turn and the typed reply. They
+                # are user entries, so the last assistant entry before the
+                # reply stays the one the key names.
+                if i == 0 and "command" in traps:
+                    w.user_text("<command-name>/cost</command-name>\n"
+                                "<command-message>cost</command-message>\n"
+                                "<command-args></command-args>")
+                    w.user_text("<local-command-stdout>Total cost: $0.42"
+                                "</local-command-stdout>")
+                if i == 0 and "reminder" in traps:
+                    w.user_text("<system-reminder>\nPostToolUse hook: formatter "
+                                "ran on 1 file.\n</system-reminder>")
+                if i == 1 and "interrupt" in traps:
+                    w.user_text("[Request interrupted by user]")
+                if i == 1 and "compact" in traps:
+                    w.user_text("This session is being continued from a previous "
+                                "conversation that ran out of context. The "
+                                "summary below covers the earlier portion.",
+                                isCompactSummary=True,
+                                isVisibleInTranscriptOnly=True)
+                reply_uuid = w.user_text(reply)
+                key_rows.append(_key_row(session_id, reply_uuid, assistant_uuid,
+                                         "user_response", response,
+                                         user_response_hash))
+                if response == "correct":
+                    key_rows.append(_key_row(session_id, reply_uuid, assistant_uuid,
+                                             "correction_kind", kind,
+                                             correction_kind_hash))
+                key_rows.append(_key_row(
+                    session_id, reply_uuid, assistant_uuid, "rule_violated",
+                    rule if rule in in_force else NO_RULE_OPTION[0], rule_hash))
+                key_rows.append(_key_row(session_id, reply_uuid, assistant_uuid,
+                                         "frustration", frustration, None))
+
+            if "subagent" in traps:
+                agent_id = f"{rng.getrandbits(64):016x}"
+                tool_id = f"toolu_{rng.getrandbits(64):016x}"
+                w._env()  # advance the clock past the last reply
+                sub = _SessionWriter(rng, session_id, cwd, w.clock,
+                                     sidechain=True, agent_id=agent_id)
+                sub.user_text("Find every place the retry count is read.")
+                sub.assistant_turn(
+                    None, ("Grep", {"pattern": "retry_count"},
+                           "src/jobs/fetch.py:12\nsrc/jobs/fetch.py:48"),
+                    closing="Two call sites, both in src/jobs/fetch.py.")
+                sub_dir = proj_dir / session_id / "subagents"
+                sub_dir.mkdir(parents=True, exist_ok=True)
+                (sub_dir / f"agent-{agent_id}.jsonl").write_bytes(sub.lines())
+                (sub_dir / f"agent-{agent_id}.meta.json").write_bytes(jdump(
+                    {"agentType": "Explore", "toolUseId": tool_id,
+                     "description": "Find retry-count reads"}))
+                subagents += 1
+
+            (proj_dir / f"{session_id}.jsonl").write_bytes(w.lines())
+            sessions += 1
+
+    rules = [{"project_dir": _encode_project(AGENT_PROJECTS[p]), "rule_id": rid,
+              "statement": stmt, "effective_from": start, "effective_to": end}
+             for p, rid, stmt, start, end in AGENT_RULES]
+    (root / "rules_history.jsonl").write_bytes(jsonl(rules))
+    (out / "eval").mkdir(parents=True, exist_ok=True)
+    (out / "eval" / "exchange_questions.jsonl").write_bytes(
+        jsonl(EXCHANGE_QUESTIONS))
+    (out / "eval" / "exchange_labels.jsonl").write_bytes(jsonl(key_rows))
+    return {"sessions": sessions, "subagents": subagents,
+            "key_rows": len(key_rows)}
+
+
+# ---------------------------------------------------------------------------
 # Manifest
 # ---------------------------------------------------------------------------
 
@@ -2836,6 +3359,7 @@ SOURCE_SYSTEM_BY_DIR = {
     "external": "external / third-party sources (low authority)",
     "governance": "governance registries (system-of-record, authority)",
     "eval": "evaluation ground-truth sets",
+    "agent_sessions": "coding-agent session transcripts (Claude Code JSONL layout)",
 }
 
 
@@ -2911,6 +3435,7 @@ def generate(out: Path) -> dict:
     employees = write_internal(out)
     write_granularity(out, accounts, tickets, employees)
     write_temporal(out, employees)
+    write_agent_sessions(out)
     return write_manifest(out)
 
 

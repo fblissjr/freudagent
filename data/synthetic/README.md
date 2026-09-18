@@ -78,6 +78,10 @@ events/                     generic JSONL event streams shaped for
                             {id, type, timestamp, actor, payload, text}):
                             product webhooks, admin audit, badge access,
                             security alerts
+agent_sessions/             synthetic coding-agent sessions in Claude Code's
+                            projects-directory layout (three fictional repos,
+                            subagents included) plus rules_history.jsonl, the
+                            rule set in force per repo over time
 ```
 
 ## The connective tissue
@@ -191,13 +195,39 @@ not naive latest-wins. The ground truth for that lives here:
 Guarded by `tests/test_synthetic_temporal.py`, `test_synthetic_conflicts.py`,
 and `test_citation_graph.py`.
 
+## Agent sessions and the exchange answer key (`agent_sessions/`, `eval/exchange_*`)
+
+Eighteen sessions across three fictional Acme repositories, in the same
+directory layout Claude Code writes, so `freud-schema ingest transcripts --root
+data/synthetic/agent_sessions` reads them unchanged. Every typed reply carries
+a planted answer to the v1 exchange questions -- `user_response`,
+`correction_kind`, `rule_violated`, `frustration` -- and
+**`eval/exchange_labels.jsonl`** is that answer key, one row per reply and
+question with `labeler_kind` `key`. **`eval/exchange_questions.jsonl`** holds
+the question definitions and option lists. Load both with `freud-schema ingest
+labels`, then score a labeler's rows against the key on the same messages.
+
+Each planted signal is readable from the reply alone, because a labeler's input
+is the reply and the prompt before it, not the assistant's text. Corrections
+recur across sessions on purpose, so the label detectors have patterns to find.
+`rules_history.jsonl` gives each repo's rules with effective dates, and some
+start, change or retire mid-period: the same unasked-push reply points at
+`ask-before-push` in one session and at `none` in an earlier one, before the
+rule existed.
+
+The sessions also carry the entries a typed-reply filter has to skip:
+tool-result carriers, meta entries, slash-command output, hook reminder
+injections, compact summaries, interruption markers and subagent transcripts.
+No key row names one of them. `agent_sessions/README.md` has the details.
+Guarded by `tests/test_synthetic_sessions.py`.
+
 ## Regeneration
 
 Structured/volume files are generated deterministically (fixed seed, fixed
 dates -- byte-identical on re-run):
 
 ```bash
-uv run python scripts/generate_synthetic_data.py     # generated volumes + time/ + MANIFEST.json
+uv run python scripts/generate_synthetic_data.py     # generated volumes + time/ + agent_sessions/ + MANIFEST.json
 uv run python scripts/build_citation_graph.py         # derives eval/citation_edges.csv from the whole corpus
 ```
 

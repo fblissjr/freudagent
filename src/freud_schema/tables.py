@@ -117,6 +117,7 @@ class RecordSource(str, Enum):
     TRANSCRIPT_INGEST = "transcript_ingest"
     HISTORY_JSONL = "history_jsonl"
     EVENT_INGEST = "event_ingest"
+    LABEL_INGEST = "label_ingest"
     DERIVED = "derived"
 
 
@@ -142,9 +143,15 @@ class FindingScope(str, Enum):
 
 
 class FacetMethod(str, Enum):
+    """How a facet is designed to be populated. TYPED_MODEL is a
+    non-generative model that answers typed questions (choice, score)
+    with probabilities and writes no text -- kept apart from LLM because
+    the two fail differently and are costed differently."""
+
     COMPUTED = "computed"
     REGEX = "regex"
     LLM = "llm"
+    TYPED_MODEL = "typed_model"
     CLUSTER = "cluster"
 
 
@@ -181,6 +188,35 @@ class FeedbackOriginKind(str, Enum):
     USAGE_SIGNAL = "usage_signal"
     DOWNSTREAM_SYSTEM = "downstream_system"
     UNSPECIFIED = "unspecified"
+
+
+class LabelerKind(str, Enum):
+    """What produced a label on a message (fact_message_facets).
+
+    Closed for the same reason FeedbackOriginKind is: it is the column
+    calibration and evidence filters are written against ("model labels
+    only above threshold", "score the model against the key"). The
+    labeler's identity (jev, claude, owner, keyword) is the open column
+    beside it.
+
+    KEY is planted truth from a synthetic corpus generator. It is not a
+    person's judgment and must never be counted as one, which is why it
+    is a kind of its own rather than HUMAN.
+    """
+
+    MODEL = "model"
+    HUMAN = "human"
+    RULE = "rule"
+    KEY = "key"
+
+
+class LabelUnit(str, Enum):
+    """What a message label is about. EXCHANGE: a typed user reply,
+    judged against the assistant turn before it. INTERRUPT: a user
+    interruption marker, labeled by code because it is deterministic."""
+
+    EXCHANGE = "exchange"
+    INTERRUPT = "interrupt"
 
 
 class MessageRole(str, Enum):
@@ -582,6 +618,64 @@ class SessionFacet(BaseModel):
     # Lineage
     tenant_key: str | None = None
     record_source: RecordSource = RecordSource.DERIVED
+    etl_run_id: str | None = None
+    created_at: datetime | None = None
+
+
+class MessageFacet(BaseModel):
+    """One label on one message: a typed answer to a registered question,
+    from one labeler.
+
+    Grain: one row per (unit_type, labeled user message, question,
+    question version, options set, labeler, labeler version, input). The
+    message is the person's reply the label is about; context_message_key
+    is the assistant turn before it. Several labelers can answer the same
+    question about the same message -- that is how a model is scored
+    against people or a planted key, and how disagreement stays
+    representable instead of becoming a race between writers.
+
+    Values are typed and choice values are slugs, so no transcript text
+    can reach this table through a label.
+
+    Key: dimension_key(unit_type, message_key, facet_id, prompt_version,
+    options_hash, labeler, labeler_version, input_content_hash).
+    """
+
+    facet_row_key: str | None = None
+    unit_type: LabelUnit
+    session_key: str
+    project_key: str | None = None
+    message_key: str = Field(description="The labeled user message")
+    context_message_key: str | None = Field(
+        default=None, description="The last assistant message before it")
+    facet_type_key: str | None = None
+    facet_id: str = Field(description="The question id")
+    prompt_version: int = 1
+    options_hash: str | None = Field(
+        default=None,
+        description="sha256 of the ordered [label, description] option "
+                    "pairs sent; null for score questions")
+    labeler_kind: LabelerKind
+    labeler: str = Field(description="Open identity: jev, claude, owner, ...")
+    labeler_version: str | None = Field(
+        default=None,
+        description="Versioned model id as returned, never an alias")
+    value_text: str | None = None
+    value_numeric: float | None = None
+    probability: float | None = Field(
+        default=None, description="Probability of the chosen option")
+    probabilities: dict | None = Field(
+        default=None, description="Option -> probability, when returned")
+    confidence: float | None = None
+    input_content_hash: str | None = None
+    state_truncated: bool = False
+    labeled_at: datetime | None = None
+    label_source: str | None = Field(
+        default=None,
+        description="The warehouse build or corpus the labeler read")
+    # Lineage
+    tenant_key: str | None = None
+    record_source: RecordSource = RecordSource.LABEL_INGEST
     etl_run_id: str | None = None
     created_at: datetime | None = None
 

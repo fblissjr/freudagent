@@ -20,16 +20,19 @@ src/freud_schema/
   keys.py            - Deterministic sha256/32 surrogate keys: dimension_key(), hash_diff()
   db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 6
                        registries (incl. dim_tenant, dim_event_type,
-                       dim_feedback_origin) + 11 facts (incl. fact_event), 10 views,
+                       dim_feedback_origin) + 12 facts (incl. fact_event,
+                       fact_message_facets), 11 views,
                        meta_load_log, meta_key_algorithm, meta_schema_version, CHECK
                        constraints, indexes. No sequences.
-  tables.py          - Pydantic models + 20 enum classes (single source of truth)
+  tables.py          - Pydantic models + 23 enum classes (single source of truth)
   store.py           - CRUD with SCD-2 evolution + insert-time denormalization (ExperimentStore)
   discovery.py       - Transcript discovery (nested subagents/ layout; subagent identity
                        from the path, never the internal sessionId -- it's the parent's)
   ingest.py          - Ingest: transcript ingestion (idempotent by key construction) +
                        the IngestAdapter protocol (TranscriptAdapter, JsonlEventAdapter)
-                       for the generic fact_event grain
+                       for the generic fact_event grain + ingest_labels (typed labels
+                       on ingested user messages -> fact_message_facets; labeler_kind
+                       model/human/rule/key keeps model labels apart from people's)
   couch.py           - Analyze: SQL finding detectors; thresholds live here, never in view DDL
   materialize.py     - Compile: rule compiler with provenance; the privacy gate refuses
                        rather than degrades
@@ -60,7 +63,11 @@ data/
                        and governance/ + external/ + eval/ (system-of-record and
                        source-authority registries, a DACI decision log, and
                        eval/conflicts.jsonl -- the conflict-resolution answer key
-                       + eval/citation_edges.csv source-centrality graph). Volume
+                       + eval/citation_edges.csv source-centrality graph), and
+                       agent_sessions/ (synthetic coding-agent transcripts in
+                       Claude Code's layout, with filter traps and a dated rule
+                       history) + eval/exchange_labels.jsonl, the planted
+                       answer key for scoring exchange labelers. Volume
                        files regenerate deterministically via
                        scripts/generate_synthetic_data.py; documents are
                        hand-authored and cross-reference generated IDs
@@ -82,6 +89,9 @@ tests/
                        enum value and record_source in db.py/tables.py appears in
                        schema.md and db-query.md, and no doc names a view that
                        does not exist
+  test_labels.py     - Label ingest, fact_message_facets, label detectors;
+                       test_synthetic_sessions.py re-derives the agent-session
+                       answer key from the transcripts and rule history
   (also) test_couch, test_events, test_evolve, test_ingest, test_ingest_events,
                        test_keys, test_materialize, test_mcp_server, test_tenancy,
                        test_schema_v017, test_store_v017 -- one per subsystem
@@ -174,6 +184,7 @@ Full CLI reference is in `skill/skill.md`. Key commands:
 - `freud-schema session list|show`
 - `freud-schema ingest transcripts [--project] [--since]` (idempotent; CLI-only, needs the DB lock)
 - `freud-schema ingest events --root DIR [--stream-type] [--since]` (generic JSONL event streams -> fact_event, idempotent)
+- `freud-schema ingest labels --file F [--questions Q]` (labels on ingested user messages -> fact_message_facets; rejects counted by reason, idempotent)
 - `freud-schema couch run|list` (SQL detectors -> fact_finding, no model calls)
 - `freud-schema proposal add|list|show|approve|reject` / `freud-schema compile --out DIR`
 - `freud-schema mcp-serve` (store-ops MCP server over stdio; requires `uv sync --extra mcp`)
@@ -195,7 +206,7 @@ is the preferred connection holder** (implementation plan M16, landed
 - Store-op tools for every write (`rule_add`, `skill_add`, `source_add`,
   `feedback_add`, `finding_add`, `extraction_validate`, `extraction_reject`,
   `proposal_add`, `proposal_reject`, `couch_run`, `compile`,
-  `ingest_transcripts`, `ingest_events`) -- each a thin wrapper over
+  `ingest_transcripts`, `ingest_events`, `ingest_labels`) -- each a thin wrapper over
   `ops.py`, which is the same dispatch layer the CLI calls, so the two
   surfaces cannot drift.
 - **The self-modification gate**: `rule_add`/`skill_add` always create the
@@ -253,11 +264,11 @@ Schema docs: `.claude/skills/db-query.md`
 - Models: Pydantic v2 (`model_validate`, `model_dump`), `Field(default_factory=list)` for lists
 - JSON: **orjson** (not json)
 - Enums: construct with members (`SkillStatus.ACTIVE`), never bare strings
-- 20 enum classes in `tables.py` are the single source of truth; CHECK constraints generated from them
+- 23 enum classes in `tables.py` are the single source of truth; CHECK constraints generated from them
 - `finding_type` is deliberately NOT an enum: open vocabulary, registry-validated against `dim_finding_type` in the store (new finding types are rows, not code)
 - No FK constraints (DuckDB can't CASCADE anyway) -- existence validated in store layer
 - Fact tables carry denormalized dimension attributes populated at insert time
-- 10 analytical views replace complex aggregation queries (no N+1 patterns); couch views are consumed only through the store's `query_*` methods
+- 11 analytical views replace complex aggregation queries (no N+1 patterns); couch views are consumed only through the store's `query_*` methods
 - Prior run context uses `_SIGNAL_TRACE_TYPES` to filter traces -- only decision_point, dead_end, insight, conclusion, subagent_spawn appear in system prompts. Don't add tool_call/path_taken/path_discarded.
 - Providers: dynamic imports inside `__init__`, raise `ImportError` with install hint
 - `get_provider()` is the only provider factory

@@ -133,13 +133,14 @@ rather than `human`.
 | `fact_message` | Transcript messages (full grain) | session_key, role, entry_uuid, sequence_num |
 | `fact_tool_use` | Transcript tool_use blocks | session_key, tool_use_id, tool_name, is_error |
 | `fact_session_facets` | Behavioral facet values (EAV) | session_key, facet_id, prompt_version |
+| `fact_message_facets` | Labels on user messages from a model, person, rule or synthetic key (`ingest labels`) | message_key, facet_id, labeler_kind, labeler, value_text, probability |
 | `fact_finding` | Detected patterns (couch output) | finding_type, scope, project_key, summary |
 | `fact_proposal` | Proposed dimension changes (evolve output) | target_dimension, target_key, status |
 | `fact_event` | Generic event grain (M5, non-transcript sources) | stream_key, native_event_id, event_type, occurred_at, payload |
 
 Every fact table carries a lineage envelope: `tenant_key` (denormalized
 `dim_tenant` reference), `record_source` (CHECK-constrained: native,
-transcript_ingest, history_jsonl, event_ingest, derived) and `etl_run_id`
+transcript_ingest, history_jsonl, event_ingest, label_ingest, derived) and `etl_run_id`
 (joins `meta_load_log`).
 
 ### Analytical views (replace complex store queries)
@@ -156,6 +157,7 @@ transcript_ingest, history_jsonl, event_ingest, derived) and `etl_run_id`
 | `v_tool_error_clusters` | Per-project tool error rates (couch detector base) |
 | `v_interruption_hotspots` | Mid-turn user interruptions per project (couch detector base) |
 | `v_permission_friction` | Permission denials per project+tool (couch detector base) |
+| `v_labeled_exchanges` | One row per labeled reply per labeler: user_response, correction_kind, rule_violated (with probabilities), frustration (couch label-detector and calibration base) |
 
 Couch views carry NO thresholds -- couch.py's detectors own them; consume the
 views through the store's `query_*` methods, never re-derive thresholds.
@@ -164,7 +166,7 @@ views through the store's `query_*` methods, never re-derive thresholds.
 
 | Table | Purpose |
 |-------|---------|
-| `meta_schema_version` | Schema DDL changelog (version, description). Currently version 7. NOT a migration ledger -- schema changes reset + re-ingest (see CLAUDE.md policy). |
+| `meta_schema_version` | Schema DDL changelog (version, description). Currently version 12. NOT a migration ledger -- schema changes reset + re-ingest (see CLAUDE.md policy). |
 | `meta_key_algorithm` | Active key scheme (sha256/32), seeded at init. |
 | `meta_load_log` | One row per ingest/couch/compile run: etl_run_id, operation, status, row counts |
 
@@ -179,7 +181,7 @@ views through the store's `query_*` methods, never re-derive thresholds.
 | dim_rule.status | active, inactive |
 | dim_sampling_config.strategy | recent, random, stratified_outcome, stratified_feedback, high_feedback |
 | dim_sampling_config.status | active, inactive |
-| dim_facet_type.method | computed, regex, llm, cluster |
+| dim_facet_type.method | computed, regex, llm, typed_model, cluster |
 | dim_facet_type.output_type | text, numeric, bool, json |
 | dim_finding_type.detection_method | sql, llm, hybrid |
 | fact_session.status | running, completed, failed |
@@ -189,11 +191,13 @@ views through the store's `query_*` methods, never re-derive thresholds.
 | fact_trace_feedback.feedback_type | path_correction, positive_signal, dead_end_confirmation, reasoning_error |
 | fact_feedback.correction_type | field_mapping, wrong_value, missing_field, false_positive |
 | fact_message.role | user, assistant |
+| fact_message_facets.unit_type | exchange, interrupt |
+| fact_message_facets.labeler_kind | model, human, rule, key |
 | fact_finding.scope | project, global |
 | fact_proposal.target_dimension | dim_skill, dim_rule, dim_sampling_config |
 | fact_proposal.status | pending, approved, rejected |
 | meta_load_log.status | running, completed, failed (shares `SessionStatus`) |
-| record_source (every dim_*/fact_*/meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, derived |
+| record_source (every dim_*/fact_*/meta_* table) | native, transcript_ingest, history_jsonl, event_ingest, label_ingest, derived |
 
 `fact_finding.finding_type` and `fact_event.event_type` have NO CHECK
 constraint -- open vocabulary, registry-validated against `dim_finding_type`

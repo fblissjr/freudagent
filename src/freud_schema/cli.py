@@ -240,6 +240,15 @@ def main(argv: list[str] | None = None) -> None:
     p_ingest_ev.add_argument(
         "--since", default=None,
         help="Only files modified on/after this date (YYYY-MM-DD)")
+    p_ingest_lb = p_ingest_sub.add_parser(
+        "labels",
+        help="Load labels on already-ingested messages into fact_message_facets "
+             "(idempotent; rejected rows are counted by reason, never written)")
+    p_ingest_lb.add_argument(
+        "--file", required=True, help="Label JSONL file, one label per line")
+    p_ingest_lb.add_argument(
+        "--questions", default=None,
+        help="questions.jsonl defining each question (registered first)")
 
     # --- Couch commands ---
     p_couch = sub.add_parser(
@@ -831,9 +840,25 @@ def _handle_ingest(args) -> None:
 
     from freud_schema import ops
 
-    if args.ingest_action not in ("transcripts", "events"):
-        print("Use: ingest transcripts|events", file=sys.stderr)
+    if args.ingest_action not in ("transcripts", "events", "labels"):
+        print("Use: ingest transcripts|events|labels", file=sys.stderr)
         sys.exit(1)
+    if args.ingest_action == "labels":
+        with _get_store(args.db) as store:
+            try:
+                stats = ops.ingest_labels(
+                    store, path=args.file, questions=args.questions)
+            except (ValueError, OSError) as e:
+                print(str(e), file=sys.stderr)
+                sys.exit(1)
+        print(f"Label ingest run {stats['etl_run_id'][:8]} completed:")
+        print(f"  questions registered: {stats['questions_registered']:>6}")
+        print(f"  rows read:            {stats['rows_read']:>6}")
+        print(f"  rows written:         {stats['rows_written']:>6}")
+        print(f"  rows already present: {stats['rows_existing']:>6}")
+        for reason, count in stats["rejected"].items():
+            print(f"  rejected, {reason}: {count}")
+        return
     since = None
     if args.since:
         try:

@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.42.0
+
+### Added
+
+- **Labels on messages (`fact_message_facets`).** A new fact table holding
+  typed answers to registered questions about ingested user messages: one
+  row per unit, question, question version, option set, labeler, labeler
+  version and input. The labeler can be a model, a person, a rule or a
+  synthetic answer key, recorded in a closed `labeler_kind` column (new
+  `LabelerKind` enum: model, human, rule, key) beside an open `labeler`
+  identity, so model labels can always be excluded from, or scored against,
+  the rows people and keys produced. `unit_type` (new `LabelUnit` enum:
+  exchange, interrupt) says what the label is about. Choice values, question
+  ids and labeler names must be slugs, so no transcript text can reach the
+  table through a label.
+- **`freud-schema ingest labels --file F [--questions Q]`** and the matching
+  store-ops `ingest_labels` MCP tool. Rows key on `native_session_id` +
+  `user_entry_uuid` with the same recipes transcript ingest uses. Rows that
+  fail validation or name messages not in the warehouse are rejected and
+  counted by reason, never written; re-running a file writes nothing, and a
+  relabel under a new model version is a new row. A probability on a
+  person's, rule's or key's label is refused. The questions file registers
+  each question's full definition in `dim_facet_type`, and a question whose
+  definition changed under the same version is refused rather than merged.
+  `ingest.options_hash()` is the agreed option-set hash recipe.
+- **`v_labeled_exchanges`**, one row per labeled reply per labeler, pivoting
+  `user_response`, `correction_kind`, `rule_violated` and `frustration`.
+- **Two label detectors in `couch run`**: `labeled_correction_recurring` (the
+  same correction kind across 2+ sessions of a project) and
+  `labeled_rule_violation_recurring` (replies pointing at the same rule in
+  force across 2+ sessions). One finding per labeler; model labels count only
+  at or above a probability floor, and every summary names its labeler.
+- **Synthetic agent sessions** (`data/synthetic/agent_sessions/`): eighteen
+  fictional coding-agent sessions across three repos in Claude Code's own
+  directory layout, with subagent transcripts, a dated rule history, and the
+  entries a typed-reply filter has to skip. `eval/exchange_labels.jsonl` is
+  the planted answer key for the v1 exchange questions and
+  `eval/exchange_questions.jsonl` their definitions, so a labeler can be
+  scored before any real session text is used. Some rules start, change or
+  retire mid-period, so the same complaint is keyed to a rule in one session
+  and to `none` before the rule existed.
+
+### Changed
+
+- `FacetMethod` gains `typed_model`, for non-generative models that answer
+  typed questions with probabilities; `RecordSource` gains `label_ingest`.
+  Breaking: schema version 12. Existing warehouses reset and re-ingest.
+
 ## 0.41.1
 
 ### Added

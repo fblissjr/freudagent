@@ -475,3 +475,16 @@ def ingest_events(
     rows_written, rows_skipped}."""
     from freud_schema.ingest import ingest_events as _ingest_events
     return _ingest_events(store, root=root, stream_type=stream_type, since=since)
+
+
+def ingest_labels(
+    store: ExperimentStore,
+    *,
+    path: str | Path,
+    questions: str | Path | None = None,
+) -> dict:
+    """Load a label JSONL file into fact_message_facets. Delegates to
+    ingest.ingest_labels; returns {etl_run_id, questions_registered,
+    rows_read, rows_written, rows_existing, rejected}."""
+    from freud_schema.ingest import ingest_labels as _ingest_labels
+    return _ingest_labels(store, path=path, questions=questions)

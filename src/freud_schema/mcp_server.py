@@ -525,6 +525,21 @@ def build_server(store: ExperimentStore, db_path: str | None = None):
             store, root=root, stream_type=stream_type, since=since_dt,
         )
 
+    @server.tool(
+        name="ingest_labels",
+        description=(
+            "Load a label JSONL file into fact_message_facets: typed "
+            "answers to registered questions about already-ingested user "
+            "messages, from a model, a person, a rule or a synthetic "
+            "answer key (labeler_kind). questions (optional) is a "
+            "questions.jsonl registered first. Rows that fail validation "
+            "or name messages not in the warehouse are rejected and "
+            "counted by reason; re-running the same file writes zero rows."
+        ),
+    )
+    def ingest_labels(path: str, questions: str | None = None) -> dict:
+        return ops.ingest_labels(store, path=path, questions=questions)
+
     return server
 
 

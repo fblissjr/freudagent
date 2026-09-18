@@ -5,9 +5,13 @@ Layers, split by what needs inference:
 
 - SQL layer (this module): deterministic detectors implemented as views
   in db.py (v_retry_loops, v_tool_error_clusters, v_interruption_hotspots,
-  v_permission_friction). run_couch() applies thresholds and writes
-  evidence-linked fact_finding rows. No model calls -- run it as often
-  as you like.
+  v_permission_friction, v_labeled_exchanges). run_couch() applies
+  thresholds and writes evidence-linked fact_finding rows. No model calls
+  -- run it as often as you like. The two label detectors count labels
+  that something else produced (a model, a person, a rule, a synthetic
+  key); the detector is SQL, the labels may not be, and each summary
+  names its labeler so a model-labeled finding never passes for a
+  person-labeled one.
 - Hybrid layer (this module): deterministic detectors that read state
   outside the warehouse. _detect_stale_sources compares each registered
   source's baseline source_hash against the current file bytes, so it
@@ -41,6 +45,7 @@ from freud_schema.tables import (
     Finding,
     FindingScope,
     FindingType,
+    LabelerKind,
     RecordSource,
     SourceStatus,
 )
@@ -55,12 +60,34 @@ ERROR_CLUSTER_MIN_USES = 20
 ERROR_CLUSTER_MIN_PCT = 15.0
 INTERRUPTION_MIN = 3
 PERMISSION_MIN_DENIALS = 3
+# Label detectors. A pattern must recur across sessions to be worth a
+# review, the same bar /couch uses for user_correction_pattern. Model
+# labels below the probability floor are not counted; labels with no
+# probability (people, rules, planted keys) always are. Until a model's
+# probabilities are shown to be calibrated on this data, findings from
+# its labels are prioritization, not evidence.
+LABEL_MIN_SESSIONS = 2
+LABEL_MIN_PROBABILITY = 0.8
+
+# The exchange question vocabulary these detectors read (the v1 label
+# contract): the user_response value meaning "the reply corrects the
+# assistant", and the rule_violated value meaning "no listed rule".
+LABEL_CORRECT_VALUE = "correct"
+LABEL_NO_RULE_VALUE = "none"
 
 SQL_FINDING_TYPES: dict[str, str] = {
     "retry_loop": "Same tool called with identical input 3+ times in one session",
     "tool_error_cluster": "A tool failing at an elevated rate within a project",
     "interruption_hotspot": "Repeated mid-turn user interruptions within a project",
     "permission_friction": "Repeated permission denials for the same tool in a project",
+    "labeled_correction_recurring": "The same correction kind in replies across "
+                                    "2+ sessions, counted from message labels "
+                                    "(model labels are prioritization until "
+                                    "calibrated)",
+    "labeled_rule_violation_recurring": "Replies pointing at the same rule in force "
+                                        "across 2+ sessions, counted from message "
+                                        "labels (model labels are prioritization "
+                                        "until calibrated)",
 }
 
 LLM_FINDING_TYPES: dict[str, str] = {
@@ -161,6 +188,42 @@ def _detect_permission_friction(store, etl_run_id) -> int:
     return len(rows)
 
 
+def _labeler_note(row: dict) -> str:
+    """Who labeled it, and the probability floor only where one applied:
+    people, rules and planted keys carry no probability."""
+    floor = (f", p>={LABEL_MIN_PROBABILITY}"
+             if row["labeler_kind"] == LabelerKind.MODEL.value else "")
+    return f"labeled by {row['labeler']} ({row['labeler_kind']}{floor})"
+
+
+def _detect_labeled_corrections(store, etl_run_id) -> int:
+    """One finding per (project, correction kind, labeler). Summary is
+    built from slug label values and counts only -- the ingest refuses
+    non-slug values, so no reply text can reach it."""
+    rows = store.query_labeled_corrections(
+        LABEL_CORRECT_VALUE, LABEL_MIN_PROBABILITY, LABEL_MIN_SESSIONS)
+    for r in rows:
+        _insert(store, etl_run_id, "labeled_correction_recurring", r["project_key"],
+                f"{r['correction_kind']}: {r['replies']} corrective repl(ies) across "
+                f"{r['session_count']} session(s), {_labeler_note(r)}",
+                r["session_keys"], r["replies"])
+    return len(rows)
+
+
+def _detect_labeled_rule_violations(store, etl_run_id) -> int:
+    """One finding per (project, rule, labeler): a rule in force that
+    replies keep pointing at is a rule that is not working."""
+    rows = store.query_labeled_rule_violations(
+        LABEL_NO_RULE_VALUE, LABEL_MIN_PROBABILITY, LABEL_MIN_SESSIONS)
+    for r in rows:
+        _insert(store, etl_run_id, "labeled_rule_violation_recurring",
+                r["project_key"],
+                f"{r['rule_violated']}: {r['replies']} repl(ies) pointing at this "
+                f"rule across {r['session_count']} session(s), {_labeler_note(r)}",
+                r["session_keys"], r["replies"])
+    return len(rows)
+
+
 def _detect_stale_sources(store, etl_run_id) -> int:
     """One GLOBAL finding per registered source whose current file bytes
     no longer match its baseline source_hash.
@@ -191,6 +254,8 @@ _DETECTORS = (
     _detect_error_clusters,
     _detect_interruptions,
     _detect_permission_friction,
+    _detect_labeled_corrections,
+    _detect_labeled_rule_violations,
 )
 
 _FILESYSTEM_DETECTORS = (

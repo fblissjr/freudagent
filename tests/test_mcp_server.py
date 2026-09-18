@@ -399,6 +399,7 @@ class TestServerConstruction:
             "finding_add", "extraction_validate", "extraction_reject",
             "proposal_add", "proposal_reject", "proposal_approve",
             "couch_run", "compile", "ingest_transcripts", "ingest_events",
+            "ingest_labels",
         }
         assert expected <= names
 

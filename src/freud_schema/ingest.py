@@ -30,17 +30,27 @@ for sources rich enough to deserve them. JsonlEventAdapter is the second
 reference adapter: it writes the generic fact_event grain via
 ingest_events(), the smallest possible proof that a non-transcript stream
 flows end-to-end into the warehouse idempotently.
+
+ingest_labels() loads labels about already-ingested messages -- typed
+answers to registered questions, from a model, a person, a rule or a
+synthetic answer key -- into fact_message_facets. It is not an adapter:
+a label is a judgment about a fact_message row, not something a source
+said happened, so it does not ride the event grain.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol, runtime_checkable
+
+import orjson
 
 from freud_schema.discovery import SessionFile, default_projects_root, discover_sessions
 from freud_schema.store import ExperimentStore
@@ -48,7 +58,13 @@ from freud_schema.tables import (
     AgentRole,
     Event,
     EventType,
+    FacetMethod,
+    FacetOutputType,
+    FacetType,
+    LabelerKind,
+    LabelUnit,
     Message,
+    MessageFacet,
     MessageRole,
     Project,
     RecordSource,
@@ -594,4 +610,317 @@ def ingest_events(
         "rows_read": stats.rows_read,
         "rows_written": stats.rows_written,
         "rows_skipped": stats.rows_skipped,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Labels on messages (fact_message_facets)
+# ---------------------------------------------------------------------------
+
+# Choice values, question ids and labeler names must be slugs. That keeps
+# free text -- and so transcript text -- out of the label table by
+# construction, and it is what makes finding summaries built from label
+# values safe to compile.
+_SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$")
+_HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
+_VERSION_RE = re.compile(r"^v?([1-9][0-9]*)$")
+_LABEL_SOURCE_MAX = 200
+
+# Question type -> how its value is stored.
+_QUESTION_OUTPUT = {
+    "choice": FacetOutputType.TEXT,
+    "score": FacetOutputType.NUMERIC,
+}
+
+
+def options_hash(pairs: list[list[str]]) -> str:
+    """sha256 of the ordered [label, description] option pairs, the
+    serialization agreed with the labeler: compact JSON, non-ASCII kept,
+    UTF-8. Byte-identical to JSON.stringify(pairs) in JavaScript."""
+    return hashlib.sha256(
+        json.dumps(pairs, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _parse_question_version(raw) -> int | None:
+    """Accept N or "vN" (N >= 1); anything else is None."""
+    if isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        return raw if raw >= 1 else None
+    if isinstance(raw, str):
+        m = _VERSION_RE.match(raw.strip())
+        return int(m.group(1)) if m else None
+    return None
+
+
+def _is_slug(val) -> bool:
+    return isinstance(val, str) and bool(_SLUG_RE.match(val))
+
+
+def _is_number(val) -> bool:
+    return isinstance(val, (int, float)) and not isinstance(val, bool)
+
+
+def _is_probability(val) -> bool:
+    return _is_number(val) and 0.0 <= float(val) <= 1.0
+
+
+def _question_definition(row: dict) -> str:
+    """The stored definition of a question: type, text and static
+    options, serialized so an edited question under the same version is
+    detectable rather than silently merged."""
+    return orjson.dumps(
+        {"type": row.get("type"), "text": row.get("text"),
+         "options": row.get("options")},
+        option=orjson.OPT_SORT_KEYS,
+    ).decode("utf-8")
+
+
+def register_label_questions(store: ExperimentStore, path: str | Path) -> int:
+    """Register each question in a questions.jsonl file as a
+    dim_facet_type row (facet_id = question_id, prompt_version = the
+    parsed question_version, prompt_text = the full definition).
+
+    Idempotent for an unchanged question. A question whose definition
+    changed under the same version raises: a changed prompt is a new
+    version, never an edit, or labels made under the old wording become
+    indistinguishable from labels made under the new one.
+
+    Returns the number of newly registered questions.
+    """
+    registered = 0
+    for lineno, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            row = orjson.loads(line)
+        except orjson.JSONDecodeError as e:
+            raise ValueError(f"questions line {lineno}: not JSON") from e
+        qid = row.get("question_id")
+        version = _parse_question_version(row.get("question_version"))
+        output_type = _QUESTION_OUTPUT.get(row.get("type"))
+        if not _is_slug(qid) or version is None or output_type is None:
+            raise ValueError(
+                f"questions line {lineno}: needs a slug question_id, a "
+                f"question_version (N or vN) and type choice|score")
+        definition = _question_definition(row)
+        existing = store.get_facet_type(qid, version)
+        if existing is not None:
+            # A question first registered from labels alone has no stored
+            # definition; there is nothing to conflict with, and registry
+            # rows are append-only, so it keeps its empty text.
+            if existing.prompt_text is not None and existing.prompt_text != definition:
+                raise ValueError(
+                    f"Question {qid} v{version} is already registered with a "
+                    f"different definition -- bump question_version instead "
+                    f"of editing it")
+            continue
+        store.register_facet_type(FacetType(
+            facet_id=qid, prompt_version=version,
+            method=FacetMethod.TYPED_MODEL, output_type=output_type,
+            prompt_text=definition,
+            description="Exchange label question",
+            record_source=RecordSource.LABEL_INGEST,
+        ))
+        registered += 1
+    return registered
+
+
+def _label_from_row(
+    store: ExperimentStore, row: dict, etl_run_id: str,
+) -> tuple[MessageFacet | None, str | None]:
+    """Validate one label row and build its MessageFacet. Returns
+    (facet, None) or (None, reject_reason). Existence of the labeled
+    messages is checked later, for the whole file in one query."""
+    try:
+        unit_type = LabelUnit(row.get("unit_type"))
+    except ValueError:
+        return None, "bad_unit_type"
+    try:
+        labeler_kind = LabelerKind(row.get("labeler_kind"))
+    except ValueError:
+        return None, "bad_labeler_kind"
+    native_session_id = row.get("native_session_id")
+    user_uuid = row.get("user_entry_uuid")
+    if not isinstance(native_session_id, str) or not native_session_id \
+            or not isinstance(user_uuid, str) or not user_uuid:
+        return None, "missing_unit_key"
+    assistant_uuid = row.get("assistant_entry_uuid")
+    if assistant_uuid is not None and not isinstance(assistant_uuid, str):
+        return None, "missing_unit_key"
+    qid = row.get("question_id")
+    version = _parse_question_version(row.get("question_version"))
+    if not _is_slug(qid) or version is None:
+        return None, "bad_question"
+    labeler = row.get("labeler")
+    labeler_version = row.get("labeler_version")
+    if not _is_slug(labeler) or (labeler_version is not None and not _is_slug(labeler_version)):
+        return None, "bad_labeler"
+
+    probability = row.get("probability")
+    probabilities = row.get("probabilities")
+    confidence = row.get("confidence")
+    if labeler_kind != LabelerKind.MODEL and (
+            probability is not None or probabilities is not None):
+        # A probability on a person's, rule's or key's label means the row
+        # is mislabeled -- and a mislabeled model row in the human slice is
+        # the contamination the kind column exists to prevent.
+        return None, "probability_on_non_model"
+    if probability is not None and not _is_probability(probability):
+        return None, "bad_probability"
+    if probabilities is not None and not (
+            isinstance(probabilities, dict)
+            and all(_is_slug(k) and _is_probability(v) for k, v in probabilities.items())):
+        return None, "bad_probability"
+    if confidence is not None and not _is_number(confidence):
+        return None, "bad_probability"
+
+    for field in ("options_hash", "input_content_hash"):
+        val = row.get(field)
+        if val is not None and not (isinstance(val, str) and _HEX64_RE.match(val)):
+            return None, "bad_hash"
+    state_truncated = row.get("state_truncated", False)
+    if not isinstance(state_truncated, bool):
+        return None, "bad_state_truncated"
+    label_source = row.get("source")
+    if label_source is not None and (
+            not isinstance(label_source, str) or len(label_source) > _LABEL_SOURCE_MAX):
+        return None, "bad_source"
+
+    ft = store.get_facet_type(qid, version)
+    value = row.get("value")
+    if ft is None:
+        # No questions file registered this question: register it with the
+        # type inferred from the value and no text -- weaker provenance,
+        # but the label is still typed and attributable.
+        if _is_slug(value):
+            output_type = FacetOutputType.TEXT
+        elif _is_number(value):
+            output_type = FacetOutputType.NUMERIC
+        else:
+            return None, "bad_value"
+        store.register_facet_type(FacetType(
+            facet_id=qid, prompt_version=version,
+            method=FacetMethod.TYPED_MODEL, output_type=output_type,
+            description="Exchange label question (registered from labels; "
+                        "no definition supplied)",
+            record_source=RecordSource.LABEL_INGEST,
+        ))
+    else:
+        output_type = ft.output_type
+    value_text = value_numeric = None
+    if output_type == FacetOutputType.TEXT:
+        if not _is_slug(value):
+            return None, "bad_value"
+        value_text = value
+    elif output_type == FacetOutputType.NUMERIC:
+        if not _is_number(value):
+            return None, "bad_value"
+        value_numeric = float(value)
+    else:
+        return None, "bad_value"
+
+    session_key = store.session_key_for(RecordSource.TRANSCRIPT_INGEST, native_session_id)
+    return MessageFacet(
+        unit_type=unit_type,
+        session_key=session_key,
+        message_key=store.message_key_for(session_key, user_uuid),
+        context_message_key=(store.message_key_for(session_key, assistant_uuid)
+                             if assistant_uuid else None),
+        facet_id=qid,
+        prompt_version=version,
+        options_hash=row.get("options_hash"),
+        labeler_kind=labeler_kind,
+        labeler=labeler,
+        labeler_version=labeler_version,
+        value_text=value_text,
+        value_numeric=value_numeric,
+        probability=float(probability) if probability is not None else None,
+        probabilities=probabilities,
+        confidence=float(confidence) if confidence is not None else None,
+        input_content_hash=row.get("input_content_hash"),
+        state_truncated=state_truncated,
+        labeled_at=_parse_ts(row.get("labeled_at")),
+        label_source=label_source,
+        record_source=RecordSource.LABEL_INGEST,
+        etl_run_id=etl_run_id,
+    ), None
+
+
+def ingest_labels(
+    store: ExperimentStore,
+    *,
+    path: str | Path,
+    questions: str | Path | None = None,
+) -> dict:
+    """Load a label JSONL file into fact_message_facets.
+
+    Each row labels one already-ingested user message (keyed by
+    native_session_id + user_entry_uuid, the same recipe transcript
+    ingest uses). Rows that fail validation, or whose messages are not in
+    the warehouse, are rejected and counted by reason -- never written
+    partially. Re-ingesting the same file writes nothing.
+
+    questions: optional questions.jsonl, registered first so each
+    question carries its full definition.
+
+    Returns {etl_run_id, questions_registered, rows_read, rows_written,
+    rows_existing, rejected: {reason: count}}. The load log records
+    rows_skipped = rows_read - rows_written (existing plus rejected).
+    """
+    path = Path(path)
+    with store.load_run("ingest_labels", record_source=RecordSource.LABEL_INGEST) as stats:
+        questions_registered = (register_label_questions(store, questions)
+                                if questions is not None else 0)
+        rejected: Counter[str] = Counter()
+        candidates: list[MessageFacet] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            stats.rows_read += 1
+            try:
+                row = orjson.loads(line)
+            except orjson.JSONDecodeError:
+                rejected["malformed"] += 1
+                continue
+            if not isinstance(row, dict):
+                rejected["malformed"] += 1
+                continue
+            facet, reason = _label_from_row(store, row, stats.etl_run_id)
+            if facet is None:
+                rejected[reason] += 1
+            else:
+                candidates.append(facet)
+
+        refs = store.get_message_refs(
+            [f.message_key for f in candidates]
+            + [f.context_message_key for f in candidates if f.context_message_key])
+        valid: list[MessageFacet] = []
+        for f in candidates:
+            ref = refs.get(f.message_key)
+            if ref is None:
+                rejected["unknown_message"] += 1
+            elif ref["role"] != MessageRole.USER.value:
+                rejected["not_user_message"] += 1
+            elif f.unit_type == LabelUnit.EXCHANGE and not ref["has_text"]:
+                rejected["not_typed_reply"] += 1
+            elif f.context_message_key and (
+                    refs.get(f.context_message_key) is None
+                    or refs[f.context_message_key]["role"] != MessageRole.ASSISTANT.value):
+                rejected["unknown_context"] += 1
+            else:
+                valid.append(f)
+
+        with store.transaction():
+            stats.rows_written = store.insert_message_facets(valid)
+        stats.rows_skipped = stats.rows_read - stats.rows_written
+
+    return {
+        "etl_run_id": stats.etl_run_id,
+        "questions_registered": questions_registered,
+        "rows_read": stats.rows_read,
+        "rows_written": stats.rows_written,
+        "rows_existing": len(valid) - stats.rows_written,
+        "rejected": dict(sorted(rejected.items())),
     }

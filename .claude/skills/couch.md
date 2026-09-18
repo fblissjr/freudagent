@@ -5,8 +5,12 @@ Last updated: 2026-07-21
 Analysis passes over the transcript warehouse that need judgment, not
 aggregation. The SQL layer (`freud-schema couch run`, no model calls)
 already detects retry loops, tool error clusters, interruption hotspots,
-and permission friction. This skill covers the LLM layer: findings a
-regex cannot make, chiefly `user_correction_pattern`.
+and permission friction, and counts recurring corrections and rule
+violations from message labels loaded with `ingest labels`
+(`labeled_correction_recurring`, `labeled_rule_violation_recurring`).
+This skill covers the LLM layer: findings a regex cannot make, chiefly
+`user_correction_pattern`. Where labels exist, read `v_labeled_exchanges`
+first and judge the replies it flags rather than sampling blind.
 
 The library contains no model calls by design. The harness (you) is the
 intelligence: query candidates via the store-ops server's `query` tool,

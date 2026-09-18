@@ -50,8 +50,11 @@ from freud_schema.tables import (
     FeedbackOriginKind,
     Finding,
     FindingType,
+    LabelerKind,
     LoadRun,
     Message,
+    MessageFacet,
+    MessageRole,
     Project,
     Proposal,
     ProposalStatus,
@@ -126,6 +129,7 @@ _KEY_COLUMNS: dict[str, str] = {
     "fact_message": "message_key",
     "fact_tool_use": "tool_use_key",
     "fact_session_facets": "facet_row_key",
+    "fact_message_facets": "facet_row_key",
     "fact_finding": "finding_key",
     "fact_proposal": "proposal_key",
     "dim_event_type": "event_type_key",
@@ -168,6 +172,20 @@ _EVENT_JSON_TYPES: dict[str, str] = {
     "event_type": "VARCHAR", "occurred_at": "TIMESTAMP", "actor": "VARCHAR",
     "payload": "JSON", "content_text": "VARCHAR", "signature": "VARCHAR",
     "sequence_num": "INTEGER",
+    "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
+}
+
+
+_MESSAGE_FACET_JSON_TYPES: dict[str, str] = {
+    "facet_row_key": "VARCHAR", "unit_type": "VARCHAR", "session_key": "VARCHAR",
+    "project_key": "VARCHAR", "message_key": "VARCHAR",
+    "context_message_key": "VARCHAR", "facet_type_key": "VARCHAR",
+    "facet_id": "VARCHAR", "prompt_version": "INTEGER", "options_hash": "VARCHAR",
+    "labeler_kind": "VARCHAR", "labeler": "VARCHAR", "labeler_version": "VARCHAR",
+    "value_text": "VARCHAR", "value_numeric": "DOUBLE", "probability": "DOUBLE",
+    "probabilities": "JSON", "confidence": "DOUBLE",
+    "input_content_hash": "VARCHAR", "state_truncated": "BOOLEAN",
+    "labeled_at": "TIMESTAMP", "label_source": "VARCHAR",
     "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
 }
 
@@ -1727,6 +1745,120 @@ class ExperimentStore:
         )]
 
     # -------------------------------------------------------------------
+    # Message facets (fact_message_facets) -- labels on messages
+    # -------------------------------------------------------------------
+
+    @staticmethod
+    def message_facet_key_for(facet: MessageFacet) -> str:
+        """The label-key recipe, named. Every part of the reuse contract
+        is in it, so a relabel under a new model version, option set or
+        input is a new row rather than a silent skip."""
+        return dimension_key(
+            facet.unit_type.value, facet.message_key, facet.facet_id,
+            facet.prompt_version, facet.options_hash, facet.labeler,
+            facet.labeler_version, facet.input_content_hash)
+
+    def get_message_refs(self, message_keys: list[str]) -> dict[str, dict]:
+        """message_key -> {session_key, project_key, role, has_text} for
+        the keys that exist. One query for the whole batch -- the label
+        ingest's existence check and denormalization source."""
+        if not message_keys:
+            return {}
+        rows = self._fetchall(
+            """SELECT message_key, session_key, project_key, role,
+                      content_text IS NOT NULL AS has_text
+               FROM fact_message
+               WHERE message_key IN (SELECT unnest(?))""",
+            [sorted(set(message_keys))],
+        )
+        return {r["message_key"]: r for r in rows}
+
+    def insert_message_facets(self, facets: list[MessageFacet]) -> int:
+        """Bulk insert labels; returns rows actually written.
+
+        Fails closed before writing anything: every (facet_id,
+        prompt_version) must be registered in dim_facet_type, and every
+        labeled message must exist in fact_message as a user message.
+        project_key is denormalized from that message (the existence
+        fetch doubles as the denormalization source). Existing keys skip,
+        so re-ingesting a label file writes nothing.
+        """
+        if not facets:
+            return 0
+        for facet_id, version in {(f.facet_id, f.prompt_version) for f in facets}:
+            if self.get_facet_type(facet_id, version) is None:
+                raise ValueError(
+                    f"Facet type {facet_id} v{version} is not registered in "
+                    f"dim_facet_type -- register the question first")
+        refs = self.get_message_refs([f.message_key for f in facets])
+        for f in facets:
+            ref = refs.get(f.message_key)
+            if ref is None or ref["role"] != MessageRole.USER.value:
+                raise ValueError(
+                    f"Label targets message {f.message_key[:12]}, which is not "
+                    f"a user message in fact_message")
+        keys = [self.message_facet_key_for(f) for f in facets]
+        existing = {d["facet_row_key"] for d in self._fetchall(
+            """SELECT facet_row_key FROM fact_message_facets
+               WHERE facet_row_key IN (SELECT unnest(?))""",
+            [sorted(set(keys))],
+        )}
+        rows = []
+        for key, f in zip(keys, facets):
+            if key in existing:
+                continue
+            existing.add(key)
+            ref = refs[f.message_key]
+            rows.append({
+                "facet_row_key": key, "unit_type": f.unit_type,
+                "session_key": ref["session_key"], "project_key": ref["project_key"],
+                "message_key": f.message_key,
+                "context_message_key": f.context_message_key,
+                "facet_type_key": dimension_key(f.facet_id, f.prompt_version),
+                "facet_id": f.facet_id, "prompt_version": f.prompt_version,
+                "options_hash": f.options_hash, "labeler_kind": f.labeler_kind,
+                "labeler": f.labeler, "labeler_version": f.labeler_version,
+                "value_text": f.value_text, "value_numeric": f.value_numeric,
+                "probability": f.probability, "probabilities": f.probabilities,
+                "confidence": f.confidence,
+                "input_content_hash": f.input_content_hash,
+                "state_truncated": f.state_truncated, "labeled_at": f.labeled_at,
+                "label_source": f.label_source,
+                "tenant_key": f.tenant_key or self._default_tenant_key,
+                "record_source": f.record_source, "etl_run_id": f.etl_run_id,
+            })
+        self._bulk_insert_json("fact_message_facets", _MESSAGE_FACET_JSON_TYPES, rows)
+        return len(rows)
+
+    def insert_message_facet(self, facet: MessageFacet) -> str:
+        """Insert one label. Delegates to insert_message_facets (one write
+        path per table)."""
+        self.insert_message_facets([facet])
+        return self.message_facet_key_for(facet)
+
+    def list_message_facets(
+        self,
+        message_key: str | None = None,
+        facet_id: str | None = None,
+        labeler_kind: LabelerKind | None = None,
+        limit: int = 1000,
+    ) -> list[MessageFacet]:
+        query = "SELECT * FROM fact_message_facets WHERE 1=1"
+        params: list = []
+        if message_key is not None:
+            query += " AND message_key = ?"
+            params.append(message_key)
+        if facet_id is not None:
+            query += " AND facet_id = ?"
+            params.append(facet_id)
+        if labeler_kind is not None:
+            query += " AND labeler_kind = ?"
+            params.append(labeler_kind)
+        query += " ORDER BY message_key, facet_id, labeler_kind, labeler LIMIT ?"
+        params.append(limit)
+        return [MessageFacet(**d) for d in self._fetchall(query, params)]
+
+    # -------------------------------------------------------------------
     # Findings (fact_finding) -- registry-validated open vocabulary
     # -------------------------------------------------------------------
 
@@ -2069,6 +2201,48 @@ class ExperimentStore:
                FROM v_permission_friction
                WHERE denials >= ?""",
             [min_denials],
+        )
+
+    def query_labeled_corrections(
+        self, correct_value: str, min_probability: float, min_sessions: int,
+    ) -> list[dict]:
+        """Per (project, correction kind, labeler): replies labeled as
+        corrections, both labels at or above min_probability, recurring
+        across at least min_sessions sessions. Labels with no probability
+        (people, rules, planted keys) pass the probability filter."""
+        return self._fetchall(
+            """SELECT project_key, correction_kind, labeler_kind, labeler,
+                      COUNT(*) AS replies,
+                      COUNT(DISTINCT session_key) AS session_count,
+                      LIST(DISTINCT session_key ORDER BY session_key) AS session_keys
+               FROM v_labeled_exchanges
+               WHERE user_response = ?
+                 AND correction_kind IS NOT NULL
+                 AND COALESCE(user_response_p, 1.0) >= ?
+                 AND COALESCE(correction_kind_p, 1.0) >= ?
+               GROUP BY project_key, correction_kind, labeler_kind, labeler
+               HAVING COUNT(DISTINCT session_key) >= ?""",
+            [correct_value, min_probability, min_probability, min_sessions],
+        )
+
+    def query_labeled_rule_violations(
+        self, none_value: str, min_probability: float, min_sessions: int,
+    ) -> list[dict]:
+        """Per (project, rule, labeler): replies labeled as pointing at a
+        rule in force, at or above min_probability, recurring across at
+        least min_sessions sessions."""
+        return self._fetchall(
+            """SELECT project_key, rule_violated, labeler_kind, labeler,
+                      COUNT(*) AS replies,
+                      COUNT(DISTINCT session_key) AS session_count,
+                      LIST(DISTINCT session_key ORDER BY session_key) AS session_keys
+               FROM v_labeled_exchanges
+               WHERE rule_violated IS NOT NULL
+                 AND rule_violated <> ?
+                 AND COALESCE(rule_violated_p, 1.0) >= ?
+               GROUP BY project_key, rule_violated, labeler_kind, labeler
+               HAVING COUNT(DISTINCT session_key) >= ?""",
+            [none_value, min_probability, min_sessions],
         )
 
     # -------------------------------------------------------------------
