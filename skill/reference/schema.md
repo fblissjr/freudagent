@@ -497,7 +497,8 @@ itself rather than trusting the labeler's filter. It refuses labels on user
 messages with no text (tool-result carriers, `no_text`), meta entries
 (`meta_entry`), compact summaries (`compact_summary`), subagent transcripts
 (`subagent_message`), text the client or a hook wrote (slash-command output,
-`<system-reminder>` injections, interruption markers -- `injected_text`), and
+`!` shell-mode commands and output, `<system-reminder>` injections, interruption
+markers -- `injected_text`), and
 replies with no assistant turn before them (`no_assistant_turn`). A model label must
 carry a probability (`missing_probability`), and `labeled_at` must be an ISO 8601
 string when present (`bad_labeled_at`). The whole file loads in one transaction,

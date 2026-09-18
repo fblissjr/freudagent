@@ -90,6 +90,10 @@ def _session_lines(sid: str, day: str) -> list[str]:
          "message": {"role": "user", "content": "<local-command-stdout>Total cost: $0.10</local-command-stdout>"}},
         {"type": "user", **_env(sid, f"{p}-r1", f"{day}T10:03:20Z"),
          "message": {"role": "user", "content": "<system-reminder>hook ran</system-reminder>"}},
+        {"type": "user", **_env(sid, f"{p}-b1", f"{day}T10:03:25Z"),
+         "message": {"role": "user", "content": "<bash-input>git status</bash-input>"}},
+        {"type": "user", **_env(sid, f"{p}-b2", f"{day}T10:03:26Z"),
+         "message": {"role": "user", "content": "<bash-stdout>clean</bash-stdout><bash-stderr></bash-stderr>"}},
         {"type": "user", **_env(sid, f"{p}-s1", f"{day}T10:03:30Z", isCompactSummary=True),
          "message": {"role": "user", "content": "This session is being continued from a previous conversation."}},
     ]
@@ -291,6 +295,8 @@ class TestIngestLabels:
         (_label(SESSION_A, "user_response", "correct", user="a-c1"), "injected_text"),
         (_label(SESSION_A, "user_response", "correct", user="a-r1"), "injected_text"),
         (_label(SESSION_A, "user_response", "correct", user="a-i1"), "injected_text"),
+        (_label(SESSION_A, "user_response", "correct", user="a-b1"), "injected_text"),
+        (_label(SESSION_A, "user_response", "correct", user="a-b2"), "injected_text"),
         (_label(SESSION_A, "user_response", "correct")
          | {"native_session_id": f"{SESSION_A}/agent-ag1",
             "user_entry_uuid": "sub-u2", "assistant_entry_uuid": "sub-a1"},

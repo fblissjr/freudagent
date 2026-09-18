@@ -195,8 +195,8 @@ first; a question whose definition changed under the same version is
 refused. Rows that fail validation or name messages not in the warehouse are
 rejected and counted by reason, never written. An exchange label must land
 on a typed reply: labels on meta entries, compact summaries, subagent
-transcripts, slash-command output, hook reminders, interruption markers or a
-session's opening prompt are refused. Choice values must be slugs, so reply
+transcripts, slash-command output, `!` shell-mode records, hook reminders,
+interruption markers or a session's opening prompt are refused. Choice values must be slugs, so reply
 text cannot enter through a label. Re-running the same file writes
 nothing. In-session, use the store-ops `ingest_labels` tool.
 

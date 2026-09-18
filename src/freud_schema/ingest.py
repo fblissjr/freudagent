@@ -630,10 +630,13 @@ _LABEL_SOURCE_MAX = 200
 # Text the client or a hook writes into the user role. An exchange unit is
 # a reply a person typed, so a label on any of these is refused -- the same
 # typed-reply rule the labelers apply, enforced again here so a labeler bug
-# cannot put findings on command output or a hook's reminder.
+# cannot put findings on command output or a hook's reminder. Shell-mode
+# records (a `!` command and its output) are included: the command is typed,
+# but it is a shell line, not a reply to the assistant.
 INJECTED_USER_PREFIXES = [
     "<command-name>", "<command-message>", "<command-args>",
     "<local-command-stdout>", "<local-command-stderr>",
+    "<bash-input>", "<bash-stdout>", "<bash-stderr>",
     "<system-reminder>", "[Request interrupted by user",
 ]
 
