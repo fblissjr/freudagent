@@ -385,6 +385,7 @@ def _ingest_file(store: ExperimentStore, sf: SessionFile, etl_run_id: str) -> tu
                 content_text=text or None,
                 is_meta=bool(entry.is_meta),
                 is_sidechain=bool(entry.is_sidechain),
+                is_compact_summary=bool(getattr(entry, "is_compact_summary", False)),
                 etl_run_id=etl_run_id,
             ))
         elif isinstance(entry, AssistantEntry):
@@ -626,6 +627,16 @@ _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 _VERSION_RE = re.compile(r"^v?([1-9][0-9]*)$")
 _LABEL_SOURCE_MAX = 200
 
+# Text the client or a hook writes into the user role. An exchange unit is
+# a reply a person typed, so a label on any of these is refused -- the same
+# typed-reply rule the labelers apply, enforced again here so a labeler bug
+# cannot put findings on command output or a hook's reminder.
+INJECTED_USER_PREFIXES = [
+    "<command-name>", "<command-message>", "<command-args>",
+    "<local-command-stdout>", "<local-command-stderr>",
+    "<system-reminder>", "[Request interrupted by user",
+]
+
 # Question type -> how its value is stored.
 _QUESTION_OUTPUT = {
     "choice": FacetOutputType.TEXT,
@@ -848,6 +859,25 @@ def _label_from_row(
     ), None
 
 
+def _typed_reply_reject(ref: dict, context_message_key: str | None) -> str | None:
+    """Why a user message is not a typed reply, or None if it is. An
+    exchange unit is text a person typed in the main session, answering an
+    assistant turn."""
+    if not ref["has_text"]:
+        return "no_text"  # e.g. a tool-result carrier
+    if ref["is_meta"]:
+        return "meta_entry"
+    if ref["is_compact_summary"]:
+        return "compact_summary"
+    if ref["is_sidechain"]:
+        return "subagent_message"  # its "user" is the orchestrating agent
+    if ref["is_injected"]:
+        return "injected_text"
+    if context_message_key is None:
+        return "no_assistant_turn"  # e.g. a session's opening prompt
+    return None
+
+
 def ingest_labels(
     store: ExperimentStore,
     *,
@@ -895,20 +925,24 @@ def ingest_labels(
 
         refs = store.get_message_refs(
             [f.message_key for f in candidates]
-            + [f.context_message_key for f in candidates if f.context_message_key])
+            + [f.context_message_key for f in candidates if f.context_message_key],
+            injected_prefixes=INJECTED_USER_PREFIXES)
         valid: list[MessageFacet] = []
         for f in candidates:
             ref = refs.get(f.message_key)
+            reason = None
             if ref is None:
-                rejected["unknown_message"] += 1
+                reason = "unknown_message"
             elif ref["role"] != MessageRole.USER.value:
-                rejected["not_user_message"] += 1
-            elif f.unit_type == LabelUnit.EXCHANGE and not ref["has_text"]:
-                rejected["not_typed_reply"] += 1
-            elif f.context_message_key and (
+                reason = "not_user_message"
+            elif f.unit_type == LabelUnit.EXCHANGE:
+                reason = _typed_reply_reject(ref, f.context_message_key)
+            if reason is None and f.context_message_key and (
                     refs.get(f.context_message_key) is None
                     or refs[f.context_message_key]["role"] != MessageRole.ASSISTANT.value):
-                rejected["unknown_context"] += 1
+                reason = "unknown_context"
+            if reason:
+                rejected[reason] += 1
             else:
                 valid.append(f)
 

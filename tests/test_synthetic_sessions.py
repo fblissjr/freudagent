@@ -14,6 +14,8 @@ rule history on disk, rather than trusting the generator that wrote both:
 - rule_violated values and option hashes match the rule set in force on
   the session's date, rebuilt from rules_history.jsonl
 - the key ingests with nothing rejected, and the label detectors fire on it
+- the ingest refuses a label on every user entry that is not a unit, on
+  its own, so a labeler's filter bug cannot put findings on a trap
 """
 
 from __future__ import annotations
@@ -138,6 +140,40 @@ def test_static_option_hashes_match_the_questions_file(key):
     for qid in ("user_response", "correction_kind"):
         expected = options_hash(questions[qid]["options"])
         assert {r["options_hash"] for r in key if r["question_id"] == qid} == {expected}
+
+
+def test_ingest_refuses_labels_on_every_non_unit_entry(store, key, tmp_path):
+    """The ingest enforces the typed-reply rule on its own, so a labeler
+    bug cannot land labels on a trap. Point an exchange label at every user
+    entry the key does not name -- trap entries, opening prompts and all
+    subagent entries -- and expect every one refused, none unknown."""
+    ingest_transcripts(store, root=SESSIONS)
+    units = {(r["native_session_id"], r["user_entry_uuid"]) for r in key}
+    rows = []
+    for f in sorted(SESSIONS.glob("*/*.jsonl")) + sorted(SESSIONS.glob("*/*/subagents/*.jsonl")):
+        native = (f.stem if f.parent.name != "subagents"
+                  else f"{f.parent.parent.name}/{f.stem}")
+        last_assistant = None
+        for e in _jsonl(f):
+            if e["type"] == "assistant":
+                last_assistant = e["uuid"]
+            elif e["type"] == "user" and (native, e["uuid"]) not in units:
+                rows.append({
+                    "unit_type": "exchange", "native_session_id": native,
+                    "user_entry_uuid": e["uuid"],
+                    "assistant_entry_uuid": last_assistant,
+                    "question_id": "user_response", "question_version": "v1",
+                    "labeler_kind": "key", "labeler": "synthetic",
+                    "value": "correct"})
+    labels = tmp_path / "non_unit_labels.jsonl"
+    labels.write_bytes(b"".join(orjson.dumps(r) + b"\n" for r in rows))
+    stats = ingest_labels(store, path=labels, questions=QUESTIONS)
+    assert stats["rows_written"] == 0
+    assert sum(stats["rejected"].values()) == len(rows)
+    assert "unknown_message" not in stats["rejected"]
+    assert set(stats["rejected"]) == {
+        "no_text", "meta_entry", "compact_summary", "subagent_message",
+        "injected_text", "no_assistant_turn"}
 
 
 def test_key_ingests_and_detectors_fire(store):

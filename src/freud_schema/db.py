@@ -373,6 +373,7 @@ def _build_tables_ddl() -> list[str]:
     output_tokens INTEGER,
     is_meta BOOLEAN NOT NULL DEFAULT FALSE,
     is_sidechain BOOLEAN NOT NULL DEFAULT FALSE,
+    is_compact_summary BOOLEAN NOT NULL DEFAULT FALSE,
 {_lineage_cols()},
     {_check_in('role', MessageRole)}
 )""",
@@ -692,7 +693,8 @@ _SCHEMA_VERSIONS: list[tuple[int, str]] = [
     (10, "v0.39: fact_message.thinking_text -- the reasoning trail is kept rather than reduced to a boolean"),
     (11, "v0.40: fact_trace.source_message_key -- typed traces are derived from captured reasoning and name the message they came from"),
     (12, "v0.42: fact_message_facets -- labels on messages from models, people, rules and planted keys; "
-         "FacetMethod typed_model; label_ingest record_source; v_labeled_exchanges"),
+         "FacetMethod typed_model; label_ingest record_source; v_labeled_exchanges; "
+         "fact_message.is_compact_summary"),
 ]
 
 # Canonical table inventory, in dependency order (dependents first) so it

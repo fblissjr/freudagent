@@ -439,6 +439,7 @@ Ingestion-scale table: deterministic keys, skip-if-exists inserts.
 | output_tokens | INTEGER | |
 | is_meta | BOOLEAN DEFAULT FALSE | Harness-internal message (not user-visible) |
 | is_sidechain | BOOLEAN DEFAULT FALSE | Part of a subagent/sidechain transcript |
+| is_compact_summary | BOOLEAN DEFAULT FALSE | A context-compaction summary the client wrote into the user role -- text, but not typed by a person |
 | *lineage columns* | | See above -- defaults to `record_source = transcript_ingest` |
 
 ### fact_tool_use
@@ -490,6 +491,14 @@ which rejects and counts by reason any row that fails validation or names a
 message not in `fact_message`, so nothing is written partially. Choice values,
 question ids and labeler names must be slugs, so no transcript text can reach
 this table through a label.
+
+An `exchange` label must land on a typed reply, and the ingest enforces that
+itself rather than trusting the labeler's filter. It refuses labels on user
+messages with no text (tool-result carriers, `no_text`), meta entries
+(`meta_entry`), compact summaries (`compact_summary`), subagent transcripts
+(`subagent_message`), text the client or a hook wrote (slash-command output,
+`<system-reminder>` injections, interruption markers -- `injected_text`), and
+replies with no assistant turn before them (`no_assistant_turn`).
 
 | Column | Type | Notes |
 |--------|------|-------|

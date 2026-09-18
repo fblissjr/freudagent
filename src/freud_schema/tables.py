@@ -519,6 +519,10 @@ class Message(BaseModel):
     output_tokens: int | None = None
     is_meta: bool = False
     is_sidechain: bool = False
+    is_compact_summary: bool = Field(
+        default=False,
+        description="A context-compaction summary the client wrote into the "
+                    "user role -- text, but not typed by a person")
     # Lineage
     tenant_key: str | None = None
     record_source: RecordSource = RecordSource.TRANSCRIPT_INGEST

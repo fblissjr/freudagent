@@ -21,7 +21,11 @@
   fail validation or name messages not in the warehouse are rejected and
   counted by reason, never written; re-running a file writes nothing, and a
   relabel under a new model version is a new row. A probability on a
-  person's, rule's or key's label is refused. The questions file registers
+  person's, rule's or key's label is refused. An exchange label must land on
+  a typed reply: the ingest itself refuses labels on meta entries, compact
+  summaries, subagent transcripts, slash-command output, hook reminders,
+  interruption markers and opening prompts, so a labeler's filter bug cannot
+  put findings on them. The questions file registers
   each question's full definition in `dim_facet_type`, and a question whose
   definition changed under the same version is refused rather than merged.
   `ingest.options_hash()` is the agreed option-set hash recipe.
@@ -46,6 +50,9 @@
 
 - `FacetMethod` gains `typed_model`, for non-generative models that answer
   typed questions with probabilities; `RecordSource` gains `label_ingest`.
+- `fact_message.is_compact_summary`: transcript ingest now keeps the client's
+  compaction-summary flag instead of storing those entries as ordinary user
+  text.
   Breaking: schema version 12. Existing warehouses reset and re-ingest.
 
 ## 0.41.1

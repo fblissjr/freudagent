@@ -156,6 +156,7 @@ _MESSAGE_JSON_TYPES: dict[str, str] = {
     "has_thinking": "BOOLEAN", "thinking_text": "VARCHAR",
     "stop_reason": "VARCHAR", "input_tokens": "INTEGER",
     "output_tokens": "INTEGER", "is_meta": "BOOLEAN", "is_sidechain": "BOOLEAN",
+    "is_compact_summary": "BOOLEAN",
     "tenant_key": "VARCHAR", "record_source": "VARCHAR", "etl_run_id": "VARCHAR",
 }
 
@@ -1581,6 +1582,7 @@ class ExperimentStore:
                 "stop_reason": m.stop_reason, "input_tokens": m.input_tokens,
                 "output_tokens": m.output_tokens, "is_meta": m.is_meta,
                 "is_sidechain": m.is_sidechain,
+                "is_compact_summary": m.is_compact_summary,
                 "tenant_key": m.tenant_key or self._default_tenant_key,
                 "record_source": m.record_source, "etl_run_id": m.etl_run_id,
             })
@@ -1758,18 +1760,27 @@ class ExperimentStore:
             facet.prompt_version, facet.options_hash, facet.labeler,
             facet.labeler_version, facet.input_content_hash)
 
-    def get_message_refs(self, message_keys: list[str]) -> dict[str, dict]:
-        """message_key -> {session_key, project_key, role, has_text} for
-        the keys that exist. One query for the whole batch -- the label
-        ingest's existence check and denormalization source."""
+    def get_message_refs(
+        self, message_keys: list[str], injected_prefixes: list[str] | None = None,
+    ) -> dict[str, dict]:
+        """message_key -> {session_key, project_key, role, has_text,
+        is_meta, is_sidechain, is_compact_summary, is_injected} for the keys
+        that exist. One query for the whole batch -- the label ingest's
+        existence check, typed-reply check and denormalization source.
+        is_injected is true when the text starts with any of
+        injected_prefixes (client- or hook-written text in the user role);
+        no message text leaves this query."""
         if not message_keys:
             return {}
         rows = self._fetchall(
             """SELECT message_key, session_key, project_key, role,
-                      content_text IS NOT NULL AS has_text
+                      content_text IS NOT NULL AS has_text,
+                      is_meta, is_sidechain, is_compact_summary,
+                      COALESCE(len(list_filter(?::VARCHAR[],
+                          p -> starts_with(content_text, p))) > 0, FALSE) AS is_injected
                FROM fact_message
                WHERE message_key IN (SELECT unnest(?))""",
-            [sorted(set(message_keys))],
+            [injected_prefixes or [], sorted(set(message_keys))],
         )
         return {r["message_key"]: r for r in rows}
 

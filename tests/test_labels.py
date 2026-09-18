@@ -55,7 +55,9 @@ def _env(session_id: str, uuid: str, ts: str, **over) -> dict:
 
 def _session_lines(sid: str, day: str) -> list[str]:
     """A typed prompt, an assistant turn with a tool call, a corrective
-    typed reply, a second assistant turn, and an interruption marker."""
+    typed reply, a second assistant turn, an interruption marker, then the
+    user-role entries a person did not type: a meta entry, slash-command
+    output, a hook reminder and a compact summary."""
     p = sid[0]
     lines = [
         {"type": "user", **_env(sid, f"{p}-u1", f"{day}T10:00:00Z"),
@@ -82,6 +84,34 @@ def _session_lines(sid: str, day: str) -> list[str]:
         {"type": "user", **_env(sid, f"{p}-i1", f"{day}T10:02:00Z", parentUuid=f"{p}-u2"),
          "message": {"role": "user", "content": [
              {"type": "text", "text": "[Request interrupted by user]"}]}},
+        {"type": "user", **_env(sid, f"{p}-m1", f"{day}T10:03:00Z", isMeta=True),
+         "message": {"role": "user", "content": "Caveat: local command output follows."}},
+        {"type": "user", **_env(sid, f"{p}-c1", f"{day}T10:03:10Z"),
+         "message": {"role": "user", "content": "<local-command-stdout>Total cost: $0.10</local-command-stdout>"}},
+        {"type": "user", **_env(sid, f"{p}-r1", f"{day}T10:03:20Z"),
+         "message": {"role": "user", "content": "<system-reminder>hook ran</system-reminder>"}},
+        {"type": "user", **_env(sid, f"{p}-s1", f"{day}T10:03:30Z", isCompactSummary=True),
+         "message": {"role": "user", "content": "This session is being continued from a previous conversation."}},
+    ]
+    return [json.dumps(line) for line in lines]
+
+
+def _subagent_lines(parent_sid: str, day: str) -> list[str]:
+    """A subagent transcript: its "user" is the orchestrating agent, and it
+    carries the parent's sessionId, as real ones do."""
+    lines = [
+        {"type": "user", **_env(parent_sid, "sub-u1", f"{day}T10:00:30Z",
+                                isSidechain=True, agentId="ag1"),
+         "message": {"role": "user", "content": "Find the retry-count reads."}},
+        {"type": "assistant", **_env(parent_sid, "sub-a1", f"{day}T10:00:40Z",
+                                     isSidechain=True, agentId="ag1", parentUuid="sub-u1"),
+         "message": {"id": "msg_sub", "role": "assistant", "model": "claude-fable-5",
+                     "stop_reason": "end_turn",
+                     "usage": {"input_tokens": 10, "output_tokens": 5},
+                     "content": [{"type": "text", "text": "Two call sites."}]}},
+        {"type": "user", **_env(parent_sid, "sub-u2", f"{day}T10:00:50Z",
+                                isSidechain=True, agentId="ag1", parentUuid="sub-a1"),
+         "message": {"role": "user", "content": "Check the second one too."}},
     ]
     return [json.dumps(line) for line in lines]
 
@@ -93,6 +123,9 @@ def ingested(store, tmp_path):
     proj.mkdir(parents=True)
     (proj / f"{SESSION_A}.jsonl").write_text("\n".join(_session_lines(SESSION_A, "2026-06-01")) + "\n")
     (proj / f"{SESSION_B}.jsonl").write_text("\n".join(_session_lines(SESSION_B, "2026-06-02")) + "\n")
+    sub = proj / SESSION_A / "subagents"
+    sub.mkdir(parents=True)
+    (sub / "agent-ag1.jsonl").write_text("\n".join(_subagent_lines(SESSION_A, "2026-06-01")) + "\n")
     ingest_transcripts(store, root=tmp_path / "projects")
     return store
 
@@ -252,7 +285,18 @@ class TestIngestLabels:
 
     @pytest.mark.parametrize("row,reason", [
         (_label(SESSION_A, "user_response", "correct", user="no-such-uuid"), "unknown_message"),
-        (_label(SESSION_A, "user_response", "correct", user="a-t1"), "not_typed_reply"),
+        (_label(SESSION_A, "user_response", "correct", user="a-t1"), "no_text"),
+        (_label(SESSION_A, "user_response", "correct", user="a-m1"), "meta_entry"),
+        (_label(SESSION_A, "user_response", "correct", user="a-s1"), "compact_summary"),
+        (_label(SESSION_A, "user_response", "correct", user="a-c1"), "injected_text"),
+        (_label(SESSION_A, "user_response", "correct", user="a-r1"), "injected_text"),
+        (_label(SESSION_A, "user_response", "correct", user="a-i1"), "injected_text"),
+        (_label(SESSION_A, "user_response", "correct")
+         | {"native_session_id": f"{SESSION_A}/agent-ag1",
+            "user_entry_uuid": "sub-u2", "assistant_entry_uuid": "sub-a1"},
+         "subagent_message"),
+        (_label(SESSION_A, "user_response", "correct", user="a-u1")
+         | {"assistant_entry_uuid": None}, "no_assistant_turn"),
         (_label(SESSION_A, "user_response", "correct", user="a-a1"), "not_user_message"),
         (_label(SESSION_A, "user_response", "correct", assistant="no-such-uuid"), "unknown_context"),
         (_label(SESSION_A, "user_response", REPLY_TEXT), "bad_value"),
