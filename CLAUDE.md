@@ -106,6 +106,11 @@ scripts/
   trace-hook.sh      - PostToolUse hook for automatic tool_call trace capture
   generate_synthetic_data.py - Deterministic generator for data/synthetic/
                        (fixed seed, fixed dates -- byte-identical re-runs)
+  score_labels.py    - Scores message labelers against the synthetic answer key or a
+                       person's labels: accuracy with 95% intervals beside the
+                       majority class, calibration, routing, and a confusion table
+                       for score questions. Throwaway database by default; --db
+                       reads an existing warehouse
   build_citation_graph.py - Derives data/synthetic/eval/citation_edges.csv
                        (corpus-wide ID mentions as from_path->to_id edges).
                        Standalone (scans the whole corpus on disk), not part

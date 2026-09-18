@@ -1,6 +1,6 @@
 ---
 name: freud-schema
-version: 0.42.0
+version: 0.43.0
 description: Data layer for declarative agent orchestration -- schema, archetypes, and context assembly loaded into any harness
 activation:
   - freud
@@ -199,6 +199,12 @@ transcripts, slash-command output, `!` shell-mode records, hook reminders,
 interruption markers or a session's opening prompt are refused. Choice values must be slugs, so reply
 text cannot enter through a label. Re-running the same file writes
 nothing. In-session, use the store-ops `ingest_labels` tool.
+
+To score a labeler, run `scripts/score_labels.py` (see its docstring). By
+default it loads label files into a throwaway database beside the synthetic
+answer key. With `--db` it reads a warehouse, and `--reference human:<name>`
+scores against a person's labels. `ExperimentStore.query_label_pairs` gives
+the paired rows it is built on.
 
 ### The Couch (analyze)
 

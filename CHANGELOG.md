@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.43.0
+
+### Added
+
+- **`scripts/score_labels.py`**: scores message labelers against a reference
+  -- the synthetic answer key, or a person's labels (`--reference
+  human:<name>`). It prints accuracy with a 95% Wilson interval beside the
+  majority class on the same replies; for labelers that report probabilities,
+  calibration buckets (stated against observed, with intervals) and a routing
+  table (share auto-applied at a threshold, and its accuracy); and a
+  reference-to-labeler table for score questions. By default it loads label
+  files through the real ingest into a throwaway database, so a file that
+  breaks the label contract shows up as counted rejections; `--db` scores what
+  a warehouse already holds.
+- **`ExperimentStore.query_label_pairs`**: every labeler's latest answer
+  paired with the reference's on the same message and question. Refuses an
+  ambiguous reference (several labelers of that kind, none named).
+
 ## 0.42.0
 
 ### Added

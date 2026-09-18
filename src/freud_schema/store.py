@@ -51,6 +51,7 @@ from freud_schema.tables import (
     Finding,
     FindingType,
     LabelerKind,
+    LabelUnit,
     LoadRun,
     Message,
     MessageFacet,
@@ -2295,6 +2296,62 @@ class ExperimentStore:
             [none_value, LabelerKind.MODEL.value, min_probability, min_sessions],
         )
         return [{**r, "rule_violated": r.pop("value")} for r in rows]
+
+    def query_label_pairs(
+        self,
+        reference_kind: LabelerKind,
+        reference_labeler: str | None = None,
+        unit_type: LabelUnit = LabelUnit.EXCHANGE,
+    ) -> list[dict]:
+        """Every labeler's answer paired with a reference answer on the same
+        message and question -- the input to accuracy, calibration and
+        routing checks.
+
+        The reference is one labeler: the planted key (reference_kind key)
+        or a person (human, with reference_labeler naming who). Each side
+        uses its latest label per reply, the rule the detectors use. Every
+        other labeler is scored against it, including other people.
+
+        Returns one dict per pair: labeler_kind, labeler, facet_id,
+        probability, value, reference_value, hit. Raises when the reference
+        is ambiguous (several labelers of that kind and none named).
+        """
+        if reference_labeler is None:
+            names = {d["labeler"] for d in self._fetchall(
+                "SELECT DISTINCT labeler FROM fact_message_facets WHERE labeler_kind = ?",
+                [reference_kind])}
+            if len(names) > 1:
+                raise ValueError(
+                    f"{len(names)} {reference_kind.value} labelers found; name the "
+                    f"reference labeler: {sorted(names)}")
+        return self._fetchall(
+            """WITH latest AS (
+                   SELECT * FROM fact_message_facets
+                   WHERE unit_type = ?
+                   QUALIFY ROW_NUMBER() OVER (
+                       PARTITION BY message_key, facet_id, labeler_kind, labeler
+                       ORDER BY labeled_at DESC NULLS LAST,
+                                labeler_version DESC NULLS LAST) = 1
+               ),
+               ref AS (
+                   SELECT * FROM latest
+                   WHERE labeler_kind = ? AND (? IS NULL OR labeler = ?)
+               )
+               SELECT lab.labeler_kind, lab.labeler, lab.facet_id, lab.probability,
+                      COALESCE(lab.value_text, lab.value_numeric::VARCHAR) AS value,
+                      COALESCE(ref.value_text, ref.value_numeric::VARCHAR)
+                          AS reference_value,
+                      (lab.value_text IS NOT DISTINCT FROM ref.value_text
+                       AND lab.value_numeric IS NOT DISTINCT FROM ref.value_numeric)
+                          AS hit
+               FROM latest lab
+               JOIN ref ON ref.message_key = lab.message_key
+                       AND ref.facet_id = lab.facet_id
+               WHERE NOT (lab.labeler_kind = ref.labeler_kind
+                          AND lab.labeler = ref.labeler)
+               ORDER BY lab.labeler_kind, lab.labeler, lab.facet_id""",
+            [unit_type, reference_kind, reference_labeler, reference_labeler],
+        )
 
     # -------------------------------------------------------------------
     # Prior Run Sampling
