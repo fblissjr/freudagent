@@ -2812,7 +2812,9 @@ def write_temporal(out: Path, employees: list[dict]) -> None:
 # system-reminder injections, compact summaries, interruption markers and
 # subagent transcripts. None of those get key rows.
 #
-# rules_history.jsonl is the rule set in force per project over time. Some
+# eval/exchange_rules_history.jsonl is the rule set in force per project over
+# time (kept out of agent_sessions/, where transcript readers walk every
+# *.jsonl as a session). Some
 # rules start, change or retire mid-period, so the same correction points at
 # a rule in one session and at "none" in an earlier one.
 
@@ -3299,8 +3301,8 @@ def write_agent_sessions(out: Path) -> dict:
     rules = [{"project_dir": _encode_project(AGENT_PROJECTS[p]), "rule_id": rid,
               "statement": stmt, "effective_from": start, "effective_to": end}
              for p, rid, stmt, start, end in AGENT_RULES]
-    (root / "rules_history.jsonl").write_bytes(jsonl(rules))
     (out / "eval").mkdir(parents=True, exist_ok=True)
+    (out / "eval" / "exchange_rules_history.jsonl").write_bytes(jsonl(rules))
     (out / "eval" / "exchange_questions.jsonl").write_bytes(
         jsonl(EXCHANGE_QUESTIONS))
     (out / "eval" / "exchange_labels.jsonl").write_bytes(jsonl(key_rows))

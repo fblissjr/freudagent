@@ -16,8 +16,11 @@ agent_sessions/
     <session-uuid>/subagents/
       agent-<id>.jsonl          a subagent transcript (its sessionId field is
       agent-<id>.meta.json      the parent's; identity comes from the path)
-  rules_history.jsonl           rules in force per repo, with effective dates
 ```
+
+Nothing else lives here: transcript readers treat every `*.jsonl` under this
+directory as a session. The rule history is in
+`../eval/exchange_rules_history.jsonl`.
 
 Transcripts use Claude Code's entry shapes. Each assistant content block is its
 own entry sharing one message id, as the client writes them, and tool results
@@ -61,7 +64,7 @@ no key row names any of them:
 
 ## Rule history
 
-`rules_history.jsonl` has one row per rule version: `project_dir`, `rule_id`,
-`statement`, `effective_from`, `effective_to` (null while in force). Some rules
-start, change or retire mid-period. A reply dated before a rule took effect is
+`../eval/exchange_rules_history.jsonl` has one row per rule version:
+`project_dir`, `rule_id`, `statement`, `effective_from`, `effective_to` (null
+while in force). Some rules start, change or retire mid-period. A reply dated before a rule took effect is
 keyed `none`, even when it complains about exactly what the rule later covers.

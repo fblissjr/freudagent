@@ -13,7 +13,7 @@
       "path": "README.md",
       "format": "markdown",
       "source_system": "corpus metadata",
-      "bytes": 16611,
+      "bytes": 16615,
       "records": null
     },
     {
@@ -188,15 +188,8 @@
       "path": "agent_sessions/README.md",
       "format": "markdown",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 2940,
+      "bytes": 3044,
       "records": null
-    },
-    {
-      "path": "agent_sessions/rules_history.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 1720,
-      "records": 9
     },
     {
       "path": "api_specs/openapi-metering-v1.yaml",
@@ -365,6 +358,13 @@
       "source_system": "evaluation ground-truth sets",
       "bytes": 1433,
       "records": 4
+    },
+    {
+      "path": "eval/exchange_rules_history.jsonl",
+      "format": "jsonl",
+      "source_system": "evaluation ground-truth sets",
+      "bytes": 1720,
+      "records": 9
     },
     {
       "path": "events/admin_audit.jsonl",

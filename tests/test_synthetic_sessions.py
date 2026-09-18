@@ -12,7 +12,7 @@ rule history on disk, rather than trusting the generator that wrote both:
   names is the last one before that reply
 - every trap kind is present, so a reply filter is actually exercised
 - rule_violated values and option hashes match the rule set in force on
-  the session's date, rebuilt from rules_history.jsonl
+  the session's date, rebuilt from eval/exchange_rules_history.jsonl
 - the key ingests with nothing rejected, and the label detectors fire on it
 - the ingest refuses a label on every user entry that is not a unit, on
   its own, so a labeler's filter bug cannot put findings on a trap
@@ -111,7 +111,7 @@ def test_correction_kind_only_on_corrections(key):
 
 
 def test_rule_violated_matches_rules_in_force(key, transcripts):
-    history = _jsonl(SESSIONS / "rules_history.jsonl")
+    history = _jsonl(CORPUS / "eval" / "exchange_rules_history.jsonl")
     for r in (r for r in key if r["question_id"] == "rule_violated"):
         t = transcripts[r["native_session_id"]]
         in_force = sorted(

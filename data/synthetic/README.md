@@ -80,8 +80,8 @@ events/                     generic JSONL event streams shaped for
                             security alerts
 agent_sessions/             synthetic coding-agent sessions in Claude Code's
                             projects-directory layout (three fictional repos,
-                            subagents included) plus rules_history.jsonl, the
-                            rule set in force per repo over time
+                            subagents included); their rule history is
+                            eval/exchange_rules_history.jsonl
 ```
 
 ## The connective tissue
@@ -210,7 +210,8 @@ labels`, then score a labeler's rows against the key on the same messages.
 Each planted signal is readable from the reply alone, because a labeler's input
 is the reply and the prompt before it, not the assistant's text. Corrections
 recur across sessions on purpose, so the label detectors have patterns to find.
-`rules_history.jsonl` gives each repo's rules with effective dates, and some
+`eval/exchange_rules_history.jsonl` gives each repo's rules with effective
+dates, and some
 start, change or retire mid-period: the same unasked-push reply points at
 `ask-before-push` in one session and at `none` in an earlier one, before the
 rule existed.
