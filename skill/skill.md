@@ -186,10 +186,10 @@ freud-schema ingest labels --file labels.jsonl --questions questions.jsonl
 
 Loads typed labels about already-ingested user messages into
 `fact_message_facets`: one row per unit, question and labeler, where the
-labeler is a model (`jev`, `claude`), a person (`owner`), a rule (`keyword`)
-or a synthetic answer key (`labeler_kind` = model, human, rule, key). Each
-row keys on `native_session_id` + `user_entry_uuid`, the same recipe
-transcript ingest uses, so the transcripts must be ingested first.
+labeler is a model, a person, a rule or a synthetic answer key
+(`labeler_kind` = model, human, rule, key). Each row keys on
+`native_session_id` + `user_entry_uuid`, the same recipe transcript ingest
+uses, so the transcripts must be ingested first.
 `--questions` registers each question's full definition in `dim_facet_type`
 first; a question whose definition changed under the same version is
 refused. Rows that fail validation or name messages not in the warehouse are

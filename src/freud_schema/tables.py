@@ -196,8 +196,8 @@ class LabelerKind(str, Enum):
     Closed for the same reason FeedbackOriginKind is: it is the column
     calibration and evidence filters are written against ("model labels
     only above threshold", "score the model against the key"). The
-    labeler's identity (jev, claude, owner, keyword) is the open column
-    beside it.
+    labeler's identity (a model's name, a person's handle, a rule's name)
+    is the open column beside it.
 
     KEY is planted truth from a synthetic corpus generator. It is not a
     person's judgment and must never be counted as one, which is why it
@@ -660,7 +660,8 @@ class MessageFacet(BaseModel):
         description="sha256 of the ordered [label, description] option "
                     "pairs sent; null for score questions")
     labeler_kind: LabelerKind
-    labeler: str = Field(description="Open identity: jev, claude, owner, ...")
+    labeler: str = Field(description="Open identity: a model's name, a person's "
+                                     "handle, a rule's name")
     labeler_version: str | None = Field(
         default=None,
         description="Versioned model id as returned, never an alias")

@@ -155,8 +155,8 @@ def _write_jsonl(path, rows) -> str:
     return str(path)
 
 
-def _label(sid: str, question_id: str, value, *, kind="model", labeler="jev",
-           version="jev-1.13.0", probability=0.95, user=None, assistant=None,
+def _label(sid: str, question_id: str, value, *, kind="model", labeler="model-a",
+           version="model-a-1.13.0", probability=0.95, user=None, assistant=None,
            **over) -> dict:
     p = sid[0]
     row = {
@@ -177,7 +177,7 @@ def _label(sid: str, question_id: str, value, *, kind="model", labeler="jev",
     return row
 
 
-def _correction_labels(kind="model", labeler="jev", probability=0.95, **over) -> list[dict]:
+def _correction_labels(kind="model", labeler="model-a", probability=0.95, **over) -> list[dict]:
     rows = []
     for sid in (SESSION_A, SESSION_B):
         rows.append(_label(sid, "user_response", "correct", kind=kind,
@@ -276,7 +276,7 @@ class TestIngestLabels:
                       questions=questions_file)
         stats = ingest_labels(
             ingested, path=_write_jsonl(tmp_path / "l2.jsonl",
-                                        _correction_labels(labeler_version="jev-1.14.0")))
+                                        _correction_labels(labeler_version="model-a-1.14.0")))
         assert stats["rows_written"] == 4
 
     def test_load_log_recorded(self, ingested, tmp_path, questions_file):
@@ -402,7 +402,7 @@ class TestLabeledExchangesView:
             """SELECT labeler, user_response, correction_kind, user_response_p
                FROM v_labeled_exchanges ORDER BY labeler, session_key""").fetchall()
         assert [(r[0], r[1], r[2]) for r in pivot] == [
-            ("jev", "correct", "process"), ("jev", "correct", "process"),
+            ("model-a", "correct", "process"), ("model-a", "correct", "process"),
             ("owner", "correct", "process"), ("owner", "correct", "process"),
         ]
         assert [r[3] for r in pivot if r[0] == "owner"] == [None, None]
@@ -420,7 +420,7 @@ class TestLabelDetectors:
         assert f.occurrence_count == 2
         assert len(f.evidence_session_keys) == 2
         assert f.summary.startswith("process:")
-        assert f"labeled by jev (model, p>={LABEL_MIN_PROBABILITY})" in f.summary
+        assert f"labeled by model-a (model, p>={LABEL_MIN_PROBABILITY})" in f.summary
         assert "tests before" not in f.summary
 
     def test_below_probability_floor_does_not_count(self, ingested, tmp_path, questions_file):
@@ -432,11 +432,11 @@ class TestLabelDetectors:
         assert self._findings(ingested, "labeled_correction_recurring") == []
 
     def test_newer_labeler_version_replaces_the_older(self, ingested, tmp_path, questions_file):
-        """jev-1.13 calls both replies process corrections; jev-1.14, later,
+        """model-a-1.13 calls both replies process corrections; model-a-1.14, later,
         calls session A's reply an approval. Only the latest label per
         labeler counts, so one conversation remains and nothing recurs."""
-        old = _correction_labels(labeler_version="jev-1.13.0", labeled_at="2026-09-01T00:00:00Z")
-        new = [_label(SESSION_A, "user_response", "approve", version="jev-1.14.0",
+        old = _correction_labels(labeler_version="model-a-1.13.0", labeled_at="2026-09-01T00:00:00Z")
+        new = [_label(SESSION_A, "user_response", "approve", version="model-a-1.14.0",
                       labeled_at="2026-09-10T00:00:00Z")]
         ingest_labels(ingested, path=_write_jsonl(tmp_path / "l.jsonl", old + new),
                       questions=questions_file)
@@ -453,8 +453,8 @@ class TestLabelDetectors:
                 ingested.insert_message_facet(MessageFacet(
                     unit_type=LabelUnit.EXCHANGE, session_key=sk,
                     message_key=ingested.message_key_for(sk, f"{sid[0]}-u2"),
-                    facet_id=qid, labeler_kind=LabelerKind.MODEL, labeler="jev",
-                    labeler_version="jev-1.13.0", value_text=value))
+                    facet_id=qid, labeler_kind=LabelerKind.MODEL, labeler="model-a",
+                    labeler_version="model-a-1.13.0", value_text=value))
         run_couch(ingested, include_filesystem=False)
         assert self._findings(ingested, "labeled_correction_recurring") == []
 

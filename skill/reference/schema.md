@@ -518,7 +518,7 @@ written.
 | prompt_version | INTEGER DEFAULT 1 | Question version |
 | options_hash | VARCHAR | sha256 of the ordered `[label, description]` option pairs sent (compact JSON, UTF-8); `ingest.options_hash()` is the recipe. NULL for score questions |
 | labeler_kind | VARCHAR NOT NULL | model, human, rule, key. `key` is planted truth from a synthetic generator -- never a person's judgment |
-| labeler | VARCHAR NOT NULL | Open identity: jev, claude, owner, keyword, synthetic |
+| labeler | VARCHAR NOT NULL | Open identity: a model's name, a person's handle, a rule's name, or `synthetic` for the answer key |
 | labeler_version | VARCHAR | Versioned model id as returned, never an alias |
 | value_text | VARCHAR | Choice answer (a slug) |
 | value_numeric | DOUBLE | Score answer |

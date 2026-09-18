@@ -145,11 +145,11 @@ def test_static_option_hashes_match_the_questions_file(key):
         assert {r["options_hash"] for r in key if r["question_id"] == qid} == {expected}
 
 
-# The same two values are pinned in the labeler's own test suite
-# (typesafe-experiments). The question definitions live in two repos, so a
-# pin on each side is what stops them drifting apart: editing an option
-# label or description here would regenerate a self-consistent key and pass
-# every other test in this file while silently diverging from the labeler.
+# The same two values are pinned in the labeler's own test suite. The
+# question definitions live in two repos, so a pin on each side is what
+# stops them drifting apart: editing an option label or description here
+# would regenerate a self-consistent key and pass every other test in this
+# file while silently diverging from the labeler.
 PINNED_OPTIONS_HASHES = {
     "user_response": "2c0d6dc6116d56bafedefd21d11bbdda9b0bae7be19a3dc9d5ac4c9a6714063b",
     "correction_kind": "7e71ec92adec376de8e13313dfe3a620db8cc57a7611be98a0f814c9586bea4b",
