@@ -740,6 +740,7 @@ def register_label_questions(store: ExperimentStore, path: str | Path) -> int:
 
 def _label_from_row(
     store: ExperimentStore, row: dict, etl_run_id: str,
+    inferred_types: dict[tuple[str, int], FacetOutputType],
 ) -> tuple[MessageFacet | None, str | None]:
     """Validate one label row and build its MessageFacet. Returns
     (facet, None) or (None, reject_reason). Existence of the labeled
@@ -778,6 +779,10 @@ def _label_from_row(
         # is mislabeled -- and a mislabeled model row in the human slice is
         # the contamination the kind column exists to prevent.
         return None, "probability_on_non_model"
+    if labeler_kind == LabelerKind.MODEL and probability is None:
+        # The detectors' probability floor applies to model labels; one
+        # with no probability would otherwise pass it as if certain.
+        return None, "missing_probability"
     if probability is not None and not _is_probability(probability):
         return None, "bad_probability"
     if probabilities is not None and not (
@@ -798,28 +803,30 @@ def _label_from_row(
     if label_source is not None and (
             not isinstance(label_source, str) or len(label_source) > _LABEL_SOURCE_MAX):
         return None, "bad_source"
+    raw_labeled_at = row.get("labeled_at")
+    labeled_at = None
+    if raw_labeled_at is not None:
+        labeled_at = _parse_ts(raw_labeled_at) if isinstance(raw_labeled_at, str) else None
+        if labeled_at is None:
+            return None, "bad_labeled_at"
 
     ft = store.get_facet_type(qid, version)
     value = row.get("value")
-    if ft is None:
-        # No questions file registered this question: register it with the
-        # type inferred from the value and no text -- weaker provenance,
-        # but the label is still typed and attributable.
+    if ft is not None:
+        output_type = ft.output_type
+    elif (qid, version) in inferred_types:
+        output_type = inferred_types[(qid, version)]
+    else:
+        # No questions file defined this question. Infer its type from the
+        # first value seen; it is registered later, and only if a label
+        # using it survives every check.
         if _is_slug(value):
             output_type = FacetOutputType.TEXT
         elif _is_number(value):
             output_type = FacetOutputType.NUMERIC
         else:
             return None, "bad_value"
-        store.register_facet_type(FacetType(
-            facet_id=qid, prompt_version=version,
-            method=FacetMethod.TYPED_MODEL, output_type=output_type,
-            description="Exchange label question (registered from labels; "
-                        "no definition supplied)",
-            record_source=RecordSource.LABEL_INGEST,
-        ))
-    else:
-        output_type = ft.output_type
+        inferred_types[(qid, version)] = output_type
     value_text = value_numeric = None
     if output_type == FacetOutputType.TEXT:
         if not _is_slug(value):
@@ -852,7 +859,7 @@ def _label_from_row(
         confidence=float(confidence) if confidence is not None else None,
         input_content_hash=row.get("input_content_hash"),
         state_truncated=state_truncated,
-        labeled_at=_parse_ts(row.get("labeled_at")),
+        labeled_at=labeled_at,
         label_source=label_source,
         record_source=RecordSource.LABEL_INGEST,
         etl_run_id=etl_run_id,
@@ -900,9 +907,13 @@ def ingest_labels(
     rows_skipped = rows_read - rows_written (existing plus rejected).
     """
     path = Path(path)
-    with store.load_run("ingest_labels", record_source=RecordSource.LABEL_INGEST) as stats:
+    # One transaction for the whole file: a failure part-way leaves no
+    # registered questions and no labels behind.
+    with store.load_run("ingest_labels", record_source=RecordSource.LABEL_INGEST) as stats, \
+            store.transaction():
         questions_registered = (register_label_questions(store, questions)
                                 if questions is not None else 0)
+        inferred_types: dict[tuple[str, int], FacetOutputType] = {}
         rejected: Counter[str] = Counter()
         candidates: list[MessageFacet] = []
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -917,7 +928,7 @@ def ingest_labels(
             if not isinstance(row, dict):
                 rejected["malformed"] += 1
                 continue
-            facet, reason = _label_from_row(store, row, stats.etl_run_id)
+            facet, reason = _label_from_row(store, row, stats.etl_run_id, inferred_types)
             if facet is None:
                 rejected[reason] += 1
             else:
@@ -946,8 +957,18 @@ def ingest_labels(
             else:
                 valid.append(f)
 
-        with store.transaction():
-            stats.rows_written = store.insert_message_facets(valid)
+        for qid, version in sorted({(f.facet_id, f.prompt_version) for f in valid}):
+            if (qid, version) in inferred_types:
+                store.register_facet_type(FacetType(
+                    facet_id=qid, prompt_version=version,
+                    method=FacetMethod.TYPED_MODEL,
+                    output_type=inferred_types[(qid, version)],
+                    description="Exchange label question (registered from "
+                                "labels; no definition supplied)",
+                    record_source=RecordSource.LABEL_INGEST,
+                ))
+                questions_registered += 1
+        stats.rows_written = store.insert_message_facets(valid)
         stats.rows_skipped = stats.rows_read - stats.rows_written
 
     return {

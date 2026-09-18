@@ -604,7 +604,8 @@ SELECT
     MAX(probability) FILTER (WHERE facet_id = 'correction_kind') AS correction_kind_p,
     MAX(value_text) FILTER (WHERE facet_id = 'rule_violated') AS rule_violated,
     MAX(probability) FILTER (WHERE facet_id = 'rule_violated') AS rule_violated_p,
-    MAX(value_numeric) FILTER (WHERE facet_id = 'frustration') AS frustration
+    MAX(value_numeric) FILTER (WHERE facet_id = 'frustration') AS frustration,
+    MAX(labeled_at) AS labeled_at
 FROM latest
 WHERE rn = 1
 GROUP BY message_key, session_key, project_key, context_message_key,

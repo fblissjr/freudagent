@@ -2220,12 +2220,28 @@ class ExperimentStore:
     # counted over distinct replies (entry_uuid) and distinct conversations:
     # a session's conversation is the lowest-id session it shares any
     # message uuid with (itself when it shares none). One hop covers a
-    # resume or fork and its siblings, which all copy the same prefix.
+    # resume or fork and its siblings, which all copy the same prefix. Two
+    # forks of one conversation therefore count once, on purpose: they
+    # share a history, so a correction in each is not independent
+    # recurrence. Evidence lists the sessions that hold the labeled
+    # replies, so a reviewer lands on the reply itself.
+    #
+    # Each labeler's latest label on a reply wins (by labeled_at): when a
+    # newer model version relabels a reply, the older version's answer
+    # stops counting. The probability floor applies to model labels only;
+    # a model label with no probability fails it rather than passing as
+    # certain.
     _LABEL_RECURRENCE_SQL = """
         WITH labeled AS (
             SELECT l.project_key, l.{value_col} AS value, l.labeler_kind,
                    l.labeler, l.session_key, m.entry_uuid
-            FROM v_labeled_exchanges l
+            FROM (
+                SELECT * FROM v_labeled_exchanges
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY message_key, labeler_kind, labeler
+                    ORDER BY labeled_at DESC NULLS LAST,
+                             labeler_version DESC NULLS LAST) = 1
+            ) l
             JOIN fact_message m ON m.message_key = l.message_key
             WHERE {where}
         ),
@@ -2242,7 +2258,7 @@ class ExperimentStore:
         SELECT l.project_key, l.value, l.labeler_kind, l.labeler,
                COUNT(DISTINCT l.entry_uuid) AS replies,
                COUNT(DISTINCT c.conversation_key) AS session_count,
-               LIST(DISTINCT c.conversation_key ORDER BY c.conversation_key)
+               LIST(DISTINCT l.session_key ORDER BY l.session_key)
                    AS session_keys
         FROM labeled l JOIN conversation c USING (session_key)
         GROUP BY l.project_key, l.value, l.labeler_kind, l.labeler
@@ -2261,9 +2277,10 @@ class ExperimentStore:
                 value_col="correction_kind",
                 where="""l.user_response = ?
                          AND l.correction_kind IS NOT NULL
-                         AND COALESCE(l.user_response_p, 1.0) >= ?
-                         AND COALESCE(l.correction_kind_p, 1.0) >= ?"""),
-            [correct_value, min_probability, min_probability, min_sessions],
+                         AND (l.labeler_kind <> ? OR (
+                              l.user_response_p >= ? AND l.correction_kind_p >= ?))"""),
+            [correct_value, LabelerKind.MODEL.value, min_probability, min_probability,
+             min_sessions],
         )
         return [{**r, "correction_kind": r.pop("value")} for r in rows]
 
@@ -2279,8 +2296,8 @@ class ExperimentStore:
                 value_col="rule_violated",
                 where="""l.rule_violated IS NOT NULL
                          AND l.rule_violated <> ?
-                         AND COALESCE(l.rule_violated_p, 1.0) >= ?"""),
-            [none_value, min_probability, min_sessions],
+                         AND (l.labeler_kind <> ? OR l.rule_violated_p >= ?)"""),
+            [none_value, LabelerKind.MODEL.value, min_probability, min_sessions],
         )
         return [{**r, "rule_violated": r.pop("value")} for r in rows]
 

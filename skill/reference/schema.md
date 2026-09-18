@@ -498,7 +498,11 @@ messages with no text (tool-result carriers, `no_text`), meta entries
 (`meta_entry`), compact summaries (`compact_summary`), subagent transcripts
 (`subagent_message`), text the client or a hook wrote (slash-command output,
 `<system-reminder>` injections, interruption markers -- `injected_text`), and
-replies with no assistant turn before them (`no_assistant_turn`).
+replies with no assistant turn before them (`no_assistant_turn`). A model label must
+carry a probability (`missing_probability`), and `labeled_at` must be an ISO 8601
+string when present (`bad_labeled_at`). The whole file loads in one transaction,
+and a question seen only in labels is registered only if a label using it is
+written.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -610,7 +614,7 @@ Indexed on `(stream_key, occurred_at)` and `(event_type)`.
 | `v_tool_error_clusters` | Per-project, per-tool error rates (uses, errors, error_pct, error session keys -- couch's tool-error-cluster detector base) |
 | `v_interruption_hotspots` | Mid-turn user interruptions per project (`[Request interrupted by user...]` messages -- couch's interruption-hotspot detector base) |
 | `v_permission_friction` | Permission denials per project+tool (tool errors whose result text mentions permission/denial -- couch's permission-friction detector base) |
-| `v_labeled_exchanges` | One row per labeled reply per labeler (`labeler_kind`, `labeler`, `labeler_version`), pivoting the exchange questions: `user_response`, `correction_kind`, `rule_violated` (each with its `_p` probability) and `frustration`. Latest question version wins. Base for couch's two label detectors and for calibration joins (model rows against key or human rows on `message_key`) |
+| `v_labeled_exchanges` | One row per labeled reply per labeler (`labeler_kind`, `labeler`, `labeler_version`), pivoting the exchange questions: `user_response`, `correction_kind`, `rule_violated` (each with its `_p` probability) and `frustration`, plus the latest `labeled_at`. Latest question version wins. Keeps one row per labeler version, so versions can be compared; the detectors use only each labeler's latest label on a reply. Base for couch's two label detectors and for calibration joins (model rows against key or human rows on `message_key`) |
 
 The couch views carry no thresholds in the DDL -- `couch.py`'s detectors
 own those, passed as parameters into the store's `query_*` methods.

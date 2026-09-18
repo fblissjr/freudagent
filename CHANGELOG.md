@@ -21,7 +21,10 @@
   fail validation or name messages not in the warehouse are rejected and
   counted by reason, never written; re-running a file writes nothing, and a
   relabel under a new model version is a new row. A probability on a
-  person's, rule's or key's label is refused. An exchange label must land on
+  person's, rule's or key's label is refused, and a model label without one
+  is refused too. A malformed `labeled_at` is a counted rejection, not a
+  crash. The file loads in one transaction, and a question seen only in
+  labels is registered only when a label using it is written. An exchange label must land on
   a typed reply: the ingest itself refuses labels on meta entries, compact
   summaries, subagent transcripts, slash-command output, hook reminders,
   interruption markers and opening prompts, so a labeler's filter bug cannot
@@ -40,6 +43,10 @@
   files: a resumed or forked session repeats earlier entries under its own
   session id, so one reply can be several `fact_message` rows, and a session
   that shares message uuids with another counts as the same conversation.
+  Only each labeler's latest label on a reply counts, so a newer model
+  version's answer replaces the older one's, and a model label with no
+  probability fails the floor instead of passing as certain. Evidence lists
+  the sessions that hold the labeled replies.
 - **Synthetic agent sessions** (`data/synthetic/agent_sessions/`): eighteen
   fictional coding-agent sessions across three repos in Claude Code's own
   directory layout, with subagent transcripts, a dated rule history, and the

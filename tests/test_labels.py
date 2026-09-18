@@ -308,6 +308,9 @@ class TestIngestLabels:
         (_label(SESSION_A, "user_response", "correct", question_version="1.0"), "bad_question"),
         (_label(SESSION_A, "user_response", "correct", options_hash="short"), "bad_hash"),
         (_label(SESSION_A, "frustration", "very"), "bad_value"),
+        (_label(SESSION_A, "user_response", "correct", probability=None), "missing_probability"),
+        (_label(SESSION_A, "user_response", "correct", labeled_at=1758200000), "bad_labeled_at"),
+        (_label(SESSION_A, "user_response", "correct", labeled_at="yesterday"), "bad_labeled_at"),
     ])
     def test_rejects_and_counts_by_reason(self, ingested, tmp_path, questions_file, row, reason):
         stats = ingest_labels(ingested, path=_write_jsonl(tmp_path / "l.jsonl", [row]),
@@ -344,6 +347,13 @@ class TestIngestLabels:
         (label,) = ingested.list_message_facets(facet_id="interrupted")
         assert label.unit_type == LabelUnit.INTERRUPT
         assert label.probability is None
+
+    def test_rejected_rows_register_no_questions(self, ingested, tmp_path):
+        before = len(ingested.list_facet_types())
+        stats = ingest_labels(ingested, path=_write_jsonl(
+            tmp_path / "l.jsonl", [_label(SESSION_A, "novel_question", "x", user="no-such-uuid")]))
+        assert stats["rejected"] == {"unknown_message": 1}
+        assert len(ingested.list_facet_types()) == before
 
     def test_unregistered_question_is_registered_from_the_value(self, ingested, tmp_path):
         stats = ingest_labels(ingested, path=_write_jsonl(
@@ -415,6 +425,33 @@ class TestLabelDetectors:
         run_couch(ingested, include_filesystem=False)
         assert self._findings(ingested, "labeled_correction_recurring") == []
 
+    def test_newer_labeler_version_replaces_the_older(self, ingested, tmp_path, questions_file):
+        """jev-1.13 calls both replies process corrections; jev-1.14, later,
+        calls session A's reply an approval. Only the latest label per
+        labeler counts, so one conversation remains and nothing recurs."""
+        old = _correction_labels(labeler_version="jev-1.13.0", labeled_at="2026-09-01T00:00:00Z")
+        new = [_label(SESSION_A, "user_response", "approve", version="jev-1.14.0",
+                      labeled_at="2026-09-10T00:00:00Z")]
+        ingest_labels(ingested, path=_write_jsonl(tmp_path / "l.jsonl", old + new),
+                      questions=questions_file)
+        run_couch(ingested, include_filesystem=False)
+        assert self._findings(ingested, "labeled_correction_recurring") == []
+
+    def test_model_label_without_probability_does_not_pass_the_floor(self, ingested, questions_file):
+        """The ingest refuses these; the detector must not count one that
+        arrives another way as if it were certain."""
+        register_label_questions(ingested, questions_file)
+        for sid in (SESSION_A, SESSION_B):
+            sk = ingested.session_key_for(RecordSource.TRANSCRIPT_INGEST, sid)
+            for qid, value in (("user_response", "correct"), ("correction_kind", "process")):
+                ingested.insert_message_facet(MessageFacet(
+                    unit_type=LabelUnit.EXCHANGE, session_key=sk,
+                    message_key=ingested.message_key_for(sk, f"{sid[0]}-u2"),
+                    facet_id=qid, labeler_kind=LabelerKind.MODEL, labeler="jev",
+                    labeler_version="jev-1.13.0", value_text=value))
+        run_couch(ingested, include_filesystem=False)
+        assert self._findings(ingested, "labeled_correction_recurring") == []
+
     def test_one_session_is_not_a_pattern(self, ingested, tmp_path, questions_file):
         rows = [r for r in _correction_labels() if r["native_session_id"] == SESSION_A]
         ingest_labels(ingested, path=_write_jsonl(tmp_path / "l.jsonl", rows),
@@ -480,8 +517,23 @@ class TestForkedSessions:
         run_couch(with_fork, include_filesystem=False)
         (f,) = self._findings(with_fork)
         assert f.occurrence_count == 2
-        assert len(f.evidence_session_keys) == 2
+        # Counted as two conversations; evidence names every session that
+        # holds a labeled reply, the resumed copy included.
+        assert len(f.evidence_session_keys) == 3
         assert f.summary.startswith("process: 2 corrective repl(ies) across 2 session(s)")
+
+    def test_evidence_names_the_session_holding_the_reply(self, with_fork, tmp_path, questions_file):
+        """A reply typed only in the resumed file is evidenced by that file,
+        not by the original it continues."""
+        fork_key = with_fork.session_key_for(RecordSource.TRANSCRIPT_INGEST, self.FORK)
+        rows = [r | {"native_session_id": self.FORK} for r in _correction_labels()
+                if r["native_session_id"] == SESSION_A]
+        rows += [r for r in _correction_labels() if r["native_session_id"] == SESSION_B]
+        ingest_labels(with_fork, path=_write_jsonl(tmp_path / "l.jsonl", rows),
+                      questions=questions_file)
+        run_couch(with_fork, include_filesystem=False)
+        (f,) = self._findings(with_fork)
+        assert fork_key in f.evidence_session_keys
 
     @staticmethod
     def _findings(store):
