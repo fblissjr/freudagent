@@ -441,6 +441,53 @@ class TestLabelDetectors:
         assert f.summary.startswith("ask-before-commit:")
 
 
+class TestForkedSessions:
+    """A resumed or forked session copies earlier entries -- same uuid, text
+    and timestamp -- into a new file under its own sessionId. One reply is
+    then two fact_message rows in two sessions, and must still count once."""
+
+    FORK = "ffffffff-0000-0000-0000-00000000000f"
+
+    @pytest.fixture
+    def with_fork(self, tmp_path, store):
+        proj = tmp_path / "projects" / PROJECT_DIR
+        proj.mkdir(parents=True)
+        (proj / f"{SESSION_A}.jsonl").write_text("\n".join(_session_lines(SESSION_A, "2026-06-01")) + "\n")
+        (proj / f"{SESSION_B}.jsonl").write_text("\n".join(_session_lines(SESSION_B, "2026-06-02")) + "\n")
+        copied = [json.dumps({**json.loads(line), "sessionId": self.FORK})
+                  for line in _session_lines(SESSION_A, "2026-06-01")]
+        (proj / f"{self.FORK}.jsonl").write_text("\n".join(copied) + "\n")
+        ingest_transcripts(store, root=tmp_path / "projects")
+        return store
+
+    def _labels_on_both_copies(self):
+        rows = _correction_labels()  # sessions A and B
+        rows += [r | {"native_session_id": self.FORK} for r in rows
+                 if r["native_session_id"] == SESSION_A]
+        return rows
+
+    def test_copy_is_one_reply_in_one_conversation(self, with_fork, tmp_path, questions_file):
+        rows = [r for r in self._labels_on_both_copies() if r["native_session_id"] != SESSION_B]
+        ingest_labels(with_fork, path=_write_jsonl(tmp_path / "l.jsonl", rows),
+                      questions=questions_file)
+        assert with_fork.count_rows("fact_message_facets") == 4  # both copies labeled
+        run_couch(with_fork, include_filesystem=False)
+        assert self._findings(with_fork) == []
+
+    def test_copies_do_not_inflate_counts(self, with_fork, tmp_path, questions_file):
+        ingest_labels(with_fork, path=_write_jsonl(tmp_path / "l.jsonl", self._labels_on_both_copies()),
+                      questions=questions_file)
+        run_couch(with_fork, include_filesystem=False)
+        (f,) = self._findings(with_fork)
+        assert f.occurrence_count == 2
+        assert len(f.evidence_session_keys) == 2
+        assert f.summary.startswith("process: 2 corrective repl(ies) across 2 session(s)")
+
+    @staticmethod
+    def _findings(store):
+        return store.list_findings(finding_type="labeled_correction_recurring")
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------

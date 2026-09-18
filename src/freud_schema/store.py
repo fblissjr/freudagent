@@ -2214,47 +2214,75 @@ class ExperimentStore:
             [min_denials],
         )
 
+    # Forked and resumed sessions copy earlier messages -- same uuid, text
+    # and timestamp -- into a new session file, and message keys are per
+    # session, so one reply can be several fact_message rows. Recurrence is
+    # counted over distinct replies (entry_uuid) and distinct conversations:
+    # a session's conversation is the lowest-id session it shares any
+    # message uuid with (itself when it shares none). One hop covers a
+    # resume or fork and its siblings, which all copy the same prefix.
+    _LABEL_RECURRENCE_SQL = """
+        WITH labeled AS (
+            SELECT l.project_key, l.{value_col} AS value, l.labeler_kind,
+                   l.labeler, l.session_key, m.entry_uuid
+            FROM v_labeled_exchanges l
+            JOIN fact_message m ON m.message_key = l.message_key
+            WHERE {where}
+        ),
+        conversation AS (
+            SELECT a.session_key,
+                   arg_min(sb.session_key, sb.native_session_id) AS conversation_key
+            FROM (SELECT DISTINCT session_key FROM labeled) a
+            JOIN fact_message ma
+              ON ma.session_key = a.session_key AND ma.entry_uuid IS NOT NULL
+            JOIN fact_message mb ON mb.entry_uuid = ma.entry_uuid
+            JOIN fact_session sb ON sb.session_key = mb.session_key
+            GROUP BY a.session_key
+        )
+        SELECT l.project_key, l.value, l.labeler_kind, l.labeler,
+               COUNT(DISTINCT l.entry_uuid) AS replies,
+               COUNT(DISTINCT c.conversation_key) AS session_count,
+               LIST(DISTINCT c.conversation_key ORDER BY c.conversation_key)
+                   AS session_keys
+        FROM labeled l JOIN conversation c USING (session_key)
+        GROUP BY l.project_key, l.value, l.labeler_kind, l.labeler
+        HAVING COUNT(DISTINCT c.conversation_key) >= ?"""
+
     def query_labeled_corrections(
         self, correct_value: str, min_probability: float, min_sessions: int,
     ) -> list[dict]:
         """Per (project, correction kind, labeler): replies labeled as
         corrections, both labels at or above min_probability, recurring
-        across at least min_sessions sessions. Labels with no probability
-        (people, rules, planted keys) pass the probability filter."""
-        return self._fetchall(
-            """SELECT project_key, correction_kind, labeler_kind, labeler,
-                      COUNT(*) AS replies,
-                      COUNT(DISTINCT session_key) AS session_count,
-                      LIST(DISTINCT session_key ORDER BY session_key) AS session_keys
-               FROM v_labeled_exchanges
-               WHERE user_response = ?
-                 AND correction_kind IS NOT NULL
-                 AND COALESCE(user_response_p, 1.0) >= ?
-                 AND COALESCE(correction_kind_p, 1.0) >= ?
-               GROUP BY project_key, correction_kind, labeler_kind, labeler
-               HAVING COUNT(DISTINCT session_key) >= ?""",
+        across at least min_sessions conversations. Labels with no
+        probability (people, rules, planted keys) pass the probability
+        filter. Returns the kind as correction_kind."""
+        rows = self._fetchall(
+            self._LABEL_RECURRENCE_SQL.format(
+                value_col="correction_kind",
+                where="""l.user_response = ?
+                         AND l.correction_kind IS NOT NULL
+                         AND COALESCE(l.user_response_p, 1.0) >= ?
+                         AND COALESCE(l.correction_kind_p, 1.0) >= ?"""),
             [correct_value, min_probability, min_probability, min_sessions],
         )
+        return [{**r, "correction_kind": r.pop("value")} for r in rows]
 
     def query_labeled_rule_violations(
         self, none_value: str, min_probability: float, min_sessions: int,
     ) -> list[dict]:
         """Per (project, rule, labeler): replies labeled as pointing at a
         rule in force, at or above min_probability, recurring across at
-        least min_sessions sessions."""
-        return self._fetchall(
-            """SELECT project_key, rule_violated, labeler_kind, labeler,
-                      COUNT(*) AS replies,
-                      COUNT(DISTINCT session_key) AS session_count,
-                      LIST(DISTINCT session_key ORDER BY session_key) AS session_keys
-               FROM v_labeled_exchanges
-               WHERE rule_violated IS NOT NULL
-                 AND rule_violated <> ?
-                 AND COALESCE(rule_violated_p, 1.0) >= ?
-               GROUP BY project_key, rule_violated, labeler_kind, labeler
-               HAVING COUNT(DISTINCT session_key) >= ?""",
+        least min_sessions conversations. Returns the rule as
+        rule_violated."""
+        rows = self._fetchall(
+            self._LABEL_RECURRENCE_SQL.format(
+                value_col="rule_violated",
+                where="""l.rule_violated IS NOT NULL
+                         AND l.rule_violated <> ?
+                         AND COALESCE(l.rule_violated_p, 1.0) >= ?"""),
             [none_value, min_probability, min_sessions],
         )
+        return [{**r, "rule_violated": r.pop("value")} for r in rows]
 
     # -------------------------------------------------------------------
     # Prior Run Sampling

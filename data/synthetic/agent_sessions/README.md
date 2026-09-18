@@ -66,5 +66,18 @@ no key row names any of them:
 
 `../eval/exchange_rules_history.jsonl` has one row per rule version:
 `project_dir`, `rule_id`, `statement`, `effective_from`, `effective_to` (null
-while in force). Some rules start, change or retire mid-period. A reply dated before a rule took effect is
-keyed `none`, even when it complains about exactly what the rule later covers.
+while in force). Some rules start, change or retire mid-period. A reply dated
+before a rule took effect is keyed `none`, even when it complains about exactly
+what the rule later covers. The rule set for a reply is the one in force on the
+day it was typed.
+
+## Resumed sessions
+
+One ledgerline session is resumed two days later in a new file. As the client
+does, the new file repeats the earlier session's entries (same uuid, text and
+timestamp) under its own `sessionId`, then the conversation continues. A copied
+reply is still one unit: it has one key row per question, under the lower of
+the two session ids, with `copies` set to 2 (1 everywhere else). The replies
+typed after the resume are keyed under the new file's id. Counting recurrence
+by file would report the resumed file as a second session; it is the same
+conversation.

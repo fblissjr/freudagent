@@ -36,6 +36,10 @@
   `labeled_rule_violation_recurring` (replies pointing at the same rule in
   force across 2+ sessions). One finding per labeler; model labels count only
   at or above a probability floor, and every summary names its labeler.
+  Recurrence counts distinct replies and distinct conversations, not rows or
+  files: a resumed or forked session repeats earlier entries under its own
+  session id, so one reply can be several `fact_message` rows, and a session
+  that shares message uuids with another counts as the same conversation.
 - **Synthetic agent sessions** (`data/synthetic/agent_sessions/`): eighteen
   fictional coding-agent sessions across three repos in Claude Code's own
   directory layout, with subagent transcripts, a dated rule history, and the
@@ -44,7 +48,9 @@
   `eval/exchange_questions.jsonl` their definitions, so a labeler can be
   scored before any real session text is used. Some rules start, change or
   retire mid-period, so the same complaint is keyed to a rule in one session
-  and to `none` before the rule existed.
+  and to `none` before the rule existed. One session is resumed in a second
+  file that repeats its entries, so a copied reply is keyed once (`copies`
+  2) and recurrence counting has to treat both files as one conversation.
 
 ### Changed
 

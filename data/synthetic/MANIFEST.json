@@ -13,64 +13,64 @@
       "path": "README.md",
       "format": "markdown",
       "source_system": "corpus metadata",
-      "bytes": 16615,
+      "bytes": 16835,
       "records": null
     },
     {
-      "path": "agent_sessions/-work-acme-docs-site/01cb7d14-c3f4-4fd0-928e-e2676629fcc5.jsonl",
+      "path": "agent_sessions/-work-acme-docs-site/2cada639-deea-46f6-a210-672dde7d7413.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3869,
+      "bytes": 3934,
       "records": 8
     },
     {
-      "path": "agent_sessions/-work-acme-docs-site/2b839b19-b4ae-4030-8211-e98e9a7134d6.jsonl",
+      "path": "agent_sessions/-work-acme-docs-site/4528702a-ccd8-4547-b4f2-6085f69bc4b8.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3865,
+      "bytes": 3875,
       "records": 8
     },
     {
-      "path": "agent_sessions/-work-acme-docs-site/6ea7781b-2cd7-4a02-9292-a259b307735c/subagents/agent-06a5feb2452a6226.jsonl",
+      "path": "agent_sessions/-work-acme-docs-site/8915f67c-3966-47ba-9448-25257e5ba641.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 2200,
+      "bytes": 3870,
+      "records": 8
+    },
+    {
+      "path": "agent_sessions/-work-acme-docs-site/9375b04f-c251-46bc-ab45-2989ff4c0628.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 4326,
+      "records": 9
+    },
+    {
+      "path": "agent_sessions/-work-acme-docs-site/c412d4e9-faf0-4783-b279-ecc89e438c83.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 3864,
+      "records": 8
+    },
+    {
+      "path": "agent_sessions/-work-acme-docs-site/e7a847f6-2c3d-4edb-80b0-9ae731cdb4de/subagents/agent-ae2c9a5c7c2f85d6.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 2198,
       "records": 4
     },
     {
-      "path": "agent_sessions/-work-acme-docs-site/6ea7781b-2cd7-4a02-9292-a259b307735c/subagents/agent-06a5feb2452a6226.meta.json",
+      "path": "agent_sessions/-work-acme-docs-site/e7a847f6-2c3d-4edb-80b0-9ae731cdb4de/subagents/agent-ae2c9a5c7c2f85d6.meta.json",
       "format": "json",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
       "bytes": 113,
       "records": null
     },
     {
-      "path": "agent_sessions/-work-acme-docs-site/6ea7781b-2cd7-4a02-9292-a259b307735c.jsonl",
+      "path": "agent_sessions/-work-acme-docs-site/e7a847f6-2c3d-4edb-80b0-9ae731cdb4de.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3471,
+      "bytes": 3469,
       "records": 7
-    },
-    {
-      "path": "agent_sessions/-work-acme-docs-site/a191b574-ac0b-4be9-a5e6-7709dd4e20f1.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 4327,
-      "records": 9
-    },
-    {
-      "path": "agent_sessions/-work-acme-docs-site/a4348cae-d44c-475b-a4f9-ee643366497d.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3935,
-      "records": 8
-    },
-    {
-      "path": "agent_sessions/-work-acme-docs-site/b26c09bb-4837-4fe9-9a52-f3fe282cc9c5.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3874,
-      "records": 8
     },
     {
       "path": "agent_sessions/-work-acme-ledgerline/11d10d57-c41a-4e2e-a32e-288ef46d6200.jsonl",
@@ -118,7 +118,14 @@
       "path": "agent_sessions/-work-acme-ledgerline/bf74c124-516e-4a35-9e30-85ba1b8e8095.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3331,
+      "bytes": 7102,
+      "records": 14
+    },
+    {
+      "path": "agent_sessions/-work-acme-ledgerline/c72769fa-ad10-4dbe-9ba6-0d397001ed41.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 3329,
       "records": 7
     },
     {
@@ -129,66 +136,66 @@
       "records": 10
     },
     {
-      "path": "agent_sessions/-work-acme-metering-api/06a2795b-6bf8-4741-accc-c3e81df2e577/subagents/agent-62f74ef0e0185f35.jsonl",
+      "path": "agent_sessions/-work-acme-metering-api/79df522c-7d72-4339-8593-c6f8b5fa3697/subagents/agent-b43871dd2e6bc106.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
       "bytes": 2212,
       "records": 4
     },
     {
-      "path": "agent_sessions/-work-acme-metering-api/06a2795b-6bf8-4741-accc-c3e81df2e577/subagents/agent-62f74ef0e0185f35.meta.json",
+      "path": "agent_sessions/-work-acme-metering-api/79df522c-7d72-4339-8593-c6f8b5fa3697/subagents/agent-b43871dd2e6bc106.meta.json",
       "format": "json",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
       "bytes": 113,
       "records": null
     },
     {
-      "path": "agent_sessions/-work-acme-metering-api/06a2795b-6bf8-4741-accc-c3e81df2e577.jsonl",
+      "path": "agent_sessions/-work-acme-metering-api/79df522c-7d72-4339-8593-c6f8b5fa3697.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
       "bytes": 3464,
       "records": 7
     },
     {
-      "path": "agent_sessions/-work-acme-metering-api/0a6cf9b2-d110-42f4-a529-93f4fcf5b64d.jsonl",
+      "path": "agent_sessions/-work-acme-metering-api/86ad450f-5fa9-4618-9bb1-e699c55e924a.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
       "bytes": 5041,
       "records": 10
     },
     {
-      "path": "agent_sessions/-work-acme-metering-api/1eda38ee-467f-4148-b267-f7b00582d51c.jsonl",
+      "path": "agent_sessions/-work-acme-metering-api/8c5e10e3-de50-4603-9db5-ddb730bedac9.jsonl",
       "format": "jsonl",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3764,
-      "records": 8
-    },
-    {
-      "path": "agent_sessions/-work-acme-metering-api/257d5609-0d37-42d2-b8d2-f6880bfdba82.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 4502,
-      "records": 9
-    },
-    {
-      "path": "agent_sessions/-work-acme-metering-api/60e920f2-42be-45b3-8833-3ddcd9046df5.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3920,
-      "records": 8
-    },
-    {
-      "path": "agent_sessions/-work-acme-metering-api/8ff6126a-84bb-4eba-9124-ffc347d8e812.jsonl",
-      "format": "jsonl",
-      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 5850,
+      "bytes": 5851,
       "records": 12
+    },
+    {
+      "path": "agent_sessions/-work-acme-metering-api/911f017b-3988-489e-8512-40678b615276.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 3763,
+      "records": 8
+    },
+    {
+      "path": "agent_sessions/-work-acme-metering-api/d7e9e8f7-0ec7-4704-b8ad-1f42b7439f63.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 3921,
+      "records": 8
+    },
+    {
+      "path": "agent_sessions/-work-acme-metering-api/f2b39e5c-7591-417b-926c-0c27504c9fca.jsonl",
+      "format": "jsonl",
+      "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
+      "bytes": 4501,
+      "records": 9
     },
     {
       "path": "agent_sessions/README.md",
       "format": "markdown",
       "source_system": "coding-agent session transcripts (Claude Code JSONL layout)",
-      "bytes": 3044,
+      "bytes": 3692,
       "records": null
     },
     {
@@ -349,8 +356,8 @@
       "path": "eval/exchange_labels.jsonl",
       "format": "jsonl",
       "source_system": "evaluation ground-truth sets",
-      "bytes": 115872,
-      "records": 191
+      "bytes": 122284,
+      "records": 198
     },
     {
       "path": "eval/exchange_questions.jsonl",

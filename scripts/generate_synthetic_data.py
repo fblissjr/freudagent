@@ -35,6 +35,7 @@ import csv
 import hashlib
 import json
 import random
+import shutil
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -3201,7 +3202,70 @@ def _key_row(native_session_id: str, user_uuid: str, assistant_uuid: str,
         "value": value, "probability": None, "probabilities": None,
         "confidence": None, "input_content_hash": None,
         "state_truncated": False, "labeled_at": SESSIONS_LABELED_AT,
+        "copies": 1,
     }
+
+
+# A resumed session: the client copies the earlier session's entries --
+# same uuid, text and timestamp, under the new file's own sessionId -- into
+# a new file, then the conversation continues there. Planted so recurrence
+# counting has to see one conversation, not two: the copied correction is
+# the same reply, and the new one is a second correction in the same
+# conversation, not a second session. (project, date of the session
+# resumed) -> (resume date, scenario ids added after the copy).
+AGENT_RESUMES = {
+    ("ledgerline", "2026-06-03"): ("2026-06-05", ["test_order", "approve_plain"]),
+}
+
+
+def _write_exchanges(w: _SessionWriter, project: str, scenario_ids: list[str],
+                     traps: set, key_rows: list[dict]) -> None:
+    """Append planted exchanges to a session and their key rows. The rule
+    set is the one in force on the day the reply is typed."""
+    user_response_hash = _session_options_hash(USER_RESPONSE_OPTIONS)
+    correction_kind_hash = _session_options_hash(CORRECTION_KIND_OPTIONS)
+    for i, sid in enumerate(scenario_ids):
+        (_, a_text, tool, reply, response, kind, rule,
+         frustration) = AGENT_SCENARIOS[sid]
+        if tool:
+            assistant_uuid = w.assistant_turn(None, tool, closing=a_text)
+        else:
+            assistant_uuid = w.assistant_turn(a_text, None)
+        # Traps between the assistant turn and the typed reply. They are
+        # user entries, so the last assistant entry before the reply stays
+        # the one the key names.
+        if i == 0 and "command" in traps:
+            w.user_text("<command-name>/cost</command-name>\n"
+                        "<command-message>cost</command-message>\n"
+                        "<command-args></command-args>")
+            w.user_text("<local-command-stdout>Total cost: $0.42"
+                        "</local-command-stdout>")
+        if i == 0 and "reminder" in traps:
+            w.user_text("<system-reminder>\nPostToolUse hook: formatter "
+                        "ran on 1 file.\n</system-reminder>")
+        if i == 1 and "interrupt" in traps:
+            w.user_text("[Request interrupted by user]")
+        if i == 1 and "compact" in traps:
+            w.user_text("This session is being continued from a previous "
+                        "conversation that ran out of context. The summary "
+                        "below covers the earlier portion.",
+                        isCompactSummary=True, isVisibleInTranscriptOnly=True)
+        reply_uuid = w.user_text(reply)
+        day = w.clock.strftime("%Y-%m-%d")
+        in_force = _rules_in_force(project, day)
+        rule_hash = _session_options_hash(
+            [list(r) for r in in_force] + [list(NO_RULE_OPTION)])
+        key_rows.append(_key_row(w.session_id, reply_uuid, assistant_uuid,
+                                 "user_response", response, user_response_hash))
+        if response == "correct":
+            key_rows.append(_key_row(w.session_id, reply_uuid, assistant_uuid,
+                                     "correction_kind", kind, correction_kind_hash))
+        key_rows.append(_key_row(
+            w.session_id, reply_uuid, assistant_uuid, "rule_violated",
+            rule if rule in {rid for rid, _ in in_force} else NO_RULE_OPTION[0],
+            rule_hash))
+        key_rows.append(_key_row(w.session_id, reply_uuid, assistant_uuid,
+                                 "frustration", frustration, None))
 
 
 def write_agent_sessions(out: Path) -> dict:
@@ -3209,8 +3273,12 @@ def write_agent_sessions(out: Path) -> dict:
     question set and the planted answer key. Returns counts."""
     rng = random.Random(SESSIONS_SEED)
     root = out / "agent_sessions"
-    user_response_hash = _session_options_hash(USER_RESPONSE_OPTIONS)
-    correction_kind_hash = _session_options_hash(CORRECTION_KIND_OPTIONS)
+    # Session files are named by random uuids, so a re-run cannot overwrite
+    # them in place: clear the project directories this generator owns
+    # first, or files from an earlier version of the plan linger beside the
+    # new ones. The hand-written README.md at the root is left alone.
+    for cwd in AGENT_PROJECTS.values():
+        shutil.rmtree(root / _encode_project(cwd), ignore_errors=True)
     key_rows: list[dict] = []
     sessions = subagents = 0
 
@@ -3229,52 +3297,7 @@ def write_agent_sessions(out: Path) -> dict:
                             "to these messages unless explicitly asked to.",
                             isMeta=True)
             w.user_text(opening)
-            options = [list(p) for p in _rules_in_force(project, day)] + \
-                [list(NO_RULE_OPTION)]
-            rule_hash = _session_options_hash(options)
-            in_force = {rid for rid, _ in _rules_in_force(project, day)}
-
-            for i, sid in enumerate(scenario_ids):
-                (_, a_text, tool, reply, response, kind, rule,
-                 frustration) = AGENT_SCENARIOS[sid]
-                if tool:
-                    assistant_uuid = w.assistant_turn(
-                        None, tool, closing=a_text)
-                else:
-                    assistant_uuid = w.assistant_turn(a_text, None)
-                # Traps between the assistant turn and the typed reply. They
-                # are user entries, so the last assistant entry before the
-                # reply stays the one the key names.
-                if i == 0 and "command" in traps:
-                    w.user_text("<command-name>/cost</command-name>\n"
-                                "<command-message>cost</command-message>\n"
-                                "<command-args></command-args>")
-                    w.user_text("<local-command-stdout>Total cost: $0.42"
-                                "</local-command-stdout>")
-                if i == 0 and "reminder" in traps:
-                    w.user_text("<system-reminder>\nPostToolUse hook: formatter "
-                                "ran on 1 file.\n</system-reminder>")
-                if i == 1 and "interrupt" in traps:
-                    w.user_text("[Request interrupted by user]")
-                if i == 1 and "compact" in traps:
-                    w.user_text("This session is being continued from a previous "
-                                "conversation that ran out of context. The "
-                                "summary below covers the earlier portion.",
-                                isCompactSummary=True,
-                                isVisibleInTranscriptOnly=True)
-                reply_uuid = w.user_text(reply)
-                key_rows.append(_key_row(session_id, reply_uuid, assistant_uuid,
-                                         "user_response", response,
-                                         user_response_hash))
-                if response == "correct":
-                    key_rows.append(_key_row(session_id, reply_uuid, assistant_uuid,
-                                             "correction_kind", kind,
-                                             correction_kind_hash))
-                key_rows.append(_key_row(
-                    session_id, reply_uuid, assistant_uuid, "rule_violated",
-                    rule if rule in in_force else NO_RULE_OPTION[0], rule_hash))
-                key_rows.append(_key_row(session_id, reply_uuid, assistant_uuid,
-                                         "frustration", frustration, None))
+            _write_exchanges(w, project, scenario_ids, traps, key_rows)
 
             if "subagent" in traps:
                 agent_id = f"{rng.getrandbits(64):016x}"
@@ -3297,6 +3320,28 @@ def write_agent_sessions(out: Path) -> dict:
 
             (proj_dir / f"{session_id}.jsonl").write_bytes(w.lines())
             sessions += 1
+
+            resume = AGENT_RESUMES.get((project, day))
+            if resume:
+                resume_day, more = resume
+                # The copied units stay keyed under the lowest session id
+                # holding them, so draw the resumed id above the original.
+                resumed_id = _uuid(rng)
+                while resumed_id < session_id:
+                    resumed_id = _uuid(rng)
+                r = _SessionWriter(
+                    rng, resumed_id, cwd,
+                    datetime.fromisoformat(f"{resume_day}T10:00:00+00:00"))
+                r.entries = [{**e, "sessionId": resumed_id} for e in w.entries]
+                r.parent = w.parent
+                r.last_assistant = w.last_assistant
+                copied = {e["uuid"] for e in w.entries}
+                for row in key_rows:
+                    if row["user_entry_uuid"] in copied:
+                        row["copies"] = 2
+                _write_exchanges(r, project, more, set(), key_rows)
+                (proj_dir / f"{resumed_id}.jsonl").write_bytes(r.lines())
+                sessions += 1
 
     rules = [{"project_dir": _encode_project(AGENT_PROJECTS[p]), "rule_id": rid,
               "statement": stmt, "effective_from": start, "effective_to": end}

@@ -16,6 +16,8 @@ rule history on disk, rather than trusting the generator that wrote both:
 - the key ingests with nothing rejected, and the label detectors fire on it
 - the ingest refuses a label on every user entry that is not a unit, on
   its own, so a labeler's filter bug cannot put findings on a trap
+- a resumed session's copied replies are keyed once, and recurrence
+  counting treats the resumed file as the same conversation
 """
 
 from __future__ import annotations
@@ -50,14 +52,11 @@ def key() -> list[dict]:
 
 @pytest.fixture(scope="module")
 def transcripts() -> dict[str, dict]:
-    """native_session_id -> {project_dir, day, entries} for root sessions."""
+    """native_session_id -> {project_dir, entries} for root sessions."""
     out = {}
     for proj in sorted(p for p in SESSIONS.iterdir() if p.is_dir()):
         for f in sorted(proj.glob("*.jsonl")):
-            entries = _jsonl(f)
-            out[f.stem] = {"project_dir": proj.name,
-                           "day": entries[0]["timestamp"][:10],
-                           "entries": entries}
+            out[f.stem] = {"project_dir": proj.name, "entries": _jsonl(f)}
     return out
 
 
@@ -114,11 +113,13 @@ def test_rule_violated_matches_rules_in_force(key, transcripts):
     history = _jsonl(CORPUS / "eval" / "exchange_rules_history.jsonl")
     for r in (r for r in key if r["question_id"] == "rule_violated"):
         t = transcripts[r["native_session_id"]]
+        day = next(e["timestamp"][:10] for e in t["entries"]
+                   if e["uuid"] == r["user_entry_uuid"])
         in_force = sorted(
             (h["rule_id"], h["statement"]) for h in history
             if h["project_dir"] == t["project_dir"]
-            and h["effective_from"] <= t["day"]
-            and (h["effective_to"] is None or t["day"] < h["effective_to"]))
+            and h["effective_from"] <= day
+            and (h["effective_to"] is None or day < h["effective_to"]))
         pairs = [list(p) for p in in_force] + [["none", "the reply points at no listed rule"]]
         assert r["value"] in {p[0] for p in pairs}, r
         assert r["options_hash"] == options_hash(pairs), r
@@ -129,6 +130,8 @@ def test_a_correction_before_its_rule_exists_is_keyed_none(key, transcripts):
     took effect; only the later one may point at the rule."""
     reply = "Don't push. I didn't ask you to push anything."
     by_uuid = {e["uuid"]: e for t in transcripts.values() for e in t["entries"]}
+    assert sum(1 for t in transcripts.values() for e in t["entries"]
+               if e["type"] == "user" and e["message"]["content"] == reply) == 2
     values = sorted(r["value"] for r in key
                     if r["question_id"] == "rule_violated"
                     and by_uuid[r["user_entry_uuid"]]["message"]["content"] == reply)
@@ -148,7 +151,7 @@ def test_ingest_refuses_labels_on_every_non_unit_entry(store, key, tmp_path):
     entry the key does not name -- trap entries, opening prompts and all
     subagent entries -- and expect every one refused, none unknown."""
     ingest_transcripts(store, root=SESSIONS)
-    units = {(r["native_session_id"], r["user_entry_uuid"]) for r in key}
+    units = {r["user_entry_uuid"] for r in key}  # a copied unit is a unit in every file
     rows = []
     for f in sorted(SESSIONS.glob("*/*.jsonl")) + sorted(SESSIONS.glob("*/*/subagents/*.jsonl")):
         native = (f.stem if f.parent.name != "subagents"
@@ -157,7 +160,7 @@ def test_ingest_refuses_labels_on_every_non_unit_entry(store, key, tmp_path):
         for e in _jsonl(f):
             if e["type"] == "assistant":
                 last_assistant = e["uuid"]
-            elif e["type"] == "user" and (native, e["uuid"]) not in units:
+            elif e["type"] == "user" and e["uuid"] not in units:
                 rows.append({
                     "unit_type": "exchange", "native_session_id": native,
                     "user_entry_uuid": e["uuid"],
@@ -174,6 +177,46 @@ def test_ingest_refuses_labels_on_every_non_unit_entry(store, key, tmp_path):
     assert set(stats["rejected"]) == {
         "no_text", "meta_entry", "compact_summary", "subagent_message",
         "injected_text", "no_assistant_turn"}
+
+
+def test_resumed_session_copies_are_keyed_once(key, transcripts):
+    """The resumed file repeats the earlier session's entries under its own
+    sessionId. Each copied reply has exactly one key row per question,
+    under the lower of the two session ids, marked copies=2."""
+    holders: dict[str, set[str]] = defaultdict(set)
+    for native, t in transcripts.items():
+        for e in t["entries"]:
+            assert e["sessionId"] == native
+            if e["type"] == "user":
+                holders[e["uuid"]].add(native)
+    copied = {u for u, ids in holders.items() if len(ids) > 1}
+    assert copied, "no resumed session in the corpus"
+    rows = [r for r in key if r["user_entry_uuid"] in copied]
+    assert rows
+    for r in rows:
+        assert r["copies"] == 2
+        assert r["native_session_id"] == min(holders[r["user_entry_uuid"]])
+    per_question = defaultdict(int)
+    for r in rows:
+        per_question[(r["user_entry_uuid"], r["question_id"])] += 1
+    assert set(per_question.values()) == {1}
+    assert all(r["copies"] == 1 for r in key if r["user_entry_uuid"] not in copied)
+
+
+def test_resumed_correction_is_the_same_conversation(store):
+    """ledgerline has process corrections in four conversations, one of
+    them continued in a resumed file that adds a fifth. Counting files
+    instead of conversations would report five sessions."""
+    ingest_transcripts(store, root=SESSIONS)
+    ingest_labels(store, path=KEY, questions=QUESTIONS)
+    run_couch(store, include_filesystem=False)
+    ledger = next(p.project_key for p in store.list_projects()
+                  if p.project_name == "ledgerline")
+    process = [f for f in store.list_findings(
+                   finding_type="labeled_correction_recurring", project_key=ledger)
+               if f.summary.startswith("process:")]
+    assert [f.summary.split(",")[0] for f in process] == [
+        "process: 5 corrective repl(ies) across 4 session(s)"]
 
 
 def test_key_ingests_and_detectors_fire(store):

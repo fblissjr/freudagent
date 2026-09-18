@@ -197,8 +197,8 @@ and `test_citation_graph.py`.
 
 ## Agent sessions and the exchange answer key (`agent_sessions/`, `eval/exchange_*`)
 
-Eighteen sessions across three fictional Acme repositories, in the same
-directory layout Claude Code writes, so `freud-schema ingest transcripts --root
+Eighteen sessions across three fictional Acme repositories, plus one of them
+resumed in a second file, in the same directory layout Claude Code writes, so `freud-schema ingest transcripts --root
 data/synthetic/agent_sessions` reads them unchanged. Every typed reply carries
 a planted answer to the v1 exchange questions -- `user_response`,
 `correction_kind`, `rule_violated`, `frustration` -- and
@@ -219,7 +219,10 @@ rule existed.
 The sessions also carry the entries a typed-reply filter has to skip:
 tool-result carriers, meta entries, slash-command output, hook reminder
 injections, compact summaries, interruption markers and subagent transcripts.
-No key row names one of them. `agent_sessions/README.md` has the details.
+No key row names one of them. The resumed file repeats its original's entries
+under its own session id, as the client does, so a copied reply has to count
+once and the resumed file as the same conversation. `agent_sessions/README.md`
+has the details.
 Guarded by `tests/test_synthetic_sessions.py`.
 
 ## Regeneration
