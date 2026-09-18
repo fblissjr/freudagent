@@ -151,7 +151,7 @@ def _detect_retry_loops(store, etl_run_id) -> int:
     for r in rows:
         _insert(store, etl_run_id, "retry_loop", r["project_key"],
                 f"{r['tool_name']}: {r['loops']} identical-input call loop(s) "
-                f"across {len(r['session_keys'])} session(s), "
+                f"across {r['session_count']} session(s), "
                 f"worst {r['max_attempts']} attempts",
                 r["session_keys"], r["total_attempts"])
     return len(rows)

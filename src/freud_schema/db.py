@@ -9,7 +9,7 @@ Dimensional model (Kimball-style):
   fact_extraction, fact_feedback, fact_trace_feedback, fact_message,
   fact_tool_use, fact_session_facets, fact_message_facets, fact_finding,
   fact_proposal, fact_event.
-- 11 analytical views, meta_schema_version, meta_load_log, meta_key_algorithm.
+- 12 analytical views, meta_schema_version, meta_load_log, meta_key_algorithm.
 
 Key scheme: sha256/32 hash surrogate keys (keys.dimension_key), no
 sequences. Deterministic keys make transcript re-ingestion idempotent.
@@ -534,50 +534,79 @@ SELECT
     COUNT(*) as feedback_count
 FROM fact_feedback
 GROUP BY session_key, skill_key""",
+    # --- Conversations: resumed and forked sessions fold into one ---
+    # Claude Code writes a resumed or forked session as a new file that
+    # repeats the earlier session's entries -- same uuid, text, timestamp
+    # and tool_use ids -- under the new file's own sessionId. Message and
+    # tool-use keys are per session, so each copy is a separate row. A
+    # session's conversation is the lowest-id session it shares any message
+    # uuid with (itself when it shares none, or has no messages -- join it
+    # with COALESCE). One hop covers a resume or fork and its siblings,
+    # which all copy the same prefix. Every detector counts conversations,
+    # and calls and messages once each, through this view.
+    """CREATE OR REPLACE VIEW v_session_conversation AS
+SELECT ma.session_key,
+       arg_min(sb.session_key, sb.native_session_id) AS conversation_key
+FROM fact_message ma
+JOIN fact_message mb ON mb.entry_uuid = ma.entry_uuid
+JOIN fact_session sb ON sb.session_key = mb.session_key
+WHERE ma.entry_uuid IS NOT NULL
+GROUP BY ma.session_key""",
     # --- Couch views: SQL-only finding detectors over the ingested grain ---
     # No thresholds in the DDL: couch.py's detectors own them, passed as
     # parameters into the store's query_* methods. Views use CREATE OR
     # REPLACE so definition changes reach existing databases (IF NOT
-    # EXISTS would silently pin the old definition forever).
+    # EXISTS would silently pin the old definition forever). A tool call
+    # is counted once by tool_use_id and a message once by entry_uuid, so
+    # a resumed session's copies neither inflate counts nor add sessions;
+    # session_keys still lists every session that holds the evidence.
     """CREATE OR REPLACE VIEW v_retry_loops AS
 SELECT
-    project_key, session_key, tool_name,
-    tool_input::VARCHAR as tool_input_text,
-    COUNT(*) as attempts,
-    SUM(CASE WHEN is_error THEN 1 ELSE 0 END) as errors
-FROM fact_tool_use
-GROUP BY project_key, session_key, tool_name, tool_input::VARCHAR""",
+    t.project_key,
+    COALESCE(c.conversation_key, t.session_key) AS conversation_key,
+    t.tool_name,
+    t.tool_input::VARCHAR as tool_input_text,
+    COUNT(DISTINCT COALESCE(t.tool_use_id, t.tool_use_key)) as attempts,
+    COUNT(DISTINCT COALESCE(t.tool_use_id, t.tool_use_key)) FILTER (t.is_error) as errors,
+    LIST(DISTINCT t.session_key ORDER BY t.session_key) as session_keys
+FROM fact_tool_use t
+LEFT JOIN v_session_conversation c ON c.session_key = t.session_key
+GROUP BY t.project_key, COALESCE(c.conversation_key, t.session_key),
+         t.tool_name, t.tool_input::VARCHAR""",
     """CREATE OR REPLACE VIEW v_tool_error_clusters AS
 SELECT
     project_key, tool_name,
-    COUNT(*) as uses,
-    SUM(CASE WHEN is_error THEN 1 ELSE 0 END) as errors,
-    ROUND(100.0 * SUM(CASE WHEN is_error THEN 1 ELSE 0 END) / COUNT(*), 1) as error_pct,
+    COUNT(DISTINCT COALESCE(tool_use_id, tool_use_key)) as uses,
+    COUNT(DISTINCT COALESCE(tool_use_id, tool_use_key)) FILTER (is_error) as errors,
+    ROUND(100.0 * COUNT(DISTINCT COALESCE(tool_use_id, tool_use_key)) FILTER (is_error)
+          / COUNT(DISTINCT COALESCE(tool_use_id, tool_use_key)), 1) as error_pct,
     LIST(DISTINCT session_key) FILTER (is_error) as error_session_keys
 FROM fact_tool_use
 GROUP BY project_key, tool_name""",
     """CREATE OR REPLACE VIEW v_interruption_hotspots AS
 SELECT
-    project_key,
-    COUNT(*) as interruptions,
-    COUNT(DISTINCT session_key) as session_count,
-    LIST(DISTINCT session_key) as session_keys
-FROM fact_message
-WHERE role = 'user' AND content_text LIKE '[Request interrupted by user%'
-GROUP BY project_key""",
+    m.project_key,
+    COUNT(DISTINCT COALESCE(m.entry_uuid, m.message_key)) as interruptions,
+    COUNT(DISTINCT COALESCE(c.conversation_key, m.session_key)) as session_count,
+    LIST(DISTINCT m.session_key) as session_keys
+FROM fact_message m
+LEFT JOIN v_session_conversation c ON c.session_key = m.session_key
+WHERE m.role = 'user' AND m.content_text LIKE '[Request interrupted by user%'
+GROUP BY m.project_key""",
     """CREATE OR REPLACE VIEW v_permission_friction AS
 SELECT
-    project_key, tool_name,
-    COUNT(*) as denials,
-    COUNT(DISTINCT session_key) as session_count,
-    LIST(DISTINCT session_key) as session_keys
-FROM fact_tool_use
-WHERE is_error
-  AND (result_text ILIKE '%permission%'
-       OR result_text ILIKE '%denied%'
-       OR result_text ILIKE '%doesn''t want to proceed%'
-       OR result_text ILIKE '%user rejected%')
-GROUP BY project_key, tool_name""",
+    t.project_key, t.tool_name,
+    COUNT(DISTINCT COALESCE(t.tool_use_id, t.tool_use_key)) as denials,
+    COUNT(DISTINCT COALESCE(c.conversation_key, t.session_key)) as session_count,
+    LIST(DISTINCT t.session_key) as session_keys
+FROM fact_tool_use t
+LEFT JOIN v_session_conversation c ON c.session_key = t.session_key
+WHERE t.is_error
+  AND (t.result_text ILIKE '%permission%'
+       OR t.result_text ILIKE '%denied%'
+       OR t.result_text ILIKE '%doesn''t want to proceed%'
+       OR t.result_text ILIKE '%user rejected%')
+GROUP BY t.project_key, t.tool_name""",
     # --- Label views: one row per labeled reply per labeler ---
     # Pivots the exchange question set (user_response, correction_kind,
     # rule_violated, frustration) so detectors and calibration read one
@@ -722,6 +751,8 @@ ALL_VIEWS: tuple[str, ...] = (
     "v_retry_loops", "v_tool_error_clusters",
     "v_interruption_hotspots", "v_permission_friction",
     "v_labeled_exchanges",
+    # Last: the couch views read it, so it drops after them.
+    "v_session_conversation",
 )
 
 _ALL_DDL: list[str] = _TABLES_DDL + _VIEWS + _INDEXES

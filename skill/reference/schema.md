@@ -36,7 +36,7 @@ MCP server works too if that's what's connected). See
   it came from.
 - **Denormalized fact tables.** Fact tables carry dimension attributes
   (`skill_domain`, `source_path`, etc.) at insert time. Eliminates fact-to-fact joins.
-- **Analytical views.** 11 views replace complex aggregation queries and N+1 patterns.
+- **Analytical views.** 12 views replace complex aggregation queries and N+1 patterns.
 
 ## Key Scheme
 
@@ -611,10 +611,11 @@ Indexed on `(stream_key, occurred_at)` and `(event_type)`.
 | `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
 | `v_skill_feedback_patterns` | Skills with feedback above threshold |
 | `v_session_feedback_count` | Feedback count per session (for HIGH_FEEDBACK sampling) |
-| `v_retry_loops` | Same tool called with the same input repeatedly in one session (attempts + error counts, couch's retry-loop detector base) |
-| `v_tool_error_clusters` | Per-project, per-tool error rates (uses, errors, error_pct, error session keys -- couch's tool-error-cluster detector base) |
-| `v_interruption_hotspots` | Mid-turn user interruptions per project (`[Request interrupted by user...]` messages -- couch's interruption-hotspot detector base) |
-| `v_permission_friction` | Permission denials per project+tool (tool errors whose result text mentions permission/denial -- couch's permission-friction detector base) |
+| `v_session_conversation` | `session_key` -> `conversation_key`: the lowest-id session sharing any message uuid with it. A resumed or forked session repeats earlier entries (same uuids and tool_use ids) under its own session, so this folds the copy into its original. Sessions with no messages are absent -- join with `COALESCE(conversation_key, session_key)`. Every couch detector counts conversations through it |
+| `v_retry_loops` | Same tool called with the same input repeatedly in one conversation, one row per `conversation_key` + tool + input (attempts + error counts, calls counted once by `tool_use_id`; `session_keys` lists the sessions holding them -- couch's retry-loop detector base) |
+| `v_tool_error_clusters` | Per-project, per-tool error rates (uses, errors, error_pct, error session keys; calls counted once by `tool_use_id` -- couch's tool-error-cluster detector base) |
+| `v_interruption_hotspots` | Mid-turn user interruptions per project (`[Request interrupted by user...]` messages, counted once by `entry_uuid`; `session_count` counts conversations -- couch's interruption-hotspot detector base) |
+| `v_permission_friction` | Permission denials per project+tool (tool errors whose result text mentions permission/denial, counted once by `tool_use_id`; `session_count` counts conversations -- couch's permission-friction detector base) |
 | `v_labeled_exchanges` | One row per labeled reply per labeler (`labeler_kind`, `labeler`, `labeler_version`), pivoting the exchange questions: `user_response`, `correction_kind`, `rule_violated` (each with its `_p` probability) and `frustration`, plus the latest `labeled_at`. Latest question version wins. Keeps one row per labeler version, so versions can be compared; the detectors use only each labeler's latest label on a reply. Base for couch's two label detectors and for calibration joins (model rows against key or human rows on `message_key`) |
 
 The couch views carry no thresholds in the DDL -- `couch.py`'s detectors

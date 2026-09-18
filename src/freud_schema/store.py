@@ -2180,7 +2180,9 @@ class ExperimentStore:
                       COUNT(*) as loops,
                       MAX(attempts) as max_attempts,
                       SUM(attempts) as total_attempts,
-                      LIST(DISTINCT session_key) as session_keys
+                      COUNT(DISTINCT conversation_key) as session_count,
+                      list_sort(list_distinct(flatten(LIST(session_keys))))
+                          as session_keys
                FROM v_retry_loops
                WHERE attempts >= ?
                GROUP BY project_key, tool_name""",
@@ -2217,14 +2219,11 @@ class ExperimentStore:
     # Forked and resumed sessions copy earlier messages -- same uuid, text
     # and timestamp -- into a new session file, and message keys are per
     # session, so one reply can be several fact_message rows. Recurrence is
-    # counted over distinct replies (entry_uuid) and distinct conversations:
-    # a session's conversation is the lowest-id session it shares any
-    # message uuid with (itself when it shares none). One hop covers a
-    # resume or fork and its siblings, which all copy the same prefix. Two
-    # forks of one conversation therefore count once, on purpose: they
-    # share a history, so a correction in each is not independent
-    # recurrence. Evidence lists the sessions that hold the labeled
-    # replies, so a reviewer lands on the reply itself.
+    # counted over distinct replies (entry_uuid) and distinct conversations
+    # (v_session_conversation). Two forks of one conversation count once,
+    # on purpose: they share a history, so a correction in each is not
+    # independent recurrence. Evidence lists the sessions that hold the
+    # labeled replies, so a reviewer lands on the reply itself.
     #
     # Each labeler's latest label on a reply wins (by labeled_at): when a
     # newer model version relabels a reply, the older version's answer
@@ -2246,14 +2245,10 @@ class ExperimentStore:
             WHERE {where}
         ),
         conversation AS (
-            SELECT a.session_key,
-                   arg_min(sb.session_key, sb.native_session_id) AS conversation_key
-            FROM (SELECT DISTINCT session_key FROM labeled) a
-            JOIN fact_message ma
-              ON ma.session_key = a.session_key AND ma.entry_uuid IS NOT NULL
-            JOIN fact_message mb ON mb.entry_uuid = ma.entry_uuid
-            JOIN fact_session sb ON sb.session_key = mb.session_key
-            GROUP BY a.session_key
+            SELECT DISTINCT l.session_key,
+                   COALESCE(v.conversation_key, l.session_key) AS conversation_key
+            FROM labeled l
+            LEFT JOIN v_session_conversation v ON v.session_key = l.session_key
         )
         SELECT l.project_key, l.value, l.labeler_kind, l.labeler,
                COUNT(DISTINCT l.entry_uuid) AS replies,

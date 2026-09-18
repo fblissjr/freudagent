@@ -210,3 +210,99 @@ class TestStaleSource:
         doc.write_text("changed")
         run_couch(store, include_filesystem=False)
         assert store.list_findings(finding_type="stale_source") == []
+
+
+class TestResumedSessions:
+    """A resumed or forked session repeats the earlier session's entries --
+    same message uuids and tool_use ids -- under its own session. Findings
+    must come out the same with or without the copy: counted once, the copy
+    in the same conversation, never pushed over a threshold by duplicates."""
+
+    @staticmethod
+    def _build(store, *, with_resume: bool, with_other: bool) -> dict:
+        pkey = store.ensure_project(Project(project_path="/repo/alpha"))
+
+        def session(native):
+            return store.insert_session(Session(
+                native_session_id=native, project_key=pkey,
+                record_source=RecordSource.TRANSCRIPT_INGEST))
+
+        def original_content(skey):
+            store.insert_message(Message(
+                session_key=skey, project_key=pkey, role=MessageRole.USER,
+                entry_uuid="typed-1", content_text="Build it."))
+            for i in range(2):
+                store.insert_message(Message(
+                    session_key=skey, project_key=pkey, role=MessageRole.USER,
+                    entry_uuid=f"int-o{i}", content_text="[Request interrupted by user]"))
+            for i in range(3):  # a retry loop: 3 identical Read calls
+                store.insert_tool_use(ToolUse(
+                    session_key=skey, project_key=pkey, tool_use_id=f"r{i}",
+                    tool_name="Read", tool_input={"file_path": "a.py"},
+                    is_error=True, result_text="File changed"))
+            for i in range(12):  # 12 Bash calls, 3 errors: under the 20-use floor
+                store.insert_tool_use(ToolUse(
+                    session_key=skey, project_key=pkey, tool_use_id=f"b{i}",
+                    tool_name="Bash", tool_input={"command": f"step {i}"},
+                    is_error=i < 3, result_text="exit 1" if i < 3 else "ok"))
+            for i in range(2):  # 2 permission denials
+                store.insert_tool_use(ToolUse(
+                    session_key=skey, project_key=pkey, tool_use_id=f"w{i}",
+                    tool_name="Write", tool_input={"file_path": f"w{i}"}, is_error=True,
+                    result_text="The user doesn't want to proceed with this tool use"))
+
+        keys = {"original": session("sess-o")}
+        original_content(keys["original"])
+        if with_resume:
+            keys["resumed"] = session("sess-r")
+            original_content(keys["resumed"])  # the copied prefix
+        if with_other:
+            other = keys["other"] = session("sess-p")
+            store.insert_message(Message(
+                session_key=other, project_key=pkey, role=MessageRole.USER,
+                entry_uuid="int-p0", content_text="[Request interrupted by user]"))
+            store.insert_tool_use(ToolUse(
+                session_key=other, project_key=pkey, tool_use_id="wp0",
+                tool_name="Write", tool_input={"file_path": "p"}, is_error=True,
+                result_text="The user doesn't want to proceed with this tool use"))
+        return keys
+
+    @staticmethod
+    def _summaries(store) -> dict[str, list[tuple[str, int]]]:
+        out: dict[str, list[tuple[str, int]]] = {}
+        for f in store.list_findings():
+            out.setdefault(f.finding_type, []).append((f.summary, f.occurrence_count))
+        return {k: sorted(v) for k, v in out.items()}
+
+    def test_findings_are_unchanged_by_a_resumed_copy(self, store):
+        from freud_schema.db import connect
+        from freud_schema.store import ExperimentStore
+
+        self._build(store, with_resume=False, with_other=True)
+        run_couch(store, include_filesystem=False)
+        with ExperimentStore(connect(":memory:")) as resumed:
+            keys = self._build(resumed, with_resume=True, with_other=True)
+            run_couch(resumed, include_filesystem=False)
+            assert self._summaries(resumed) == self._summaries(store)
+            # the copy is still named as evidence: it holds the calls too
+            (friction,) = resumed.list_findings(finding_type="permission_friction")
+            assert keys["resumed"] in friction.evidence_session_keys
+        assert {t for t in self._summaries(store)} == {
+            "retry_loop", "interruption_hotspot", "permission_friction"}
+
+    def test_a_copy_cannot_push_a_pattern_over_threshold(self, store):
+        """Alone, the original has 2 interruptions and 12 Bash calls: below
+        both floors. Counting the copy would make 4 and 24, and fire."""
+        self._build(store, with_resume=True, with_other=False)
+        run_couch(store, include_filesystem=False)
+        assert store.list_findings(finding_type="interruption_hotspot") == []
+        assert store.list_findings(finding_type="tool_error_cluster") == []
+        assert store.list_findings(finding_type="permission_friction") == []
+
+    def test_retry_loop_counts_one_conversation(self, store):
+        self._build(store, with_resume=True, with_other=False)
+        run_couch(store, include_filesystem=False)
+        (loop,) = store.list_findings(finding_type="retry_loop")
+        assert loop.summary == ("Read: 1 identical-input call loop(s) across 1 "
+                                "session(s), worst 3 attempts")
+        assert loop.occurrence_count == 3

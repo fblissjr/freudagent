@@ -66,6 +66,18 @@
 - `fact_message.is_compact_summary`: transcript ingest now keeps the client's
   compaction-summary flag instead of storing those entries as ordinary user
   text.
+
+### Fixed
+
+- The four SQL couch detectors (retry loops, tool error clusters,
+  interruption hotspots, permission friction) no longer count a resumed or
+  forked session's copies. Claude Code writes such a session as a new file
+  repeating the earlier entries -- same message uuids and tool_use ids -- so
+  each copy was a second row and a second session, enough to push a pattern
+  over its threshold. Calls now count once by `tool_use_id`, messages once by
+  `entry_uuid`, and sessions as conversations through the new
+  `v_session_conversation` view, which the label detectors share. Evidence
+  still lists every session holding the calls.
   Breaking: schema version 12. Existing warehouses reset and re-ingest.
 
 ## 0.41.1

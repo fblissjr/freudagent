@@ -153,9 +153,10 @@ transcript_ingest, history_jsonl, event_ingest, label_ingest, derived) and `etl_
 | `v_recurring_trace_feedback` | Trace feedback patterns across sessions |
 | `v_skill_feedback_patterns` | Skills with feedback above threshold |
 | `v_session_feedback_count` | Feedback count per session (for HIGH_FEEDBACK sampling) |
-| `v_retry_loops` | Identical-input tool-call loops per session (couch detector base) |
+| `v_session_conversation` | session_key -> conversation_key: folds a resumed or forked session (which repeats earlier entries) into its original; join with COALESCE(conversation_key, session_key) |
+| `v_retry_loops` | Identical-input tool-call loops per conversation (couch detector base) |
 | `v_tool_error_clusters` | Per-project tool error rates (couch detector base) |
-| `v_interruption_hotspots` | Mid-turn user interruptions per project (couch detector base) |
+| `v_interruption_hotspots` | Mid-turn user interruptions per project, counted once per message (couch detector base) |
 | `v_permission_friction` | Permission denials per project+tool (couch detector base) |
 | `v_labeled_exchanges` | One row per labeled reply per labeler: user_response, correction_kind, rule_violated (with probabilities), frustration (couch label-detector and calibration base) |
 

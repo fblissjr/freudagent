@@ -21,7 +21,7 @@ src/freud_schema/
   db.py              - DuckDB schema: 4 SCD-2 dims (tenant-scoped natural keys) + 6
                        registries (incl. dim_tenant, dim_event_type,
                        dim_feedback_origin) + 12 facts (incl. fact_event,
-                       fact_message_facets), 11 views,
+                       fact_message_facets), 12 views,
                        meta_load_log, meta_key_algorithm, meta_schema_version, CHECK
                        constraints, indexes. No sequences.
   tables.py          - Pydantic models + 23 enum classes (single source of truth)
@@ -268,7 +268,7 @@ Schema docs: `.claude/skills/db-query.md`
 - `finding_type` is deliberately NOT an enum: open vocabulary, registry-validated against `dim_finding_type` in the store (new finding types are rows, not code)
 - No FK constraints (DuckDB can't CASCADE anyway) -- existence validated in store layer
 - Fact tables carry denormalized dimension attributes populated at insert time
-- 11 analytical views replace complex aggregation queries (no N+1 patterns); couch views are consumed only through the store's `query_*` methods
+- 12 analytical views replace complex aggregation queries (no N+1 patterns); couch views are consumed only through the store's `query_*` methods
 - Prior run context uses `_SIGNAL_TRACE_TYPES` to filter traces -- only decision_point, dead_end, insight, conclusion, subagent_spawn appear in system prompts. Don't add tool_call/path_taken/path_discarded.
 - Providers: dynamic imports inside `__init__`, raise `ImportError` with install hint
 - `get_provider()` is the only provider factory
